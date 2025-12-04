@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Operation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .is-mono {
+      font-family: monospace;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Операция</p>
+            <p class="subtitle is-7" id="op-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono is-size-7" id="op-id">—</p>
+      <p class="is-size-7" id="op-created">—</p>
+      <p class="is-size-7">Источник: <span id="op-source">—</span></p>
+      <p class="is-size-7">Транзакция: <span id="op-tx">—</span></p>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- DETAILS -->
+    <div class="box">
+      <p class="title is-6">Детали</p>
+      <div id="op-details" class="is-size-7"></div>
+    </div>
+
+    <!-- RAW JSON -->
+    <div class="box">
+      <p class="title is-6">JSON</p>
+      <pre id="op-json" class="is-size-7"></pre>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function assetLabel(code, issuer) {
+    if (!code) return 'XLM';
+    if (issuer) return `${code}-${shorten(issuer)}`;
+    return code;
+  }
+
+  function assetLink(code, issuer) {
+    if (!code || !issuer) return null;
+    return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
+  }
+
+  function accountLink(acc) {
+    return acc ? `/account/${encodeURIComponent(acc)}` : null;
+  }
+
+  function getOpIdFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'operation') {
+      return parts[1];
+    }
+    return null;
+  }
+
+  function showLoading(on) {
+    const loader = document.getElementById('loader');
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(message) {
+    const box = document.getElementById('error-box');
+    const text = document.getElementById('error-text');
+    text.textContent = message;
+    box.classList.remove('is-hidden');
+    const status = document.getElementById('status-label');
+    status.textContent = 'Error';
+    status.classList.remove('is-info');
+    status.classList.add('is-danger');
+  }
+
+  function clearError() {
+    document.getElementById('error-box').classList.add('is-hidden');
+  }
+
+  function setStatusOk() {
+    const status = document.getElementById('status-label');
+    status.textContent = 'OK';
+    status.classList.remove('is-danger');
+    status.classList.add('is-success');
+  }
+
+  function renderDetails(op) {
+    const details = document.getElementById('op-details');
+    details.innerHTML = '';
+
+    const addLine = (label, value) => {
+      const p = document.createElement('p');
+      p.innerHTML = `<strong>${label}:</strong> ${value}`;
+      details.appendChild(p);
+    };
+
+    if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
+      const asset = assetLabel(op.asset_code || op.asset, op.asset_issuer);
+      addLine('Сумма', `${op.amount} ${asset}`);
+      addLine('Получатель', op.to ? `<a href="/account/${op.to}">${shorten(op.to)}</a>` : '—');
+    } else if (op.type === 'create_account') {
+      addLine('Начальный баланс', `${op.starting_balance} XLM`);
+      addLine('Новый аккаунт', `<a href="/account/${op.account}">${shorten(op.account)}</a>`);
+    } else if (op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer') {
+      addLine('Продаём', `${op.amount} ${assetLabel(op.selling_asset_code, op.selling_asset_issuer)}`);
+      addLine('Покупаем', assetLabel(op.buying_asset_code, op.buying_asset_issuer));
+      addLine('Цена', op.price || '—');
+    } else if (op.type === 'change_trust') {
+      addLine('Траст к активу', assetLabel(op.asset_code, op.asset_issuer));
+      addLine('Лимит', op.limit || '—');
+    } else {
+      addLine('Данные', `<pre>${JSON.stringify(op, null, 2)}</pre>`);
+    }
+  }
+
+  async function loadOp() {
+    const opId = getOpIdFromUrl();
+    if (!opId) {
+      showError('Не удалось определить id операции.');
+      return;
+    }
+
+    clearError();
+    showLoading(true);
+
+    try {
+      const res = await fetch(`${horizonBase}/operations/${opId}`);
+      if (!res.ok) {
+        throw new Error(`Horizon error ${res.status}`);
+      }
+      const op = await res.json();
+
+      document.getElementById('op-id').textContent = op.id || opId;
+      document.getElementById('op-type').textContent = op.type || '—';
+      document.getElementById('op-created').textContent = op.created_at || '';
+
+      const srcLink = accountLink(op.source_account);
+      document.getElementById('op-source').innerHTML =
+        srcLink ? `<a class="is-mono" href="${srcLink}">${shorten(op.source_account)}</a>` : (op.source_account || '—');
+
+      const txLink = op.transaction_hash ? `/transaction/${op.transaction_hash}` : null;
+      document.getElementById('op-tx').innerHTML =
+        txLink ? `<a class="is-mono" href="${txLink}">${shorten(op.transaction_hash)}</a>` : '—';
+
+      renderDetails(op);
+      document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
+
+      setStatusOk();
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Не удалось загрузить операцию.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  loadOp();
+</script>
+
+</body>
+</html>

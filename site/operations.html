@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Operations</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .is-mono {
+      font-family: monospace;
+      word-break: break-all;
+    }
+    .op-card {
+      border-left: 3px solid #485fc7;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Операции аккаунта</p>
+            <p class="subtitle is-7" id="account-id">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="box">
+      <p class="title is-6">Фильтры</p>
+      <div class="columns is-multiline is-mobile">
+        <div class="column is-12-mobile is-4-tablet">
+          <label class="label is-size-7">Сумма (25, >25, <1000)</label>
+          <input class="input is-small"
+                 type="text"
+                 id="filter-amount"
+                 placeholder="например >25">
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <label class="label is-size-7">Актив (код)</label>
+          <input class="input is-small"
+                 type="text"
+                 id="filter-asset"
+                 placeholder="USDM">
+        </div>
+        <div class="column is-12-mobile is-4-tablet">
+          <label class="label is-size-7">Тип (+payment, -data, +payment -data)</label>
+          <input class="input is-small"
+                 type="text"
+                 id="filter-type"
+                 placeholder="+payment -data">
+        </div>
+      </div>
+      <p class="help is-danger is-hidden" id="filter-error"></p>
+      <div class="buttons mt-2">
+        <button class="button is-primary is-small" id="btn-apply-filter">
+          Фильтр (загрузить 200)
+        </button>
+        <button class="button is-light is-small" id="btn-clear-filter">
+          Сбросить
+        </button>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- OPERATIONS LIST -->
+    <div id="operations-container">
+      <!-- cards -->
+    </div>
+
+    <div class="has-text-centered mt-4">
+      <button class="button is-link is-light" id="btn-load-more">
+        Загрузить ещё
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function getAccountFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'operations') {
+      return parts[1];
+    }
+    return null;
+  }
+
+  function showLoading(on) {
+    const loader = document.getElementById('loader');
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(message) {
+    const box = document.getElementById('error-box');
+    const text = document.getElementById('error-text');
+    text.textContent = message;
+    box.classList.remove('is-hidden');
+    const status = document.getElementById('status-label');
+    status.textContent = 'Error';
+    status.classList.remove('is-info');
+    status.classList.add('is-danger');
+  }
+
+  function clearError() {
+    document.getElementById('error-box').classList.add('is-hidden');
+  }
+
+  function setStatusOk() {
+    const status = document.getElementById('status-label');
+    status.textContent = 'OK';
+    status.classList.remove('is-danger');
+    status.classList.add('is-success');
+  }
+
+  function formatAmount(val) {
+    return typeof val === 'string' ? val : String(val ?? '');
+  }
+
+  function assetLabel(code, issuer) {
+    if (!code) return 'XLM';
+    if (issuer) return `${code}-${shorten(issuer)}`;
+    return code;
+  }
+
+  function assetLink(code, issuer) {
+    if (!code || !issuer) return null;
+    return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
+  }
+
+  function accountLink(acc) {
+    return acc ? `/account/${encodeURIComponent(acc)}` : null;
+  }
+
+  function parseAmountFilter(value) {
+    if (!value.trim()) return null;
+    const re = /^([<>])?\\s*(\\d+(?:\\.\\d+)?)$/;
+    const m = value.trim().match(re);
+    if (!m) return { error: 'Сумма: используйте числа, опционально с > или <.' };
+    return { op: m[1] || '=', value: parseFloat(m[2]) };
+  }
+
+  function matchesAmount(op, filter) {
+    if (!filter) return true;
+    let matched = false;
+    const visit = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      Object.entries(obj).forEach(([key, val]) => {
+        if (typeof val === 'object') {
+          visit(val);
+          return;
+        }
+        if (typeof val !== 'string') return;
+        if (!/(amount|balance|limit|price|reserve)/i.test(key)) return;
+        if (!/^\\d+(?:\\.\\d+)?$/.test(val)) return;
+        const num = parseFloat(val);
+        if (filter.op === '>' && num > filter.value) matched = true;
+        else if (filter.op === '<' && num < filter.value) matched = true;
+        else if (filter.op === '=' && num === filter.value) matched = true;
+      });
+    };
+    visit(op);
+    return matched;
+  }
+
+  function matchesAsset(op, assetCode) {
+    if (!assetCode) return true;
+    const needle = assetCode.trim().toUpperCase();
+    let found = false;
+    const visit = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      Object.entries(obj).forEach(([key, val]) => {
+        if (typeof val === 'object') {
+          visit(val);
+          return;
+        }
+        if (typeof val !== 'string') return;
+        if (!/(asset|selling|buying)/i.test(key)) return;
+        const upper = val.toUpperCase();
+        if (upper.includes(needle)) found = true;
+      });
+    };
+    visit(op);
+    return found;
+  }
+
+  function matchesType(op, typeTokens) {
+    if (!typeTokens || !typeTokens.length) return true;
+    const opType = (op.type || '').toLowerCase();
+    const plus = typeTokens.filter(t => t.startsWith('+')).map(t => t.slice(1).toLowerCase()).filter(Boolean);
+    const minus = typeTokens.filter(t => t.startsWith('-')).map(t => t.slice(1).toLowerCase()).filter(Boolean);
+
+    if (plus.length && !plus.some(t => opType.includes(t))) return false;
+    if (minus.length && minus.some(t => opType.includes(t))) return false;
+    return true;
+  }
+
+  function applyFilters(list, filters) {
+    return list.filter(op =>
+      matchesAmount(op, filters.amount) &&
+      matchesAsset(op, filters.asset) &&
+      matchesType(op, filters.types)
+    );
+  }
+
+  function renderOperations(list) {
+    const container = document.getElementById('operations-container');
+    container.innerHTML = '';
+
+    if (!list.length) {
+      container.innerHTML = '<p class="has-text-grey">Нет операций по заданным условиям.</p>';
+      return;
+    }
+
+    list.forEach(op => {
+      const box = document.createElement('div');
+      box.className = 'box is-size-7 op-card';
+
+      const header = document.createElement('p');
+      header.innerHTML = `<strong>${op.type || 'operation'}</strong> · ${op.created_at || ''}`;
+      box.appendChild(header);
+
+      const src = document.createElement('p');
+      src.className = 'is-size-7';
+      const srcLink = accountLink(op.source_account);
+      src.innerHTML = `Источник: ${srcLink ? `<a href="${srcLink}" class="is-mono">${shorten(op.source_account)}</a>` : (op.source_account || '—')}`;
+      box.appendChild(src);
+
+      if (op.transaction_hash) {
+        const tx = document.createElement('p');
+        tx.className = 'is-size-7';
+        tx.innerHTML = `Транзакция: <a class="is-mono" href="/transaction/${op.transaction_hash}">${shorten(op.transaction_hash)}</a>`;
+        box.appendChild(tx);
+      }
+
+      const details = document.createElement('div');
+      details.className = 'mt-2';
+
+      if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
+        const amount = formatAmount(op.amount);
+        const asset = assetLabel(op.asset_code || op.asset, op.asset_issuer);
+        const destLink = accountLink(op.to || op.to_muxed || op.to_muxed_id ? op.to : op.to_muxed || op.to_muxed_id : op.to);
+        details.innerHTML = `
+          <div>Сумма: <span class="has-text-weight-semibold">${amount}</span> ${asset}</div>
+          <div>Получатель: ${op.to ? `<a href="/account/${op.to}">${shorten(op.to)}</a>` : '—'}</div>
+        `;
+      } else if (op.type === 'create_account') {
+        details.innerHTML = `
+          <div>Начальный баланс: <span class="has-text-weight-semibold">${formatAmount(op.starting_balance)}</span> XLM</div>
+          <div>Новый аккаунт: <a href="/account/${op.account}">${shorten(op.account)}</a></div>
+        `;
+      } else if (op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer') {
+        const selling = assetLabel(op.selling_asset_code, op.selling_asset_issuer);
+        const buying = assetLabel(op.buying_asset_code, op.buying_asset_issuer);
+        details.innerHTML = `
+          <div>Продаём: <span class="has-text-weight-semibold">${formatAmount(op.amount)}</span> ${selling}</div>
+          <div>Покупаем: ${buying}</div>
+          <div>Цена: ${op.price || '—'}</div>
+        `;
+      } else {
+        details.innerHTML = `<pre>${JSON.stringify(op, null, 2)}</pre>`;
+      }
+
+      box.appendChild(details);
+      container.appendChild(box);
+    });
+  }
+
+  function parseTypeTokens(raw) {
+    if (!raw.trim()) return [];
+    return raw.trim().split(/\\s+/).filter(Boolean);
+  }
+
+  async function fetchOperations(accountId, { cursor = null, limit = 50 } = {}) {
+    const url = new URL(`${horizonBase}/accounts/${accountId}/operations`);
+    url.searchParams.set('order', 'desc');
+    url.searchParams.set('limit', limit);
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      throw new Error(`Horizon error ${res.status}`);
+    }
+    const data = await res.json();
+    return data?._embedded?.records || [];
+  }
+
+  async function main() {
+    const accountId = getAccountFromUrl();
+    const accountEl = document.getElementById('account-id');
+    const filterErrorEl = document.getElementById('filter-error');
+    const loadMoreBtn = document.getElementById('btn-load-more');
+
+    if (!accountId) {
+      showError('Не удалось определить accountId из URL.');
+      return;
+    }
+
+    accountEl.textContent = accountId;
+
+    let operations = [];
+    let nextCursor = null;
+
+    const applyAndRender = (opts = {}) => {
+      const amountFilter = parseAmountFilter(document.getElementById('filter-amount').value);
+      if (amountFilter?.error) {
+        filterErrorEl.textContent = amountFilter.error;
+        filterErrorEl.classList.remove('is-hidden');
+        return;
+      }
+      filterErrorEl.classList.add('is-hidden');
+
+      const filters = {
+        amount: amountFilter,
+        asset: document.getElementById('filter-asset').value.trim().toUpperCase() || null,
+        types: parseTypeTokens(document.getElementById('filter-type').value)
+      };
+      const list = applyFilters(operations, filters);
+      renderOperations(list);
+      if (opts.resetCursor !== undefined) {
+        loadMoreBtn.disabled = !nextCursor;
+      }
+    };
+
+    const loadInitial = async () => {
+      clearError();
+      showLoading(true);
+      try {
+        const batch = await fetchOperations(accountId, { limit: 50 });
+        operations = batch;
+        nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
+        setStatusOk();
+        renderOperations(operations);
+        loadMoreBtn.disabled = !nextCursor;
+      } catch (e) {
+        console.error(e);
+        showError(e.message || 'Неизвестная ошибка при загрузке операций.');
+      } finally {
+        showLoading(false);
+      }
+    };
+
+    loadMoreBtn.addEventListener('click', async () => {
+      if (!nextCursor) {
+        loadMoreBtn.disabled = true;
+        return;
+      }
+      showLoading(true);
+      try {
+        const batch = await fetchOperations(accountId, { cursor: nextCursor, limit: 50 });
+        if (!batch.length) {
+          nextCursor = null;
+          loadMoreBtn.disabled = true;
+        } else {
+          operations = operations.concat(batch);
+          nextCursor = batch[batch.length - 1].paging_token;
+          applyAndRender();
+        }
+      } catch (e) {
+        console.error(e);
+        showError(e.message || 'Не удалось загрузить ещё.');
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    document.getElementById('btn-apply-filter').addEventListener('click', async () => {
+      const amountFilter = parseAmountFilter(document.getElementById('filter-amount').value);
+      if (amountFilter?.error) {
+        filterErrorEl.textContent = amountFilter.error;
+        filterErrorEl.classList.remove('is-hidden');
+        return;
+      }
+      filterErrorEl.classList.add('is-hidden');
+      showLoading(true);
+      try {
+        const batch = await fetchOperations(accountId, { limit: 200 });
+        operations = batch;
+        nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
+        applyAndRender();
+        loadMoreBtn.disabled = !nextCursor;
+      } catch (e) {
+        console.error(e);
+        showError(e.message || 'Не удалось применить фильтр.');
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    document.getElementById('btn-clear-filter').addEventListener('click', () => {
+      document.getElementById('filter-amount').value = '';
+      document.getElementById('filter-asset').value = '';
+      document.getElementById('filter-type').value = '';
+      applyAndRender();
+    });
+
+    await loadInitial();
+  }
+
+  main();
+</script>
+
+</body>
+</html>

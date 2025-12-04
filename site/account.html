@@ -449,7 +449,7 @@
     document.getElementById('btn-transactions').href =
       `${horizonBase}/accounts/${id}/transactions?limit=20&order=desc`;
     document.getElementById('btn-operations').href =
-      `${horizonBase}/accounts/${id}/operations?limit=20&order=desc`;
+      `/operations/${encodeURIComponent(id)}`;
     document.getElementById('btn-effects').href =
       `${horizonBase}/accounts/${id}/effects?limit=20&order=desc`;
     document.getElementById('btn-bsn').href =

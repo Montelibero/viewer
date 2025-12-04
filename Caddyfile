@@ -12,6 +12,16 @@
         file_server
     }
 
+    handle_path /operations/* {
+        rewrite * /operations.html
+        file_server
+    }
+
+    handle_path /operation/* {
+        rewrite * /operation.html
+        file_server
+    }
+
     handle_path /assets/* {
         rewrite * /asset.html
         file_server

@@ -143,21 +143,9 @@
     <!-- BOTTOM ACTIONS -->
     <div class="bottom-actions">
       <div class="buttons">
-        <a class="button is-primary is-fullwidth"
-           id="btn-transactions">
-          Транзакции
-        </a>
-      </div>
-      <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
            id="btn-operations">
           Операции
-        </a>
-      </div>
-      <div class="buttons">
-        <a class="button is-link is-light is-fullwidth"
-           id="btn-effects">
-          История (effects)
         </a>
       </div>
     </div>
@@ -458,23 +446,19 @@
       });
     }
 
-    // Кнопки внизу — пока просто ссылки-заглушки
+    // Внешние ссылки
     const id = account.id;
-    document.getElementById('btn-transactions').href =
-      `${horizonBase}/accounts/${id}/transactions?limit=20&order=desc`;
-    document.getElementById('btn-operations').href =
-      `/operations/${encodeURIComponent(id)}`;
-    document.getElementById('btn-effects').href =
-      `${horizonBase}/accounts/${id}/effects?limit=20&order=desc`;
     document.getElementById('btn-bsn').href =
       `https://bsn.expert/accounts/${id}`;
     document.getElementById('btn-scopuly').href =
       `https://scopuly.com/account/${id}`;
     document.getElementById('btn-stellarchain').href =
       `https://stellarchain.io/accounts/${id}`;
+    document.getElementById('btn-operations').href =
+      `/operations/${encodeURIComponent(id)}`;
 
     // Issued assets
-    loadIssuedAssets(id);
+    loadIssuedAssets(account.id);
   }
 
   async function loadAccount() {

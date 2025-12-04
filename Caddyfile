@@ -12,6 +12,11 @@
         file_server
     }
 
+    handle_path /pool/* {
+        rewrite * /pool.html
+        file_server
+    }
+
     handle {
         file_server
     }

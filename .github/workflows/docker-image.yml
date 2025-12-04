@@ -8,7 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/stellar_viewer
+  IMAGE_NAME: montelibero/stellar_viewer
 
 jobs:
   build-and-push:
@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to GHCR
+      - name: Log in to GitHub Container Registry
         uses: docker/[email protected]
         with:
           registry: ${{ env.REGISTRY }}

@@ -28,6 +28,21 @@
       position: relative;
       margin-top: 2rem;
     }
+    .balance-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 768px) {
+      .balance-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (min-width: 1080px) {
+      .balance-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
   </style>
 </head>
 <body>
@@ -104,20 +119,24 @@
     <div class="box">
       <p class="title is-6">Балансы</p>
 
+      <div id="balance-native" class="mb-3 balance-grid"></div>
+
+      <hr class="my-3">
+
       <p class="subtitle is-7 has-text-weight-semibold mb-1">Ассеты</p>
-      <ul id="balances-assets" class="is-size-7 mb-3">
-        <!-- сюда пойдут ассеты -->
-      </ul>
+      <div id="balance-assets" class="mb-3 balance-grid">
+        <!-- карточки ассетов -->
+      </div>
 
       <p class="subtitle is-7 has-text-weight-semibold mb-1">Пулы</p>
-      <ul id="balances-pools" class="is-size-7 mb-3">
-        <!-- сюда пойдут пуллы -->
-      </ul>
+      <div id="balance-pools" class="mb-3 balance-grid">
+        <!-- карточки пулов -->
+      </div>
 
       <p class="subtitle is-7 has-text-weight-semibold mb-1">Выпущенные ассеты</p>
-      <ul id="balances-issued" class="is-size-7">
-        <!-- сюда пойдут выпущенные ассеты -->
-      </ul>
+      <div id="balance-issued" class="balance-grid">
+        <!-- карточки выпущенных ассетов -->
+      </div>
     </div>
 
     <!-- SIGNERS -->
@@ -161,6 +180,7 @@
 
 <script type="module">
   const horizonBase = 'https://horizon.stellar.org'; // на будущее можно сделать переключатель сети
+  const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
 
   function getAccountIdFromUrl() {
     const path = window.location.pathname; // /account/GD...
@@ -168,7 +188,7 @@
     if (parts.length >= 2 && parts[0] === 'account') {
       return parts[1];
     }
-    return null;
+    return defaultAccountId;
   }
 
   function shorten(str) {
@@ -190,6 +210,34 @@
 
   function accountLink(acc) {
     return acc ? `/account/${encodeURIComponent(acc)}` : null;
+  }
+
+  function createBalanceCard({ title, subtitle = '', amount = '—', meta = '', href = null }) {
+    const card = document.createElement('div');
+    card.className = 'box is-size-7';
+
+    const titleHtml = href
+      ? `<a class="has-text-weight-semibold" href="${href}">${title}</a>`
+      : `<span class="has-text-weight-semibold">${title}</span>`;
+
+    card.innerHTML = `
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p>${titleHtml}</p>
+            ${subtitle ? `<p class="is-size-7 has-text-grey">${subtitle}</p>` : ''}
+          </div>
+        </div>
+        <div class="level-right">
+          <div class="has-text-right is-mono">
+            <p class="has-text-weight-semibold">${amount}</p>
+            ${meta || ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    return card;
   }
 
   const poolMetaCache = new Map();
@@ -239,92 +287,78 @@
   }
 
   function renderBalances(account) {
-    const assetsEl = document.getElementById('balances-assets');
-    const poolsEl = document.getElementById('balances-pools');
+    const nativeEl = document.getElementById('balance-native');
+    const assetsEl = document.getElementById('balance-assets');
+    const poolsEl = document.getElementById('balance-pools');
 
+    nativeEl.innerHTML = '';
     assetsEl.innerHTML = '';
     poolsEl.innerHTML = '';
 
     const balances = account.balances || [];
-    const assets = balances.filter(b => b.asset_type !== 'liquidity_pool_shares');
+    const native = balances.filter(b => b.asset_type === 'native');
+    const assets = balances.filter(b => b.asset_type !== 'native' && b.asset_type !== 'liquidity_pool_shares');
     const pools = balances.filter(b => b.asset_type === 'liquidity_pool_shares');
 
-    if (!assets.length) {
-      assetsEl.textContent = 'Нет ассетов.';
-    } else {
-      assets.forEach(b => {
-        const li = document.createElement('li');
-        li.className = 'mb-2';
-
-        let code = '';
-        if (b.asset_type === 'native') {
-          code = 'XLM';
-        } else {
-          const issuerShort = b.asset_issuer ? shorten(b.asset_issuer) : '—';
-          code = `${b.asset_code || '—'} · ${issuerShort}`;
-        }
-
-        const title = document.createElement('div');
-        if (b.asset_type === 'native') {
-          title.textContent = code;
-        } else {
-          if (b.asset_code && b.asset_issuer) {
-            const link = document.createElement('a');
-            link.href = `/assets/${encodeURIComponent(`${b.asset_code}-${b.asset_issuer}`)}`;
-            link.textContent = code;
-            link.className = 'has-text-weight-semibold';
-            title.appendChild(link);
-          } else {
-            title.textContent = code;
-          }
-        }
-
-        const amount = document.createElement('div');
-        amount.innerHTML = `balance: <span class="has-text-weight-semibold">${b.balance}</span>`;
-        if (b.limit) {
-          amount.innerHTML += `<br><span>limit: ${b.limit}</span>`;
-        }
-
-        li.appendChild(title);
-        li.appendChild(amount);
-        assetsEl.appendChild(li);
+    if (native.length) {
+      const b = native[0];
+      const metaParts = [];
+      if (b.limit) metaParts.push(`limit: ${b.limit}`);
+      const card = createBalanceCard({
+        title: 'XLM',
+        subtitle: 'native',
+        amount: b.balance,
+        meta: metaParts.length ? `<p class="is-size-7">${metaParts.join(' · ')}</p>` : ''
       });
+      nativeEl.appendChild(card);
+    } else {
+      nativeEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет XLM баланса.</p>';
     }
 
-    if (!pools.length) {
-      poolsEl.textContent = 'Нет пуллов.';
-    } else {
-      pools.forEach(b => {
-        const li = document.createElement('li');
-        li.className = 'mb-2';
+    if (assets.length) {
+      assets.forEach(b => {
+        const issuer = b.asset_issuer || '';
+        const assetId = b.asset_code && issuer ? `${b.asset_code}-${issuer}` : null;
+        const extras = [];
+        if (b.limit) extras.push(`limit: ${b.limit}`);
+        if (b.is_authorized === false) extras.push('not authorized');
+        if (b.is_authorized_to_maintain_liabilities === false) extras.push('no maintain liabilities');
+        if (b.is_clawback_enabled) extras.push('clawback enabled');
+        const meta = extras.length
+          ? `<span class="tag is-light is-size-7" title="${extras.join(' • ')}">★ детали</span>`
+          : '';
 
-        const link = document.createElement('a');
-        link.href = `/pool/${encodeURIComponent(b.liquidity_pool_id)}`;
-        link.textContent = `Пул ${shorten(b.liquidity_pool_id)}`;
-        link.className = 'has-text-weight-semibold';
-
-        const subtitle = document.createElement('div');
-        subtitle.className = 'is-size-7';
-        subtitle.textContent = `ID: ${shorten(b.liquidity_pool_id)}`;
-
-        describePool(b.liquidity_pool_id, link, subtitle);
-
-        const amount = document.createElement('div');
-        amount.innerHTML = `balance: <span class="has-text-weight-semibold">${b.balance}</span>`;
-        if (b.limit) {
-          amount.innerHTML += `<br><span>limit: ${b.limit}</span>`;
-        }
-
-        li.appendChild(link);
-        li.appendChild(subtitle);
-        li.appendChild(amount);
-        poolsEl.appendChild(li);
+        const card = createBalanceCard({
+          title: b.asset_code || '—',
+          subtitle: issuer ? `issuer: ${shorten(issuer)}` : '',
+          amount: b.balance,
+          meta,
+          href: assetId ? `/assets/${encodeURIComponent(assetId)}` : null
+        });
+        assetsEl.appendChild(card);
       });
+    } else {
+      assetsEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет trustline-ассетов.</p>';
+    }
+
+    if (pools.length) {
+      pools.forEach(b => {
+        const poolId = b.liquidity_pool_id || '—';
+        const card = createBalanceCard({
+          title: 'Пул ликвидности',
+          subtitle: `ID: ${shorten(poolId)}`,
+          amount: b.balance,
+          href: poolId !== '—' ? `/pool/${encodeURIComponent(poolId)}` : null
+        });
+        poolsEl.appendChild(card);
+      });
+    } else {
+      poolsEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет пулов.</p>';
     }
   }
 
   async function loadIssuedAssets(issuer) {
-    const issuedEl = document.getElementById('balances-issued');
+    const issuedEl = document.getElementById('balance-issued');
     issuedEl.textContent = 'Загрузка…';
     try {
       const res = await fetch(`${horizonBase}/assets?asset_issuer=${encodeURIComponent(issuer)}&limit=200`);
@@ -341,24 +375,19 @@
       }
 
       records.forEach(asset => {
-        const li = document.createElement('li');
-        li.className = 'mb-2';
-
-        const link = document.createElement('a');
-        const id = `${asset.asset_code}-${asset.asset_issuer}`;
-        link.href = `/assets/${encodeURIComponent(id)}`;
-        link.textContent = id;
-        link.className = 'has-text-weight-semibold';
-
-        const amount = document.createElement('div');
-        amount.innerHTML = `supply: <span class="has-text-weight-semibold">${asset.amount}</span>`;
+        const id = asset.asset_code || '—';
+        const extras = [];
         if (typeof asset.num_accounts !== 'undefined') {
-          amount.innerHTML += `<br><span>holders: ${asset.num_accounts}</span>`;
+          extras.push(`holders: ${asset.num_accounts}`);
         }
-
-        li.appendChild(link);
-        li.appendChild(amount);
-        issuedEl.appendChild(li);
+        const card = createBalanceCard({
+          title: id,
+          subtitle: 'issuer: этот аккаунт',
+          amount: asset.amount,
+          meta: extras.length ? `<p class="is-size-7">${extras.join(' · ')}</p>` : '',
+          href: `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
+        });
+        issuedEl.appendChild(card);
       });
     } catch (e) {
       issuedEl.textContent = 'Не удалось загрузить выпущенные ассеты.';

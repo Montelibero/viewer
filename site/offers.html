@@ -76,6 +76,7 @@
 
 <script type="module">
   const horizonBase = 'https://horizon.stellar.org';
+  const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
 
   function shorten(str) {
     if (!str || str.length <= 12) return str;
@@ -128,7 +129,7 @@
     if (parts.length >= 2 && parts[0] === 'offers') {
       return parts[1];
     }
-    return null;
+    return defaultAccountId;
   }
 
   async function fetchOffers(accountId, { cursor = null, limit = 50 } = {}) {

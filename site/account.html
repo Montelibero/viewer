@@ -178,6 +178,43 @@
     return str.slice(0, 4) + '…' + str.slice(-4);
   }
 
+  function formatAssetLabel(asset) {
+    if (!asset || asset === 'native') {
+      return { text: 'XLM', href: null };
+    }
+    const [code, issuer] = asset.split(':');
+    const text = `${code || '—'} · ${issuer ? shorten(issuer) : '—'}`;
+    const href = code && issuer
+      ? `/assets/${encodeURIComponent(`${code}-${issuer}`)}`
+      : null;
+    return { text, href };
+  }
+
+  const poolMetaCache = new Map();
+
+  async function describePool(poolId, linkEl, subtitleEl) {
+    if (poolMetaCache.has(poolId)) {
+      const label = poolMetaCache.get(poolId);
+      if (label) linkEl.textContent = `Пул: ${label}`;
+      return;
+    }
+    try {
+      const res = await fetch(`${horizonBase}/liquidity_pools/${poolId}`);
+      if (!res.ok) throw new Error('load failed');
+      const data = await res.json();
+      const reserves = data?.reserves || [];
+      const labels = reserves.map(r => formatAssetLabel(r.asset).text).filter(Boolean);
+      const label = labels.length ? labels.join(' / ') : shorten(poolId);
+      poolMetaCache.set(poolId, label);
+      linkEl.textContent = `Пул: ${label}`;
+      if (subtitleEl) {
+        subtitleEl.textContent = `ID: ${shorten(poolId)}`;
+      }
+    } catch (e) {
+      poolMetaCache.set(poolId, null);
+    }
+  }
+
   function showLoading(on) {
     const loader = document.getElementById('loader');
     loader.classList.toggle('is-hidden', !on);
@@ -264,6 +301,12 @@
         link.textContent = `Пул ${shorten(b.liquidity_pool_id)}`;
         link.className = 'has-text-weight-semibold';
 
+        const subtitle = document.createElement('div');
+        subtitle.className = 'is-size-7';
+        subtitle.textContent = `ID: ${shorten(b.liquidity_pool_id)}`;
+
+        describePool(b.liquidity_pool_id, link, subtitle);
+
         const amount = document.createElement('div');
         amount.innerHTML = `balance: <span class="has-text-weight-semibold">${b.balance}</span>`;
         if (b.limit) {
@@ -271,6 +314,7 @@
         }
 
         li.appendChild(link);
+        li.appendChild(subtitle);
         li.appendChild(amount);
         poolsEl.appendChild(li);
       });

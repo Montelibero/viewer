@@ -187,7 +187,16 @@
       renderDetails(op);
       document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
 
-      setStatusOk();
+      const status = document.getElementById('status-label');
+      if (op.transaction_successful) {
+        status.textContent = 'Success';
+        status.classList.remove('is-info', 'is-danger');
+        status.classList.add('is-success');
+      } else {
+        status.textContent = 'Failed';
+        status.classList.remove('is-info', 'is-success');
+        status.classList.add('is-danger');
+      }
     } catch (e) {
       console.error(e);
       showError(e.message || 'Не удалось загрузить операцию.');

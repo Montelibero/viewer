@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Asset</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma через CDN -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .is-mono {
+      font-family: monospace;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Asset</p>
+            <p class="subtitle is-7" id="asset-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+
+      <p class="title is-6" id="asset-code">—</p>
+      <p class="is-size-7 is-mono">
+        Issuer:
+        <a id="asset-issuer" href="#" class="is-mono">—</a>
+      </p>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- STATS -->
+    <div class="box">
+      <p class="title is-6">Показатели</p>
+      <ul class="is-size-7">
+        <li>Всего: <span class="has-text-weight-semibold" id="asset-supply">—</span></li>
+        <li>Доступно в пулах: <span id="asset-pools">—</span></li>
+        <li>Доступно в claimable: <span id="asset-claims">—</span></li>
+        <li>Количество пуллов: <span id="asset-num-pools">—</span></li>
+        <li>Claimable balances: <span id="asset-num-claims">—</span></li>
+        <li>Контракты: <span id="asset-num-contracts">—</span></li>
+      </ul>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="box">
+      <p class="title is-6">Аккаунты</p>
+      <ul class="is-size-7">
+        <li>Authorized: <span class="has-text-weight-semibold" id="asset-auth">—</span></li>
+        <li>Authorized to maintain liabilities: <span id="asset-auth-ml">—</span></li>
+        <li>Unauthorized: <span id="asset-unauth">—</span></li>
+      </ul>
+    </div>
+
+    <!-- FLAGS -->
+    <div class="box">
+      <p class="title is-6">Флаги</p>
+      <ul class="is-size-7" id="asset-flags">
+        <!-- flags go here -->
+      </ul>
+    </div>
+
+    <!-- LINKS -->
+    <div class="box">
+      <p class="title is-6">Ссылки</p>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-issuer">
+          Эмитент
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-toml"
+           target="_blank"
+           rel="noreferrer">
+          TOML
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function parseAssetFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean); // ['assets', 'CODE-ISSUER']
+    if (parts.length < 2 || parts[0] !== 'assets') return null;
+    const raw = decodeURIComponent(parts[1]);
+    const idx = raw.indexOf('-');
+    if (idx === -1) return null;
+    const code = raw.slice(0, idx);
+    const issuer = raw.slice(idx + 1);
+    if (!code || !issuer) return null;
+    return { code, issuer };
+  }
+
+  function showLoading(on) {
+    const loader = document.getElementById('loader');
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(message) {
+    const box = document.getElementById('error-box');
+    const text = document.getElementById('error-text');
+    text.textContent = message;
+    box.classList.remove('is-hidden');
+    const status = document.getElementById('status-label');
+    status.textContent = 'Error';
+    status.classList.remove('is-info');
+    status.classList.add('is-danger');
+  }
+
+  function clearError() {
+    document.getElementById('error-box').classList.add('is-hidden');
+  }
+
+  function renderFlags(flags = {}) {
+    const flagsEl = document.getElementById('asset-flags');
+    flagsEl.innerHTML = '';
+    const entries = Object.entries(flags);
+    if (!entries.length) {
+      flagsEl.textContent = 'Нет данных о флагах.';
+      return;
+    }
+    entries.forEach(([key, val]) => {
+      const li = document.createElement('li');
+      li.textContent = `${key}: ${val}`;
+      flagsEl.appendChild(li);
+    });
+  }
+
+  function renderAsset(record) {
+    document.getElementById('asset-code').textContent = record.asset_code;
+    const issuerLink = document.getElementById('asset-issuer');
+    issuerLink.textContent = record.asset_issuer;
+    issuerLink.href = `/account/${encodeURIComponent(record.asset_issuer)}`;
+
+    document.getElementById('asset-type').textContent = record.asset_type || '—';
+
+    document.getElementById('asset-supply').textContent = record.amount ?? '—';
+    document.getElementById('asset-pools').textContent = record.liquidity_pools_amount ?? '—';
+    document.getElementById('asset-claims').textContent = record.claimable_balances_amount ?? '—';
+    document.getElementById('asset-num-pools').textContent = record.num_liquidity_pools ?? '—';
+    document.getElementById('asset-num-claims').textContent = record.num_claimable_balances ?? '—';
+    document.getElementById('asset-num-contracts').textContent = record.num_contracts ?? '—';
+
+    const accounts = record.accounts || {};
+    document.getElementById('asset-auth').textContent = accounts.authorized ?? '—';
+    document.getElementById('asset-auth-ml').textContent = accounts.authorized_to_maintain_liabilities ?? '—';
+    document.getElementById('asset-unauth').textContent = accounts.unauthorized ?? '—';
+
+    renderFlags(record.flags);
+
+    document.getElementById('btn-issuer').href =
+      `/account/${encodeURIComponent(record.asset_issuer)}`;
+
+    const tomlHref = record._links?.toml?.href;
+    const tomlBtn = document.getElementById('btn-toml');
+    if (tomlHref) {
+      tomlBtn.href = tomlHref;
+      tomlBtn.classList.remove('is-static');
+    } else {
+      tomlBtn.href = '#';
+      tomlBtn.classList.add('is-static');
+    }
+
+    document.getElementById('status-label').textContent = 'OK';
+    document.getElementById('status-label').classList.remove('is-danger');
+    document.getElementById('status-label').classList.add('is-success');
+  }
+
+  async function loadAsset() {
+    const asset = parseAssetFromUrl();
+    if (!asset) {
+      showError('Неверный формат asset: ожидается /assets/CODE-ISSUER');
+      return;
+    }
+
+    clearError();
+    showLoading(true);
+
+    try {
+      const url = `${horizonBase}/assets?asset_code=${encodeURIComponent(asset.code)}&asset_issuer=${encodeURIComponent(asset.issuer)}&limit=1`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        throw new Error(`Horizon error ${res.status}`);
+      }
+      const data = await res.json();
+      const record = data?._embedded?.records?.[0];
+      if (!record) {
+        showError('Ассет не найден.');
+        return;
+      }
+      renderAsset(record);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Неизвестная ошибка при загрузке ассета.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  loadAsset();
+</script>
+
+</body>
+</html>

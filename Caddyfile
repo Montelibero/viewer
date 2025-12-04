@@ -12,6 +12,11 @@
         file_server
     }
 
+    handle_path /assets/* {
+        rewrite * /asset.html
+        file_server
+    }
+
     handle_path /pool/* {
         rewrite * /pool.html
         file_server

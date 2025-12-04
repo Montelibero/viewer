@@ -50,10 +50,28 @@
 
       <p class="is-mono account-address" id="account-id">—</p>
 
-      <div class="mt-2">
+      <div class="mt-2 buttons">
         <button class="button is-small is-light" id="copy-btn">
           Скопировать адрес
         </button>
+        <a class="button is-small is-link is-light"
+           id="btn-bsn"
+           target="_blank"
+           rel="noreferrer">
+          BSN.expert
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-scopuly"
+           target="_blank"
+           rel="noreferrer">
+          Scopuly
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-stellarchain"
+           target="_blank"
+           rel="noreferrer">
+          StellarChain
+        </a>
       </div>
 
       <div class="mt-3">
@@ -227,7 +245,7 @@
     // Data
     const dataEl = document.getElementById('data');
     dataEl.innerHTML = '';
-    const dataAttr = account.data_attr || {};
+    const dataAttr = account.data_attr || account.data || {};
     const entries = Object.entries(dataAttr);
     if (!entries.length) {
       dataEl.textContent = 'Нет data-полей.';
@@ -235,20 +253,38 @@
       entries.forEach(([key, value]) => {
         const li = document.createElement('li');
         li.className = 'mb-1';
+
+        const title = document.createElement('strong');
+        title.textContent = key;
+        li.appendChild(title);
+        li.appendChild(document.createElement('br'));
+
         let decoded = '';
         try {
           decoded = atob(value);
         } catch (e) {
           decoded = '[не удалось декодировать base64]';
         }
-        // немного режем длинные значения
-        if (decoded.length > 120) {
-          decoded = decoded.slice(0, 120) + '…';
+
+        const isAccountId = /^G[A-Z2-7]{55}$/.test(decoded);
+        let displayText = decoded;
+        if (!isAccountId && decoded.length > 120) {
+          displayText = decoded.slice(0, 120) + '…';
         }
-        li.innerHTML = `
-          <strong>${key}</strong><br>
-          <code class="is-mono is-size-7">${decoded}</code>
-        `;
+
+        if (isAccountId) {
+          const link = document.createElement('a');
+          link.href = `/account/${encodeURIComponent(decoded)}`;
+          link.textContent = decoded;
+          link.className = 'is-size-7 is-mono';
+          li.appendChild(link);
+        } else {
+          const codeEl = document.createElement('code');
+          codeEl.className = 'is-mono is-size-7';
+          codeEl.textContent = displayText;
+          li.appendChild(codeEl);
+        }
+
         dataEl.appendChild(li);
       });
     }
@@ -261,6 +297,12 @@
       `${horizonBase}/accounts/${id}/operations?limit=20&order=desc`;
     document.getElementById('btn-effects').href =
       `${horizonBase}/accounts/${id}/effects?limit=20&order=desc`;
+    document.getElementById('btn-bsn').href =
+      `https://bsn.expert/accounts/${id}`;
+    document.getElementById('btn-scopuly').href =
+      `https://scopuly.com/account/${id}`;
+    document.getElementById('btn-stellarchain').href =
+      `https://stellarchain.io/accounts/${id}`;
   }
 
   async function loadAccount() {

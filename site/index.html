@@ -24,14 +24,15 @@
 <body>
 <section class="hero is-fullheight">
   <div class="hero-body">
-    <div class="container">
+  <div class="container">
 
-      <!-- Заголовок -->
-      <div class="box">
-        <p class="title is-4">Stellar Viewer</p>
-        <p class="subtitle is-7">
-          Вставь адрес аккаунта <span class="is-mono">G...</span> или хэш транзакции
-          <span class="is-mono">[0-9a-f]{64}</span>. Мы отправим тебя на нужную страницу.
+    <!-- Заголовок -->
+    <div class="box">
+      <p class="title is-4">Stellar Viewer</p>
+      <p class="subtitle is-7">
+        Вставь адрес аккаунта <span class="is-mono">G...</span>, хэш транзакции
+        <span class="is-mono">[0-9a-f]{64}</span> или id операции
+        <span class="is-mono">число</span>. Мы отправим тебя на нужную страницу.
         </p>
 
         <!-- Форма поиска -->
@@ -58,8 +59,27 @@
         <p class="help is-danger is-hidden"
            id="message"></p>
 
+        <!-- История -->
+        <div class="mt-4">
+          <p class="is-size-7 has-text-weight-semibold mb-2">История запросов адресов</p>
+          <ul class="is-size-7" id="history"></ul>
+        </div>
+
+        <!-- Ассеты -->
+        <div class="mt-4">
+          <p class="is-size-7 has-text-weight-semibold mb-2">Результаты ассетов</p>
+          <ul class="is-size-7" id="asset-results"></ul>
+        </div>
+
       </div>
 
+      <div class="has-text-centered mt-4">
+        <a href="https://github.com/Montelibero/viewer"
+           target="_blank"
+           rel="noreferrer">
+          GitHub проекта
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -68,6 +88,15 @@
   const inputEl = document.getElementById('search-input');
   const buttonEl = document.getElementById('search-btn');
   const messageEl = document.getElementById('message');
+  const historyEl = document.getElementById('history');
+  const assetResultsEl = document.getElementById('asset-results');
+  const STORAGE_KEY = 'viewer_account_history';
+  const horizonBase = 'https://horizon.stellar.org';
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
 
   function showMessage(text) {
     if (!text) {
@@ -91,6 +120,109 @@
     return re.test(v);
   }
 
+  function isOperationId(value) {
+    const v = value.trim();
+    const re = /^\\d{12,20}$/; // длинный numeric id
+    return re.test(v);
+  }
+
+  function isAssetCode(value) {
+    const v = value.trim().toUpperCase();
+    const re = /^[A-Z0-9]{3,12}$/;
+    return re.test(v);
+  }
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveHistory(accountId) {
+    const history = loadHistory();
+    const without = history.filter((x) => x !== accountId);
+    const next = [accountId, ...without].slice(0, 10);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    renderHistory(next);
+  }
+
+  function renderHistory(list = loadHistory()) {
+    historyEl.innerHTML = '';
+    if (!list.length) {
+      historyEl.textContent = 'История пуста.';
+      return;
+    }
+    list.forEach((acc) => {
+      const li = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = '/account/' + encodeURIComponent(acc);
+      link.textContent = acc;
+      link.className = 'is-mono';
+      li.appendChild(link);
+      historyEl.appendChild(li);
+    });
+  }
+
+  function clearAssetResults() {
+    assetResultsEl.innerHTML = '';
+  }
+
+  function renderAssetResults(list) {
+    clearAssetResults();
+    if (!list.length) {
+      assetResultsEl.textContent = 'Ничего не найдено.';
+      return;
+    }
+    list.forEach((asset) => {
+      const li = document.createElement('li');
+      li.className = 'mb-1';
+      const issuerShort = shorten(asset.asset_issuer);
+      const link = document.createElement('a');
+      link.href = `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`;
+      link.textContent = `${asset.asset_code} · ${issuerShort}`;
+      link.className = 'is-mono';
+      li.appendChild(link);
+      if (asset._links?.toml?.href) {
+        try {
+          const host = new URL(asset._links.toml.href).hostname;
+          const domain = document.createElement('span');
+          domain.className = 'ml-1 has-text-grey';
+          domain.textContent = `(${host})`;
+          li.appendChild(domain);
+        } catch (_) {
+          // ignore parse errors
+        }
+      }
+      assetResultsEl.appendChild(li);
+    });
+  }
+
+  async function searchAssets(code) {
+    clearAssetResults();
+    showMessage('Ищем ассеты…');
+    try {
+      const url = new URL(`${horizonBase}/assets`);
+      url.searchParams.set('asset_code', code);
+      url.searchParams.set('limit', 10);
+      url.searchParams.set('order', 'desc');
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error(`Horizon error ${res.status}`);
+      const data = await res.json();
+      const records = data?._embedded?.records || [];
+      renderAssetResults(records);
+      showMessage('');
+    } catch (e) {
+      console.error(e);
+      showMessage('Не удалось получить ассеты.');
+    }
+  }
+
   function handleSearch() {
     const raw = inputEl.value || '';
     const trimmed = raw.trim();
@@ -104,6 +236,7 @@
 
     if (isAccount(trimmed)) {
       const accountId = trimmed.toUpperCase();
+      saveHistory(accountId);
       window.location.href = '/account/' + encodeURIComponent(accountId);
       return;
     }
@@ -111,6 +244,17 @@
     if (isTxHash(trimmed)) {
       const txHash = trimmed.toLowerCase();
       window.location.href = '/transaction/' + encodeURIComponent(txHash);
+      return;
+    }
+
+    if (isOperationId(trimmed)) {
+      window.location.href = '/operation/' + encodeURIComponent(trimmed);
+      return;
+    }
+
+    if (isAssetCode(trimmed)) {
+      const code = trimmed.toUpperCase();
+      searchAssets(code);
       return;
     }
 
@@ -130,6 +274,8 @@
       handleSearch();
     }
   });
+
+  renderHistory();
 </script>
 
 </body>

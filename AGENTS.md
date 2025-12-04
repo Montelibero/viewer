@@ -2,7 +2,8 @@
 
 ## Project Structure & Module Organization
 - `site/` holds all static assets; each page is a standalone HTML file with inline ES modules and minimal CSS tweaks layered on top of Bulma 1.0.0 from CDN.
-- `Caddyfile` configures routing so `/account/<id>` rewrites to `account.html` and `/transaction/<hash>` to `transaction.html`; adjust here when adding new pages.
+- Current pages in `site/`: `index.html`, `account.html`, `transaction.html`, `operations.html`, `operation.html`, `asset.html`, and `pool.html`.
+- `Caddyfile` configures routing so `/account/<id>` rewrites to `account.html`, `/transaction/<hash>` to `transaction.html`, `/operations/<id>` to `operations.html`, `/operation/<id>` to `operation.html`, `/assets/<id>` to `asset.html`, and `/pool/<id>` to `pool.html`; adjust here when adding new pages.
 - `docker-compose.yml` runs Caddy with the `site/` directory mounted read-only; volumes `caddy_data` and `caddy_config` store Caddy state.
 
 ## Build, Test, and Development Commands

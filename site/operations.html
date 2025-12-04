@@ -175,7 +175,7 @@
 
   function parseAmountFilter(value) {
     if (!value.trim()) return null;
-    const re = /^([<>])?\\s*(\\d+(?:\\.\\d+)?)$/;
+    const re = /^([<>])?\s*(\d+(?:\.\d+)?)$/;
     const m = value.trim().match(re);
     if (!m) return { error: 'Сумма: используйте числа, опционально с > или <.' };
     return { op: m[1] || '=', value: parseFloat(m[2]) };
@@ -193,7 +193,7 @@
         }
         if (typeof val !== 'string') return;
         if (!/(amount|balance|limit|price|reserve)/i.test(key)) return;
-        if (!/^\\d+(?:\\.\\d+)?$/.test(val)) return;
+        if (!/^\d+(?:\.\d+)?$/.test(val)) return;
         const num = parseFloat(val);
         if (filter.op === '>' && num > filter.value) matched = true;
         else if (filter.op === '<' && num < filter.value) matched = true;
@@ -280,10 +280,11 @@
       if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
         const amount = formatAmount(op.amount);
         const asset = assetLabel(op.asset_code || op.asset, op.asset_issuer);
-        const destLink = accountLink(op.to || op.to_muxed || op.to_muxed_id ? op.to : op.to_muxed || op.to_muxed_id : op.to);
+        const destAccount = op.to_muxed || op.to || op.to_muxed_id;
+        const destLink = accountLink(destAccount);
         details.innerHTML = `
           <div>Сумма: <span class="has-text-weight-semibold">${amount}</span> ${asset}</div>
-          <div>Получатель: ${op.to ? `<a href="/account/${op.to}">${shorten(op.to)}</a>` : '—'}</div>
+          <div>Получатель: ${destLink ? `<a href="${destLink}">${shorten(destAccount)}</a>` : '—'}</div>
         `;
       } else if (op.type === 'create_account') {
         details.innerHTML = `
@@ -309,7 +310,7 @@
 
   function parseTypeTokens(raw) {
     if (!raw.trim()) return [];
-    return raw.trim().split(/\\s+/).filter(Boolean);
+    return raw.trim().split(/\s+/).filter(Boolean);
   }
 
   async function fetchOperations(accountId, { cursor = null, limit = 50 } = {}) {
@@ -363,6 +364,29 @@
       }
     };
 
+    const applyFilterAndReload = async () => {
+      const amountFilter = parseAmountFilter(document.getElementById('filter-amount').value);
+      if (amountFilter?.error) {
+        filterErrorEl.textContent = amountFilter.error;
+        filterErrorEl.classList.remove('is-hidden');
+        return;
+      }
+      filterErrorEl.classList.add('is-hidden');
+      showLoading(true);
+      try {
+        const batch = await fetchOperations(accountId, { limit: 200 });
+        operations = batch;
+        nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
+        applyAndRender();
+        loadMoreBtn.disabled = !nextCursor;
+      } catch (e) {
+        console.error(e);
+        showError(e.message || 'Не удалось применить фильтр.');
+      } finally {
+        showLoading(false);
+      }
+    };
+
     const loadInitial = async () => {
       clearError();
       showLoading(true);
@@ -405,34 +429,23 @@
       }
     });
 
-    document.getElementById('btn-apply-filter').addEventListener('click', async () => {
-      const amountFilter = parseAmountFilter(document.getElementById('filter-amount').value);
-      if (amountFilter?.error) {
-        filterErrorEl.textContent = amountFilter.error;
-        filterErrorEl.classList.remove('is-hidden');
-        return;
-      }
-      filterErrorEl.classList.add('is-hidden');
-      showLoading(true);
-      try {
-        const batch = await fetchOperations(accountId, { limit: 200 });
-        operations = batch;
-        nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
-        applyAndRender();
-        loadMoreBtn.disabled = !nextCursor;
-      } catch (e) {
-        console.error(e);
-        showError(e.message || 'Не удалось применить фильтр.');
-      } finally {
-        showLoading(false);
-      }
-    });
+    document.getElementById('btn-apply-filter').addEventListener('click', applyFilterAndReload);
 
     document.getElementById('btn-clear-filter').addEventListener('click', () => {
       document.getElementById('filter-amount').value = '';
       document.getElementById('filter-asset').value = '';
       document.getElementById('filter-type').value = '';
       applyAndRender();
+    });
+
+    ['filter-amount', 'filter-asset', 'filter-type'].forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyFilterAndReload();
+        }
+      });
     });
 
     await loadInitial();

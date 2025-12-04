@@ -8,32 +8,7 @@
   <!-- Bulma -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-
-  <style>
-    :root {
-      color-scheme: light dark;
-    }
-    body {
-      background: var(--bulma-body-background-color, #f5f5f5);
-      color: var(--bulma-body-color, #0a0a0a);
-    }
-    .section {
-      padding-top: 1.5rem;
-      padding-bottom: 2rem;
-    }
-    .is-mono {
-      font-family: monospace;
-      word-break: break-all;
-    }
-    pre {
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      font-size: 0.8rem;
-    }
-    .box-title {
-      margin-bottom: 0.5rem;
-    }
-  </style>
+  <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
 <section class="section">
@@ -134,6 +109,15 @@
 </section>
 
 <script type="module">
+  const commonBase = (() => {
+    if (window.location.protocol === 'file:') return './common';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/common`;
+    return '/common';
+  })();
+  document.getElementById('common-css').href = `${commonBase}.css`;
+  const { shorten } = await import(`${commonBase}.js`);
+
   const horizonBase = 'https://horizon.stellar.org';
 
   const statusEl = document.getElementById('status-label');
@@ -154,11 +138,6 @@
 
   function clearError() {
     errorBox.classList.add('is-hidden');
-  }
-
-  function shorten(str) {
-    if (!str || str.length <= 12) return str || '';
-    return str.slice(0, 4) + '…' + str.slice(-4);
   }
 
   function getTxHashFromUrl() {

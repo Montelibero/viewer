@@ -8,78 +8,7 @@
   <!-- Bulma через CDN -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-
-  <style>
-    :root {
-      color-scheme: light dark;
-    }
-    body {
-      background: var(--bulma-body-background-color, #f5f5f5);
-      color: var(--bulma-body-color, #0a0a0a);
-    }
-    .account-address {
-      word-break: break-all;
-      font-size: 0.85rem;
-    }
-    .is-mono {
-      font-family: monospace;
-    }
-    .section {
-      padding-top: 1.5rem;
-      padding-bottom: 2rem;
-    }
-    .bottom-actions {
-      position: relative;
-      margin-top: 2rem;
-    }
-    .balance-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 768px) {
-      .balance-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-    @media (min-width: 1080px) {
-      .balance-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-    }
-    .balance-amount {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      flex-wrap: nowrap;
-      white-space: nowrap;
-    }
-    .balance-amount .has-text-weight-semibold {
-      white-space: nowrap;
-    }
-    .balance-meta {
-      flex-shrink: 0;
-    }
-    @media (prefers-color-scheme: dark) {
-      .button.is-light,
-      .tag.is-light {
-        background-color: var(--bulma-scheme-main-ter, #1f1f1f);
-        border-color: var(--bulma-border-strong, #3a3a3a);
-        color: var(--bulma-text, #f5f5f5);
-      }
-      .button.is-light:hover {
-        background-color: var(--bulma-scheme-main, #2a2a2a);
-      }
-      .button.is-light.is-link,
-      .tag.is-light.is-link {
-        color: var(--bulma-link, #7db8ff);
-      }
-      .tag.is-light.is-info {
-        color: var(--bulma-info, #7dd8ff);
-      }
-    }
-  </style>
+  <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
 <section class="section">
@@ -215,6 +144,15 @@
 </section>
 
 <script type="module">
+  const commonBase = (() => {
+    if (window.location.protocol === 'file:') return './common';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/common`;
+    return '/common';
+  })();
+  document.getElementById('common-css').href = `${commonBase}.css`;
+  const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+
   const horizonBase = 'https://horizon.stellar.org'; // на будущее можно сделать переключатель сети
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
 
@@ -225,15 +163,10 @@
       return parts[1];
     }
     // Локальный просмотр файла (file://) — подставляем дефолт для отладки
-    if (window.location.protocol === 'file:' || location.hostname === 'localhost') {
+    if (isLocalLike()) {
       return defaultAccountId;
     }
     return null;
-  }
-
-  function shorten(str) {
-    if (!str || str.length <= 12) return str;
-    return str.slice(0, 4) + '…' + str.slice(-4);
   }
 
   function formatAssetLabel(asset) {

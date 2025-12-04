@@ -8,23 +8,7 @@
   <!-- Bulma через CDN -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
-
-  <style>
-    :root {
-      color-scheme: light dark;
-    }
-    body {
-      background: var(--bulma-body-background-color, #f5f5f5);
-      color: var(--bulma-body-color, #0a0a0a);
-    }
-    .is-mono {
-      font-family: monospace;
-    }
-    .section {
-      padding-top: 1.5rem;
-      padding-bottom: 2rem;
-    }
-  </style>
+  <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
 <section class="section">
@@ -138,16 +122,20 @@
 </section>
 
 <script type="module">
+  const commonBase = (() => {
+    if (window.location.protocol === 'file:') return './common';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/common`;
+    return '/common';
+  })();
+  document.getElementById('common-css').href = `${commonBase}.css`;
+  const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAsset = {
     code: 'USDM',
     issuer: 'GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM'
   };
-
-  function shorten(str) {
-    if (!str || str.length <= 12) return str;
-    return str.slice(0, 4) + '…' + str.slice(-4);
-  }
 
   function parseAssetFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean); // ['assets', 'CODE-ISSUER']
@@ -159,6 +147,19 @@
     const issuer = raw.slice(idx + 1);
     if (!code || !issuer) return null;
     return { code, issuer };
+  }
+
+  function resolveAsset() {
+    const parsed = parseAssetFromUrl();
+    if (parsed) return parsed;
+    if (isLocalLike()) {
+      return defaultAsset;
+    }
+    return null;
+  }
+
+  function buildAssetId(asset) {
+    return `${asset.code}:${asset.issuer}`;
   }
 
   function showLoading(on) {
@@ -238,7 +239,7 @@
   }
 
   async function loadAsset() {
-    const asset = parseAssetFromUrl() || ((window.location.protocol === 'file:' || location.hostname === 'localhost') ? defaultAsset : null);
+    const asset = resolveAsset();
     if (!asset) {
       showError('Неверный формат asset: ожидается /assets/CODE-ISSUER');
       return;
@@ -270,8 +271,43 @@
 
   loadAsset();
 
+  async function fetchAllHolders(asset) {
+    const holders = [];
+    const assetId = buildAssetId(asset);
+    let nextUrl = `${horizonBase}/accounts?asset=${assetId}&limit=200&order=asc`;
+    let lastCursor = null;
+
+    while (nextUrl) {
+      const res = await fetch(nextUrl);
+      if (!res.ok) throw new Error(`Horizon error ${res.status}`);
+
+      const data = await res.json();
+      const records = data?._embedded?.records || [];
+
+      records.forEach(r => {
+        const assetBalance = r.balances.find(b => b.asset_code === asset.code && b.asset_issuer === asset.issuer);
+        holders.push({
+          id: r.id,
+          balance: parseFloat(assetBalance?.balance || 0)
+        });
+      });
+
+      if (!records.length) break;
+
+      const nextHref = data?._links?.next?.href;
+      if (!nextHref) break;
+      const parsed = new URL(nextHref);
+      const cursor = parsed.searchParams.get('cursor');
+      if (!cursor || cursor === lastCursor) break;
+      lastCursor = cursor;
+      nextUrl = `${horizonBase}/accounts?asset=${assetId}&limit=200&order=asc&cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    return holders;
+  }
+
   async function loadHolders() {
-    const asset = parseAssetFromUrl();
+    const asset = resolveAsset();
     if (!asset) return;
 
     const holdersBox = document.getElementById('holders-box');
@@ -281,20 +317,8 @@
     loader.classList.remove('is-hidden');
 
     try {
-      const assetId = `${asset.code}:${asset.issuer}`;
-      const url = `${horizonBase}/accounts?asset=${assetId}&limit=200`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Horizon error ${res.status}`);
-
-      const data = await res.json();
-
-      const holders = data._embedded.records.map(r => {
-        const assetBalance = r.balances.find(b => b.asset_code === asset.code && b.asset_issuer === asset.issuer);
-        return {
-          id: r.id,
-          balance: parseFloat(assetBalance?.balance || 0)
-        };
-      }).sort((a, b) => b.balance - a.balance);
+      const holders = (await fetchAllHolders(asset))
+        .sort((a, b) => b.balance - a.balance);
 
       renderHolders(holders);
     } catch (e) {

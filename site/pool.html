@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Liquidity Pool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma через CDN -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .is-mono {
+      font-family: monospace;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Liquidity Pool</p>
+            <p class="subtitle is-7" id="pool-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono is-size-7" id="pool-id">—</p>
+
+      <div class="mt-3 is-size-7">
+        <p>Fee: <span id="pool-fee">—</span> bps</p>
+        <p>Shares: <span class="has-text-weight-semibold" id="pool-shares">—</span></p>
+        <p>Trustlines: <span id="pool-tl">—</span></p>
+        <p class="is-size-7" id="pool-updated">—</p>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- RESERVES -->
+    <div class="box">
+      <p class="title is-6">Резервы</p>
+      <ul id="reserves" class="is-size-7">
+        <!-- сюда пойдут резервы -->
+      </ul>
+    </div>
+
+    <!-- LINKS -->
+    <div class="box">
+      <p class="title is-6">Horizon</p>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-operations">
+          Операции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-transactions">
+          Транзакции
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function getPoolIdFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'pool') {
+      return parts[1];
+    }
+    return null;
+  }
+
+  function showLoading(on) {
+    const loader = document.getElementById('loader');
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(message) {
+    const box = document.getElementById('error-box');
+    const text = document.getElementById('error-text');
+    text.textContent = message;
+    box.classList.remove('is-hidden');
+    const status = document.getElementById('status-label');
+    status.textContent = 'Error';
+    status.classList.remove('is-info');
+    status.classList.add('is-danger');
+  }
+
+  function clearError() {
+    document.getElementById('error-box').classList.add('is-hidden');
+  }
+
+  function renderReserves(reserves) {
+    const listEl = document.getElementById('reserves');
+    listEl.innerHTML = '';
+
+    if (!reserves?.length) {
+      listEl.textContent = 'Нет резервов.';
+      return;
+    }
+
+    reserves.forEach(r => {
+      const li = document.createElement('li');
+      li.className = 'mb-2';
+
+      let assetLabel = '';
+      if (r.asset === 'native') {
+        assetLabel = 'XLM';
+      } else {
+        const [code, issuer] = r.asset.split(':');
+        const display = `${code || '—'} · ${issuer ? shorten(issuer) : '—'}`;
+        assetLabel = display;
+        if (code && issuer) {
+          const link = document.createElement('a');
+          link.href = `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
+          link.textContent = display;
+          link.className = 'has-text-weight-semibold';
+          li.appendChild(link);
+        }
+      }
+
+      if (!li.childNodes.length) {
+        const strong = document.createElement('strong');
+        strong.textContent = assetLabel;
+        li.appendChild(strong);
+      }
+
+      const amount = document.createElement('div');
+      amount.innerHTML = `amount: <span class="has-text-weight-semibold">${r.amount}</span>`;
+      li.appendChild(amount);
+
+      listEl.appendChild(li);
+    });
+  }
+
+  function renderPool(pool) {
+    document.getElementById('pool-id').textContent = pool.id;
+    document.getElementById('pool-type').textContent = pool.type || '—';
+    document.getElementById('pool-fee').textContent = pool.fee_bp ?? '—';
+    document.getElementById('pool-shares').textContent = pool.total_shares ?? '—';
+    document.getElementById('pool-tl').textContent = pool.total_trustlines ?? '—';
+    document.getElementById('pool-updated').textContent =
+      pool.last_modified_time ? `Updated: ${pool.last_modified_time}` : '';
+
+    document.getElementById('status-label').textContent = 'OK';
+    document.getElementById('status-label').classList.remove('is-danger');
+    document.getElementById('status-label').classList.add('is-success');
+
+    renderReserves(pool.reserves);
+
+    // Horizon links
+    document.getElementById('btn-operations').href =
+      `${horizonBase}/liquidity_pools/${pool.id}/operations?limit=20&order=desc`;
+    document.getElementById('btn-transactions').href =
+      `${horizonBase}/liquidity_pools/${pool.id}/transactions?limit=20&order=desc`;
+  }
+
+  async function loadPool() {
+    const poolId = getPoolIdFromUrl();
+    if (!poolId) {
+      showError('Не удалось определить poolId из URL.');
+      return;
+    }
+
+    clearError();
+    showLoading(true);
+
+    try {
+      const res = await fetch(`${horizonBase}/liquidity_pools/${poolId}`);
+      if (!res.ok) {
+        throw new Error(`Horizon error ${res.status}`);
+      }
+      const data = await res.json();
+      renderPool(data);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Неизвестная ошибка при загрузке пула.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  loadPool();
+</script>
+
+</body>
+</html>

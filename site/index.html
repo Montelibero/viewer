@@ -210,7 +210,7 @@
     try {
       const url = new URL(`${horizonBase}/assets`);
       url.searchParams.set('asset_code', code);
-      url.searchParams.set('limit', 10);
+      url.searchParams.set('limit', 100);
       url.searchParams.set('order', 'desc');
       const res = await fetch(url.toString());
       if (!res.ok) throw new Error(`Horizon error ${res.status}`);

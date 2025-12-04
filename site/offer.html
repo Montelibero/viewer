@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Offer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .is-mono {
+      font-family: monospace;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <div class="mb-4">
+      <a class="button is-small is-light" href="/">На главную</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Offer</p>
+            <p class="subtitle is-7" id="offer-id">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-size-7">
+        Продавец:
+        <span id="seller">—</span>
+      </p>
+      <p class="is-size-7">
+        Последнее обновление: <span id="updated-at">—</span>
+      </p>
+      <p class="is-size-7">
+        Ledger: <span id="ledger">—</span>
+      </p>
+    </div>
+
+    <!-- ERROR -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- DETAILS -->
+    <div class="box">
+      <p class="title is-6">Детали</p>
+      <div id="details" class="is-size-7">
+        —
+      </div>
+    </div>
+
+    <!-- RAW JSON -->
+    <div class="box">
+      <p class="title is-6">Сырой JSON</p>
+      <pre id="raw-json" class="is-size-7 is-mono">—</pre>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  const statusEl = document.getElementById('status-label');
+  const errorBox = document.getElementById('error-box');
+  const errorText = document.getElementById('error-text');
+  const loader = document.getElementById('loader');
+
+  function showLoading(on) {
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBox.classList.remove('is-hidden');
+    statusEl.textContent = 'Ошибка';
+    statusEl.className = 'tag is-danger';
+  }
+
+  function clearError() {
+    errorBox.classList.add('is-hidden');
+  }
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function accountLink(acc, { short = true } = {}) {
+    if (!acc) return '—';
+    const label = short ? shorten(acc) : acc;
+    return `<a class="is-mono" href="/account/${encodeURIComponent(acc)}" title="${acc}">${label}</a>`;
+  }
+
+  function assetLabel(asset) {
+    if (!asset) return '—';
+    if (asset.asset_type === 'native') return 'XLM';
+    const code = asset.asset_code || '—';
+    const issuer = asset.asset_issuer || '';
+    const display = `${code} · ${issuer ? shorten(issuer) : '—'}`;
+    const href = issuer ? `/assets/${encodeURIComponent(`${code}-${issuer}`)}` : null;
+    return href ? `<a href="${href}">${display}</a>` : display;
+  }
+
+  function getOfferIdFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'offer') return parts[1];
+    return null;
+  }
+
+  async function loadOffer(offerId) {
+    clearError();
+    showLoading(true);
+    try {
+      const res = await fetch(`${horizonBase}/offers/${encodeURIComponent(offerId)}`);
+      if (!res.ok) {
+        let detail = `Horizon error ${res.status}`;
+        try {
+          const err = await res.json();
+          if (err?.detail) detail = err.detail;
+        } catch (_) {}
+        throw new Error(detail);
+      }
+      const data = await res.json();
+
+      statusEl.textContent = 'OK';
+      statusEl.className = 'tag is-success';
+
+      document.getElementById('offer-id').textContent = data.id || offerId;
+      document.getElementById('seller').innerHTML = accountLink(data.seller, { short: false });
+      document.getElementById('updated-at').textContent = data.last_modified_time || '—';
+      document.getElementById('ledger').textContent = data.last_modified_ledger || '—';
+
+      const detailsEl = document.getElementById('details');
+      const amount = data.amount || '—';
+      const price = data.price || (data.price_r ? `${data.price_r.n}/${data.price_r.d}` : '—');
+      detailsEl.innerHTML = `
+        <div>Продаём: ${assetLabel(data.selling)}</div>
+        <div>Покупаем: ${assetLabel(data.buying)}</div>
+        <div>Количество: <span class="has-text-weight-semibold">${amount}</span></div>
+        <div>Цена: ${price}</div>
+      `;
+
+      document.getElementById('raw-json').textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Не удалось загрузить оффер.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  const offerId = getOfferIdFromUrl();
+  if (!offerId) {
+    showError('Не удалось определить ID оффера из URL.');
+  } else {
+    loadOffer(offerId);
+  }
+</script>
+
+</body>
+</html>

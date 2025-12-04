@@ -32,6 +32,11 @@
         file_server
     }
 
+    handle_path /offer/* {
+        rewrite * /offer.html
+        file_server
+    }
+
     handle {
         file_server
     }

@@ -370,7 +370,7 @@
 
       const successful = tx.successful;
       statusEl.textContent = successful ? 'Успешно' : 'Неуспешно';
-      statusEl.className = successful ? 'tag is-success' : 'tag is-warning';
+      statusEl.className = successful ? 'tag is-success' : 'tag is-danger';
 
       ledgerEl.textContent = tx.ledger ?? '—';
       createdAtEl.textContent = tx.created_at ?? '—';

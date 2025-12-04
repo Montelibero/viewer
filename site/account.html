@@ -202,7 +202,11 @@
     if (parts.length >= 2 && parts[0] === 'account') {
       return parts[1];
     }
-    return defaultAccountId;
+    // Локальный просмотр файла (file://) — подставляем дефолт для отладки
+    if (window.location.protocol === 'file:' || location.hostname === 'localhost') {
+      return defaultAccountId;
+    }
+    return null;
   }
 
   function shorten(str) {

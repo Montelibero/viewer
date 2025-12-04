@@ -129,7 +129,10 @@
     if (parts.length >= 2 && parts[0] === 'offers') {
       return parts[1];
     }
-    return defaultAccountId;
+    if (window.location.protocol === 'file:' || location.hostname === 'localhost') {
+      return defaultAccountId;
+    }
+    return null;
   }
 
   async function fetchOffers(accountId, { cursor = null, limit = 50 } = {}) {

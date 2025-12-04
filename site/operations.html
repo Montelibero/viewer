@@ -9,8 +9,12 @@
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
 
   <style>
+    :root {
+      color-scheme: light dark;
+    }
     body {
-      background: #f5f5f5;
+      background: var(--bulma-body-background-color, #f5f5f5);
+      color: var(--bulma-body-color, #0a0a0a);
     }
     .section {
       padding-top: 1.5rem;

@@ -43,6 +43,20 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
+    .balance-amount {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+    }
+    .balance-amount .has-text-weight-semibold {
+      white-space: nowrap;
+    }
+    .balance-meta {
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -220,6 +234,8 @@
       ? `<a class="has-text-weight-semibold" href="${href}">${title}</a>`
       : `<span class="has-text-weight-semibold">${title}</span>`;
 
+    const metaHtml = meta ? `<span class="balance-meta">${meta}</span>` : '';
+
     card.innerHTML = `
       <div class="level is-mobile">
         <div class="level-left">
@@ -229,9 +245,9 @@
           </div>
         </div>
         <div class="level-right">
-          <div class="has-text-right is-mono">
-            <p class="has-text-weight-semibold">${amount}</p>
-            ${meta || ''}
+          <div class="has-text-right is-mono balance-amount">
+            <span class="has-text-weight-semibold">${amount}</span>
+            ${metaHtml}
           </div>
         </div>
       </div>
@@ -308,7 +324,7 @@
         title: 'XLM',
         subtitle: 'native',
         amount: b.balance,
-        meta: metaParts.length ? `<p class="is-size-7">${metaParts.join(' · ')}</p>` : ''
+        meta: metaParts.length ? metaParts.join(' · ') : ''
       });
       nativeEl.appendChild(card);
     } else {
@@ -384,7 +400,7 @@
           title: id,
           subtitle: 'issuer: этот аккаунт',
           amount: asset.amount,
-          meta: extras.length ? `<p class="is-size-7">${extras.join(' · ')}</p>` : '',
+          meta: extras.length ? extras.join(' · ') : '',
           href: `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
         });
         issuedEl.appendChild(card);

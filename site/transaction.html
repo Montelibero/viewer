@@ -194,18 +194,33 @@
     return sign + intPart + '.' + frac;
   }
 
-  function describeAsset(asset) {
-    if (!asset) return '—';
-    if (asset.native) return 'XLM (native)';
-    if (asset.credit_alphanum4) {
-      const a = asset.credit_alphanum4;
-      return `${a.asset_code} · ${shorten(a.issuer)}`;
+  function accountLink(acc) {
+    return acc ? `/account/${encodeURIComponent(acc)}` : null;
+  }
+
+  function renderAccount(acc, { short = true } = {}) {
+    if (!acc) return '—';
+    const label = short ? shorten(acc) : acc;
+    const href = accountLink(acc);
+    return href ? `<a class="is-mono" href="${href}">${label}</a>` : label;
+  }
+
+  function assetDetails(asset) {
+    if (!asset) return { label: '—', href: null };
+    if (asset.native) return { label: 'XLM (native)', href: null };
+    const a = asset.credit_alphanum4 || asset.credit_alphanum12;
+    if (a) {
+      return {
+        label: `${a.asset_code} · ${shorten(a.issuer)}`,
+        href: `/assets/${encodeURIComponent(`${a.asset_code}-${a.issuer}`)}`
+      };
     }
-    if (asset.credit_alphanum12) {
-      const a = asset.credit_alphanum12;
-      return `${a.asset_code} · ${shorten(a.issuer)}`;
-    }
-    return JSON.stringify(asset);
+    return { label: JSON.stringify(asset), href: null };
+  }
+
+  function renderAsset(asset) {
+    const { label, href } = assetDetails(asset);
+    return href ? `<a href="${href}">${label}</a>` : label;
   }
 
   function describeMemo(memo) {
@@ -264,15 +279,15 @@
         const dest = inner.destination;
         const asset = inner.asset;
         const amount = formatStroopAmount(inner.amount);
-        mainLine = `Payment ${amount} ${describeAsset(asset)} → ${shorten(dest)}`;
+        mainLine = `Payment ${amount} ${renderAsset(asset)} → ${renderAccount(dest)}`;
         details = `
-          <div>Получатель: <span class="is-mono">${dest}</span></div>
-          <div>Актив: ${describeAsset(asset)}</div>
+          <div>Получатель: ${renderAccount(dest, { short: false })}</div>
+          <div>Актив: ${renderAsset(asset)}</div>
           <div>Сумма (в единицах актива): ${amount}</div>
         `;
       } else if (typeKey === 'manage_sell_offer') {
-        const selling = describeAsset(inner.selling);
-        const buying = describeAsset(inner.buying);
+        const selling = renderAsset(inner.selling);
+        const buying = renderAsset(inner.buying);
         const amount = formatStroopAmount(inner.amount);
         const price = inner.price ? `${inner.price.n}/${inner.price.d}` : '—';
         const offerId = inner.offer_id ?? '0';
@@ -293,7 +308,7 @@
         <p><strong>#${index + 1}</strong> · <span>${mainLine}</span></p>
         <p class="is-size-7 mt-1">
           Источник операции:
-          <span class="is-mono">${opSource || 'по умолчанию (источник транзакции)'}</span>
+          ${opSource ? renderAccount(opSource, { short: false }) : renderAccount(tx.source_account, { short: false })}
         </p>
         <div class="mt-2">${details}</div>
       `;
@@ -359,7 +374,10 @@
 
       ledgerEl.textContent = tx.ledger ?? '—';
       createdAtEl.textContent = tx.created_at ?? '—';
-      sourceAccountEl.textContent = tx.source_account ?? '—';
+      const srcLink = accountLink(tx.source_account);
+      sourceAccountEl.innerHTML = srcLink
+        ? `<a class="is-mono" href="${srcLink}">${tx.source_account}</a>`
+        : (tx.source_account ?? '—');
       opCountEl.textContent = tx.operation_count ?? '—';
       feeChargedEl.textContent = `${formatStroopAmount(tx.fee_charged)} XLM`;
 

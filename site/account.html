@@ -194,6 +194,10 @@
     return { text, href };
   }
 
+  function accountLink(acc) {
+    return acc ? `/account/${encodeURIComponent(acc)}` : null;
+  }
+
   const poolMetaCache = new Map();
 
   async function describePool(poolId, linkEl, subtitleEl) {
@@ -390,9 +394,15 @@
     account.signers.forEach(s => {
       const li = document.createElement('li');
       li.className = 'mb-1';
+
+      const link = accountLink(s.key);
+      const keyLabel = shorten(s.key);
+
       li.innerHTML = `
         <span>${s.type}</span><br>
-        <code class="is-mono is-size-7">${s.key}</code><br>
+        ${link
+          ? `<a class="is-mono is-size-7" href="${link}" title="${s.key}">${keyLabel}</a>`
+          : `<code class="is-mono is-size-7">${s.key}</code>`}<br>
         <span>weight: ${s.weight}</span>
       `;
       signersEl.appendChild(li);

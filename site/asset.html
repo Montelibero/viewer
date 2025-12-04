@@ -69,12 +69,13 @@
     <div class="box">
       <p class="title is-6">Показатели</p>
       <ul class="is-size-7">
-        <li>Всего: <span class="has-text-weight-semibold" id="asset-supply">—</span></li>
+        <li>В обращении (holders): <span class="has-text-weight-semibold" id="asset-circulating">—</span></li>
         <li>Доступно в пулах: <span id="asset-pools">—</span></li>
         <li>Доступно в claimable: <span id="asset-claims">—</span></li>
+        <li>Контракты: <span id="asset-contracts">—</span></li>
         <li>Количество пуллов: <span id="asset-num-pools">—</span></li>
         <li>Claimable balances: <span id="asset-num-claims">—</span></li>
-        <li>Контракты: <span id="asset-num-contracts">—</span></li>
+        <li>Всего эмиссия: <span id="asset-supply">—</span></li>
       </ul>
     </div>
 
@@ -120,6 +121,10 @@
 
 <script type="module">
   const horizonBase = 'https://horizon.stellar.org';
+  const defaultAsset = {
+    code: 'USDM',
+    issuer: 'GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM'
+  };
 
   function shorten(str) {
     if (!str || str.length <= 12) return str;
@@ -181,12 +186,13 @@
 
     document.getElementById('asset-type').textContent = record.asset_type || '—';
 
+    document.getElementById('asset-circulating').textContent = record.balances?.authorized ?? '—';
     document.getElementById('asset-supply').textContent = record.amount ?? '—';
     document.getElementById('asset-pools').textContent = record.liquidity_pools_amount ?? '—';
     document.getElementById('asset-claims').textContent = record.claimable_balances_amount ?? '—';
+    document.getElementById('asset-contracts').textContent = record.contracts_amount ?? record.num_contracts ?? '—';
     document.getElementById('asset-num-pools').textContent = record.num_liquidity_pools ?? '—';
     document.getElementById('asset-num-claims').textContent = record.num_claimable_balances ?? '—';
-    document.getElementById('asset-num-contracts').textContent = record.num_contracts ?? '—';
 
     const accounts = record.accounts || {};
     document.getElementById('asset-auth').textContent = accounts.authorized ?? '—';
@@ -214,7 +220,7 @@
   }
 
   async function loadAsset() {
-    const asset = parseAssetFromUrl();
+    const asset = parseAssetFromUrl() || ((window.location.protocol === 'file:' || location.hostname === 'localhost') ? defaultAsset : null);
     if (!asset) {
       showError('Неверный формат asset: ожидается /assets/CODE-ISSUER');
       return;

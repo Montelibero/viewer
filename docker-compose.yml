@@ -1,0 +1,19 @@
+services:
+  viewer-caddy:
+    build: .
+    restart: unless-stopped
+    # ports:
+    #   - "8080:80"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  web:
+    external: true

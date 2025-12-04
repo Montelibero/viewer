@@ -108,6 +108,20 @@
           Холдеры
         </a>
       </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-pools">
+          Показать пулы
+        </a>
+      </div>
+    </div>
+
+    <!-- POOLS -->
+    <div class="box is-hidden" id="pools-box">
+      <p class="title is-6">Пулы</p>
+      <progress class="progress is-small is-primary is-hidden"
+                max="100" id="pools-loader">Загрузка</progress>
+      <div id="pools-list"></div>
     </div>
 
     <!-- HOLDERS -->
@@ -372,6 +386,108 @@
   document.getElementById('btn-holders').addEventListener('click', (e) => {
     e.preventDefault();
     loadHolders();
+  });
+
+  async function fetchAllPools(asset) {
+    const assetId = buildAssetId(asset);
+    let nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc`;
+    let lastCursor = null;
+    const pools = [];
+
+    while (nextUrl) {
+      const res = await fetch(nextUrl);
+      if (!res.ok) throw new Error(`Horizon error ${res.status}`);
+
+      const data = await res.json();
+      const records = data?._embedded?.records || [];
+      pools.push(...records);
+
+      if (!records.length) break;
+
+      const nextHref = data?._links?.next?.href;
+      if (!nextHref) break;
+      const parsed = new URL(nextHref);
+      const cursor = parsed.searchParams.get('cursor');
+      if (!cursor || cursor === lastCursor) break;
+      lastCursor = cursor;
+      nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc&cursor=${encodeURIComponent(cursor)}`;
+    }
+
+    return pools;
+  }
+
+  function renderPools(pools) {
+    const listEl = document.getElementById('pools-list');
+    listEl.innerHTML = '';
+
+    if (!pools.length) {
+      listEl.textContent = 'Нет пулов для данного ассета.';
+      return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'table is-fullwidth is-striped is-hoverable is-size-7';
+
+    const thead = document.createElement('thead');
+    thead.innerHTML = `<tr><th>Pool ID</th><th>Reserves</th><th class="has-text-right">Shares</th></tr>`;
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    pools.forEach(p => {
+      const row = document.createElement('tr');
+
+      const cellId = document.createElement('td');
+      const idLink = document.createElement('a');
+      idLink.href = `/pool/${p.id}`;
+      idLink.textContent = shorten(p.id);
+      idLink.className = 'is-mono';
+      cellId.appendChild(idLink);
+
+      const cellReserves = document.createElement('td');
+      cellReserves.className = 'is-mono';
+      cellReserves.innerHTML = p.reserves.map(r => {
+        const assetName = r.asset === 'native' ? 'XLM' : r.asset.split(':')[0];
+        return `${r.amount} ${assetName}`;
+      }).join('<br>');
+
+      const cellShares = document.createElement('td');
+      cellShares.className = 'has-text-right is-mono';
+      cellShares.textContent = p.total_shares;
+
+      row.appendChild(cellId);
+      row.appendChild(cellReserves);
+      row.appendChild(cellShares);
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    listEl.appendChild(table);
+  }
+
+  async function loadPools() {
+    const asset = resolveAsset();
+    if (!asset) return;
+
+    const poolsBox = document.getElementById('pools-box');
+    poolsBox.classList.remove('is-hidden');
+
+    const loader = document.getElementById('pools-loader');
+    loader.classList.remove('is-hidden');
+
+    try {
+      const pools = await fetchAllPools(asset);
+      renderPools(pools);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Неизвестная ошибка при загрузке пулов.');
+    } finally {
+      loader.classList.add('is-hidden');
+    }
+  }
+
+  document.getElementById('btn-pools').addEventListener('click', (e) => {
+    e.preventDefault();
+    loadPools();
   });
 </script>
 

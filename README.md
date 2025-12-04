@@ -13,3 +13,4 @@
 Локальный запуск:
 - Открыть HTML из `site/` напрямую в браузере, либо `docker compose up viewer-caddy` (включить порты 8080:80 в compose) и зайти на `http://localhost:8080`.
 - Для отладки по `file://` и `localhost` подставляются дефолтные примеры (аккаунт/ассет), чтобы страницы открывались без параметров.
+- Готовый образ: `docker run --rm -p 8080:80 ghcr.io/montelibero/stellar_viewer:latest` и открыть `http://localhost:8080`.

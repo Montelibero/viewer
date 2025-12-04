@@ -99,8 +99,20 @@
     <!-- BALANCES -->
     <div class="box">
       <p class="title is-6">Балансы</p>
-      <ul id="balances" class="is-size-7">
-        <!-- сюда пойдёт список -->
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1">Ассеты</p>
+      <ul id="balances-assets" class="is-size-7 mb-3">
+        <!-- сюда пойдут ассеты -->
+      </ul>
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1">Пулы</p>
+      <ul id="balances-pools" class="is-size-7 mb-3">
+        <!-- сюда пойдут пуллы -->
+      </ul>
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1">Выпущенные ассеты</p>
+      <ul id="balances-issued" class="is-size-7">
+        <!-- сюда пойдут выпущенные ассеты -->
       </ul>
     </div>
 
@@ -187,6 +199,127 @@
     box.classList.add('is-hidden');
   }
 
+  function renderBalances(account) {
+    const assetsEl = document.getElementById('balances-assets');
+    const poolsEl = document.getElementById('balances-pools');
+
+    assetsEl.innerHTML = '';
+    poolsEl.innerHTML = '';
+
+    const balances = account.balances || [];
+    const assets = balances.filter(b => b.asset_type !== 'liquidity_pool_shares');
+    const pools = balances.filter(b => b.asset_type === 'liquidity_pool_shares');
+
+    if (!assets.length) {
+      assetsEl.textContent = 'Нет ассетов.';
+    } else {
+      assets.forEach(b => {
+        const li = document.createElement('li');
+        li.className = 'mb-2';
+
+        let code = '';
+        if (b.asset_type === 'native') {
+          code = 'XLM';
+        } else {
+          const issuerShort = b.asset_issuer ? shorten(b.asset_issuer) : '—';
+          code = `${b.asset_code || '—'} · ${issuerShort}`;
+        }
+
+        const title = document.createElement('div');
+        if (b.asset_type === 'native') {
+          title.textContent = code;
+        } else {
+          if (b.asset_code && b.asset_issuer) {
+            const link = document.createElement('a');
+            link.href = `/assets/${encodeURIComponent(`${b.asset_code}-${b.asset_issuer}`)}`;
+            link.textContent = code;
+            link.className = 'has-text-weight-semibold';
+            title.appendChild(link);
+          } else {
+            title.textContent = code;
+          }
+        }
+
+        const amount = document.createElement('div');
+        amount.innerHTML = `balance: <span class="has-text-weight-semibold">${b.balance}</span>`;
+        if (b.limit) {
+          amount.innerHTML += `<br><span>limit: ${b.limit}</span>`;
+        }
+
+        li.appendChild(title);
+        li.appendChild(amount);
+        assetsEl.appendChild(li);
+      });
+    }
+
+    if (!pools.length) {
+      poolsEl.textContent = 'Нет пуллов.';
+    } else {
+      pools.forEach(b => {
+        const li = document.createElement('li');
+        li.className = 'mb-2';
+
+        const link = document.createElement('a');
+        link.href = `/pool/${encodeURIComponent(b.liquidity_pool_id)}`;
+        link.textContent = `Пул ${shorten(b.liquidity_pool_id)}`;
+        link.className = 'has-text-weight-semibold';
+
+        const amount = document.createElement('div');
+        amount.innerHTML = `balance: <span class="has-text-weight-semibold">${b.balance}</span>`;
+        if (b.limit) {
+          amount.innerHTML += `<br><span>limit: ${b.limit}</span>`;
+        }
+
+        li.appendChild(link);
+        li.appendChild(amount);
+        poolsEl.appendChild(li);
+      });
+    }
+  }
+
+  async function loadIssuedAssets(issuer) {
+    const issuedEl = document.getElementById('balances-issued');
+    issuedEl.textContent = 'Загрузка…';
+    try {
+      const res = await fetch(`${horizonBase}/assets?asset_issuer=${encodeURIComponent(issuer)}&limit=200`);
+      if (!res.ok) {
+        throw new Error(`Horizon error ${res.status}`);
+      }
+      const data = await res.json();
+      const records = data?._embedded?.records || [];
+      issuedEl.innerHTML = '';
+
+      if (!records.length) {
+        issuedEl.textContent = 'Нет выпущенных ассетов.';
+        return;
+      }
+
+      records.forEach(asset => {
+        const li = document.createElement('li');
+        li.className = 'mb-2';
+
+        const link = document.createElement('a');
+        const id = `${asset.asset_code}-${asset.asset_issuer}`;
+        link.href = `/assets/${encodeURIComponent(id)}`;
+        link.textContent = id;
+        link.className = 'has-text-weight-semibold';
+
+        const amount = document.createElement('div');
+        amount.innerHTML = `supply: <span class="has-text-weight-semibold">${asset.amount}</span>`;
+        if (typeof asset.num_accounts !== 'undefined') {
+          amount.innerHTML += `<br><span>holders: ${asset.num_accounts}</span>`;
+        }
+
+        li.appendChild(link);
+        li.appendChild(amount);
+        issuedEl.appendChild(li);
+      });
+    } catch (e) {
+      issuedEl.textContent = 'Не удалось загрузить выпущенные ассеты.';
+      console.error(e);
+    }
+  }
+
   function renderAccount(account) {
     // Header
     document.getElementById('seq').textContent = account.sequence;
@@ -201,29 +334,7 @@
       `low=${th.low_threshold}, med=${th.med_threshold}, high=${th.high_threshold}`;
 
     // Balances
-    const balancesEl = document.getElementById('balances');
-    balancesEl.innerHTML = '';
-    account.balances.forEach(b => {
-      const li = document.createElement('li');
-      li.className = 'mb-1';
-
-      let code;
-      if (b.asset_type === 'native') {
-        code = 'XLM';
-      } else {
-        code = `${b.asset_code} · ${shorten(b.asset_issuer)}`;
-      }
-
-      li.innerHTML = `
-        <strong>${code}</strong><br>
-        <span>balance: ${b.balance}</span>
-        ${b.limit ? `<br><span>limit: ${b.limit}</span>` : ''}
-      `;
-      balancesEl.appendChild(li);
-    });
-    if (!account.balances.length) {
-      balancesEl.textContent = 'Нет балансов.';
-    }
+    renderBalances(account);
 
     // Signers
     const signersEl = document.getElementById('signers');
@@ -303,6 +414,9 @@
       `https://scopuly.com/account/${id}`;
     document.getElementById('btn-stellarchain').href =
       `https://stellarchain.io/accounts/${id}`;
+
+    // Issued assets
+    loadIssuedAssets(id);
   }
 
   async function loadAccount() {

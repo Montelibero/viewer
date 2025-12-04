@@ -9,3 +9,5 @@ COPY site/ /srv/
 
 # Expose the port Caddy listens on
 EXPOSE 80
+
+LABEL org.opencontainers.image.source="https://github.com/Montelibero/viewer"

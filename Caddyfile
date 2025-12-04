@@ -17,6 +17,11 @@
         file_server
     }
 
+    handle_path /offers/* {
+        rewrite * /offers.html
+        file_server
+    }
+
     handle_path /operation/* {
         rewrite * /operation.html
         file_server

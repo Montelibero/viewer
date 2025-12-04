@@ -148,6 +148,12 @@
           Операции
         </a>
       </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-offers">
+          Офферы
+        </a>
+      </div>
     </div>
 
   </div>
@@ -456,6 +462,8 @@
       `https://stellarchain.io/accounts/${id}`;
     document.getElementById('btn-operations').href =
       `/operations/${encodeURIComponent(id)}`;
+    document.getElementById('btn-offers').href =
+      `/offers/${encodeURIComponent(id)}`;
 
     // Issued assets
     loadIssuedAssets(account.id);

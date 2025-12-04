@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Account Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma через CDN -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .account-address {
+      word-break: break-all;
+      font-size: 0.85rem;
+    }
+    .is-mono {
+      font-family: monospace;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .bottom-actions {
+      position: relative;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5">Stellar Account</p>
+            <p class="subtitle is-7" id="network-label">Mainnet</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono account-address" id="account-id">—</p>
+
+      <div class="mt-2">
+        <button class="button is-small is-light" id="copy-btn">
+          Скопировать адрес
+        </button>
+      </div>
+
+      <div class="mt-3">
+        <p class="is-size-7">
+          Sequence: <span id="seq">—</span><br>
+          Subentries: <span id="subentries">—</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- BALANCES -->
+    <div class="box">
+      <p class="title is-6">Балансы</p>
+      <ul id="balances" class="is-size-7">
+        <!-- сюда пойдёт список -->
+      </ul>
+    </div>
+
+    <!-- SIGNERS -->
+    <div class="box">
+      <p class="title is-6">Подписанты и пороги</p>
+      <p class="is-size-7">
+        Пороги:
+        <span id="thresholds">—</span>
+      </p>
+      <ul id="signers" class="is-size-7 mt-2">
+        <!-- сюда пойдут подписанты -->
+      </ul>
+    </div>
+
+    <!-- DATA -->
+    <div class="box">
+      <p class="title is-6">Data</p>
+      <ul id="data" class="is-size-7">
+        <!-- сюда пойдут data-поля -->
+      </ul>
+    </div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="bottom-actions">
+      <div class="buttons">
+        <a class="button is-primary is-fullwidth"
+           id="btn-transactions">
+          Транзакции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-operations">
+          Операции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-effects">
+          История (effects)
+        </a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org'; // на будущее можно сделать переключатель сети
+
+  function getAccountIdFromUrl() {
+    const path = window.location.pathname; // /account/GD...
+    const parts = path.split('/').filter(Boolean); // ['account', 'GD...']
+    if (parts.length >= 2 && parts[0] === 'account') {
+      return parts[1];
+    }
+    return null;
+  }
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str;
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function showLoading(on) {
+    const loader = document.getElementById('loader');
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(message) {
+    const box = document.getElementById('error-box');
+    const text = document.getElementById('error-text');
+    text.textContent = message;
+    box.classList.remove('is-hidden');
+    const status = document.getElementById('status-label');
+    status.textContent = 'Error';
+    status.classList.remove('is-info');
+    status.classList.add('is-danger');
+  }
+
+  function clearError() {
+    const box = document.getElementById('error-box');
+    box.classList.add('is-hidden');
+  }
+
+  function renderAccount(account) {
+    // Header
+    document.getElementById('seq').textContent = account.sequence;
+    document.getElementById('subentries').textContent = account.subentry_count;
+    document.getElementById('status-label').textContent = 'OK';
+    document.getElementById('status-label').classList.remove('is-danger');
+    document.getElementById('status-label').classList.add('is-success');
+
+    // Thresholds
+    const th = account.thresholds || {};
+    document.getElementById('thresholds').textContent =
+      `low=${th.low_threshold}, med=${th.med_threshold}, high=${th.high_threshold}`;
+
+    // Balances
+    const balancesEl = document.getElementById('balances');
+    balancesEl.innerHTML = '';
+    account.balances.forEach(b => {
+      const li = document.createElement('li');
+      li.className = 'mb-1';
+
+      let code;
+      if (b.asset_type === 'native') {
+        code = 'XLM';
+      } else {
+        code = `${b.asset_code} · ${shorten(b.asset_issuer)}`;
+      }
+
+      li.innerHTML = `
+        <strong>${code}</strong><br>
+        <span>balance: ${b.balance}</span>
+        ${b.limit ? `<br><span>limit: ${b.limit}</span>` : ''}
+      `;
+      balancesEl.appendChild(li);
+    });
+    if (!account.balances.length) {
+      balancesEl.textContent = 'Нет балансов.';
+    }
+
+    // Signers
+    const signersEl = document.getElementById('signers');
+    signersEl.innerHTML = '';
+    account.signers.forEach(s => {
+      const li = document.createElement('li');
+      li.className = 'mb-1';
+      li.innerHTML = `
+        <span>${s.type}</span><br>
+        <code class="is-mono is-size-7">${s.key}</code><br>
+        <span>weight: ${s.weight}</span>
+      `;
+      signersEl.appendChild(li);
+    });
+    if (!account.signers.length) {
+      signersEl.textContent = 'Нет подписантов.';
+    }
+
+    // Data
+    const dataEl = document.getElementById('data');
+    dataEl.innerHTML = '';
+    const dataAttr = account.data_attr || {};
+    const entries = Object.entries(dataAttr);
+    if (!entries.length) {
+      dataEl.textContent = 'Нет data-полей.';
+    } else {
+      entries.forEach(([key, value]) => {
+        const li = document.createElement('li');
+        li.className = 'mb-1';
+        let decoded = '';
+        try {
+          decoded = atob(value);
+        } catch (e) {
+          decoded = '[не удалось декодировать base64]';
+        }
+        // немного режем длинные значения
+        if (decoded.length > 120) {
+          decoded = decoded.slice(0, 120) + '…';
+        }
+        li.innerHTML = `
+          <strong>${key}</strong><br>
+          <code class="is-mono is-size-7">${decoded}</code>
+        `;
+        dataEl.appendChild(li);
+      });
+    }
+
+    // Кнопки внизу — пока просто ссылки-заглушки
+    const id = account.id;
+    document.getElementById('btn-transactions').href =
+      `${horizonBase}/accounts/${id}/transactions?limit=20&order=desc`;
+    document.getElementById('btn-operations').href =
+      `${horizonBase}/accounts/${id}/operations?limit=20&order=desc`;
+    document.getElementById('btn-effects').href =
+      `${horizonBase}/accounts/${id}/effects?limit=20&order=desc`;
+  }
+
+  async function loadAccount() {
+    const accountId = getAccountIdFromUrl();
+    const accountEl = document.getElementById('account-id');
+
+    if (!accountId) {
+      showError('Не удалось определить accountId из URL.');
+      return;
+    }
+
+    accountEl.textContent = accountId;
+    clearError();
+    showLoading(true);
+
+    try {
+      const res = await fetch(`${horizonBase}/accounts/${accountId}`);
+      if (!res.ok) {
+        let detail = `Horizon error ${res.status}`;
+        try {
+          const err = await res.json();
+          if (err?.detail) detail = err.detail;
+        } catch (_) {
+          // ignore
+        }
+        throw new Error(detail);
+      }
+      const data = await res.json();
+      renderAccount(data);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Неизвестная ошибка при загрузке аккаунта.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  // Кнопка "копировать"
+  document.getElementById('copy-btn').addEventListener('click', async () => {
+    const text = document.getElementById('account-id').textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copy-btn');
+      const old = btn.textContent;
+      btn.textContent = 'Скопировано';
+      setTimeout(() => (btn.textContent = old), 1500);
+    } catch (e) {
+      alert('Не удалось скопировать в буфер обмена.');
+    }
+  });
+
+  // старт
+  loadAccount();
+</script>
+
+</body>
+</html>

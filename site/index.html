@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Viewer · eurmtl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma через CDN -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .hero {
+      min-height: 100vh;
+    }
+    .is-mono {
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+<section class="hero is-fullheight">
+  <div class="hero-body">
+    <div class="container">
+
+      <!-- Заголовок -->
+      <div class="box">
+        <p class="title is-4">Stellar Viewer</p>
+        <p class="subtitle is-7">
+          Вставь адрес аккаунта <span class="is-mono">G...</span> или хэш транзакции
+          <span class="is-mono">[0-9a-f]{64}</span>. Мы отправим тебя на нужную страницу.
+        </p>
+
+        <!-- Форма поиска -->
+        <div class="field">
+          <label class="label is-size-7">Адрес или хэш</label>
+          <div class="control">
+            <input class="input is-medium"
+                   id="search-input"
+                   type="text"
+                   placeholder="GDLT… или 73e9ec35…">
+          </div>
+        </div>
+
+        <div class="field mt-3">
+          <div class="control">
+            <button class="button is-primary is-fullwidth"
+                    id="search-btn">
+              Искать
+            </button>
+          </div>
+        </div>
+
+        <!-- Сообщения -->
+        <p class="help is-danger is-hidden"
+           id="message"></p>
+
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  const inputEl = document.getElementById('search-input');
+  const buttonEl = document.getElementById('search-btn');
+  const messageEl = document.getElementById('message');
+
+  function showMessage(text) {
+    if (!text) {
+      messageEl.textContent = '';
+      messageEl.classList.add('is-hidden');
+      return;
+    }
+    messageEl.textContent = text;
+    messageEl.classList.remove('is-hidden');
+  }
+
+  function isAccount(value) {
+    const v = value.trim().toUpperCase();
+    const re = /^G[A-Z2-7]{55}$/;
+    return re.test(v);
+  }
+
+  function isTxHash(value) {
+    const v = value.trim().toLowerCase();
+    const re = /^[0-9a-f]{64}$/;
+    return re.test(v);
+  }
+
+  function handleSearch() {
+    const raw = inputEl.value || '';
+    const trimmed = raw.trim();
+
+    showMessage('');
+
+    if (!trimmed) {
+      showMessage('Введите адрес аккаунта или хэш транзакции.');
+      return;
+    }
+
+    if (isAccount(trimmed)) {
+      const accountId = trimmed.toUpperCase();
+      window.location.href = '/account/' + encodeURIComponent(accountId);
+      return;
+    }
+
+    if (isTxHash(trimmed)) {
+      const txHash = trimmed.toLowerCase();
+      window.location.href = '/transaction/' + encodeURIComponent(txHash);
+      return;
+    }
+
+    showMessage('Такой формат мы пока не умеем. Приходите позже 🙂');
+  }
+
+  // Кнопка
+  buttonEl.addEventListener('click', (e) => {
+    e.preventDefault();
+    handleSearch();
+  });
+
+  // Enter в поле ввода
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    }
+  });
+</script>
+
+</body>
+</html>

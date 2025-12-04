@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Transaction Viewer · eurmtl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+    .section {
+      padding-top: 1.5rem;
+      padding-bottom: 2rem;
+    }
+    .is-mono {
+      font-family: monospace;
+      word-break: break-all;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 0.8rem;
+    }
+    .box-title {
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+
+    <!-- Шапка -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5 box-title">Stellar Transaction</p>
+            <p class="subtitle is-7" id="network-label">Mainnet · horizon.stellar.org</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag" id="status-label">Загрузка…</span>
+        </div>
+      </div>
+
+      <p class="is-size-7 mb-1"><strong>Хэш транзакции</strong></p>
+      <p class="is-mono is-size-7" id="tx-hash">—</p>
+
+      <div class="mt-2">
+        <button class="button is-small is-light" id="copy-hash-btn">
+          Скопировать хэш
+        </button>
+        <a class="button is-small is-link is-light" id="horizon-link" target="_blank" rel="noopener">
+          Открыть в Horizon
+        </a>
+      </div>
+
+      <div class="mt-3 is-size-7">
+        <div>Леджер: <span id="ledger">—</span></div>
+        <div>Создана: <span id="created-at">—</span></div>
+        <div>Источник: <span class="is-mono" id="source-account">—</span></div>
+        <div>Операций: <span id="op-count">—</span></div>
+        <div>Комиссия (фактическая): <span id="fee-charged">—</span></div>
+      </div>
+    </div>
+
+    <!-- Ошибка -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p>Ошибка</p>
+      </div>
+      <div class="message-body is-size-7" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- Лоадер -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader">Загрузка</progress>
+
+    <!-- Декодированные данные XDR (человеческий вид) -->
+    <div class="box">
+      <p class="title is-6 box-title">Данные транзакции (из XDR)</p>
+
+      <div class="is-size-7">
+        <div>Sequence: <span id="seq-num">—</span></div>
+        <div>Memo: <span id="memo">—</span></div>
+        <div>Временные границы: <span id="time-bounds">—</span></div>
+        <div>Base fee (из XDR): <span id="base-fee">—</span></div>
+      </div>
+
+      <hr>
+
+      <p class="title is-7">Операции</p>
+      <div id="operations-list" class="is-size-7">
+        Загрузка операций…
+      </div>
+    </div>
+
+    <!-- Чистый JSON из XDR -->
+    <div class="box">
+      <p class="title is-6 box-title">Чистый JSON (decode TransactionEnvelope)</p>
+      <p class="is-size-7 mb-2">
+        Это прямой результат декодирования XDR → JSON через
+        <code>@stellar/stellar-xdr-json</code>.
+      </p>
+      <pre><code id="json-body" class="is-mono">—</code></pre>
+    </div>
+
+    <!-- Сырой XDR -->
+    <div class="box">
+      <p class="title is-6 box-title">Сырой XDR (envelope_xdr)</p>
+      <p class="is-size-7 mb-2">
+        На случай, если захочется проверить декодирование вручную.
+      </p>
+      <pre><code id="xdr-raw" class="is-mono">—</code></pre>
+    </div>
+
+  </div>
+</section>
+
+<script type="module">
+  const horizonBase = 'https://horizon.stellar.org';
+
+  const statusEl = document.getElementById('status-label');
+  const errorBox = document.getElementById('error-box');
+  const errorText = document.getElementById('error-text');
+  const loader = document.getElementById('loader');
+
+  function showLoading(on) {
+    loader.classList.toggle('is-hidden', !on);
+  }
+
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBox.classList.remove('is-hidden');
+    statusEl.textContent = 'Ошибка';
+    statusEl.className = 'tag is-danger';
+  }
+
+  function clearError() {
+    errorBox.classList.add('is-hidden');
+  }
+
+  function shorten(str) {
+    if (!str || str.length <= 12) return str || '';
+    return str.slice(0, 4) + '…' + str.slice(-4);
+  }
+
+  function getTxHashFromUrl() {
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const idx = parts.indexOf('transaction');
+    if (idx >= 0 && parts.length > idx + 1) {
+      return parts[idx + 1];
+    }
+    // старый вариант /transaction/<hash> без префикса
+    if (parts[0] === 'transaction' && parts[1]) {
+      return parts[1];
+    }
+    return null;
+  }
+
+  // stroops -> строка с 7 знаками после запятой (без лишних нулей)
+  function formatStroopAmount(raw) {
+    if (raw === undefined || raw === null) return '—';
+    let s = String(raw);
+    const negative = s.startsWith('-');
+    if (negative) s = s.slice(1);
+
+    let digits = s.replace(/^0+/, '');
+    if (digits === '') digits = '0';
+
+    while (digits.length < 8) {
+      digits = '0' + digits;
+    }
+    let intPart = digits.slice(0, digits.length - 7);
+    let frac = digits.slice(-7);
+
+    if (!intPart) intPart = '0';
+    // убираем лишние нули справа
+    frac = frac.replace(/0+$/, '');
+    const sign = negative ? '-' : '';
+    if (!frac) return sign + intPart;
+    return sign + intPart + '.' + frac;
+  }
+
+  function describeAsset(asset) {
+    if (!asset) return '—';
+    if (asset.native) return 'XLM (native)';
+    if (asset.credit_alphanum4) {
+      const a = asset.credit_alphanum4;
+      return `${a.asset_code} · ${shorten(a.issuer)}`;
+    }
+    if (asset.credit_alphanum12) {
+      const a = asset.credit_alphanum12;
+      return `${a.asset_code} · ${shorten(a.issuer)}`;
+    }
+    return JSON.stringify(asset);
+  }
+
+  function describeMemo(memo) {
+    if (!memo) return 'нет';
+    const keys = Object.keys(memo);
+    if (!keys.length) return 'нет';
+    const t = keys[0];
+    const v = memo[t];
+    if (t === 'text') return `TEXT: "${v}"`;
+    if (t === 'id') return `ID: ${v}`;
+    if (t === 'hash') return `HASH (base64): ${v}`;
+    if (t === 'ret_hash' || t === 'return') return `RETURN HASH (base64): ${v}`;
+    return `${t}: ${JSON.stringify(v)}`;
+  }
+
+  function describeTimeBounds(cond) {
+    if (!cond || !cond.time) return 'нет';
+    const { min_time, max_time } = cond.time;
+    if ((!min_time || min_time === '0') && (!max_time || max_time === '0')) {
+      return 'нет';
+    }
+    return `min: ${min_time || '0'}, max: ${max_time || '0'}`;
+  }
+
+  function extractTxObject(decoded) {
+    // пробуем разные популярные формы
+    if (decoded.tx && decoded.tx.tx) return decoded.tx.tx;
+    if (decoded.v1 && decoded.v1.tx) return decoded.v1.tx;
+    if (decoded.tx) return decoded.tx;
+    return decoded;
+  }
+
+  function renderOperations(tx) {
+    const container = document.getElementById('operations-list');
+    container.innerHTML = '';
+
+    const ops = Array.isArray(tx.operations) ? tx.operations : [];
+    if (!ops.length) {
+      container.textContent = 'Операций нет.';
+      return;
+    }
+
+    ops.forEach((op, index) => {
+      const box = document.createElement('div');
+      box.className = 'box is-size-7';
+
+      const opSource = op.source_account || tx.source_account;
+      const body = op.body || {};
+      const typeKey = Object.keys(body)[0] || 'unknown';
+      const inner = body[typeKey] || {};
+
+      let mainLine = '';
+      let details = '';
+
+      if (typeKey === 'payment') {
+        const dest = inner.destination;
+        const asset = inner.asset;
+        const amount = formatStroopAmount(inner.amount);
+        mainLine = `Payment ${amount} ${describeAsset(asset)} → ${shorten(dest)}`;
+        details = `
+          <div>Получатель: <span class="is-mono">${dest}</span></div>
+          <div>Актив: ${describeAsset(asset)}</div>
+          <div>Сумма (в единицах актива): ${amount}</div>
+        `;
+      } else if (typeKey === 'manage_sell_offer') {
+        const selling = describeAsset(inner.selling);
+        const buying = describeAsset(inner.buying);
+        const amount = formatStroopAmount(inner.amount);
+        const price = inner.price ? `${inner.price.n}/${inner.price.d}` : '—';
+        const offerId = inner.offer_id ?? '0';
+        mainLine = `Manage Sell Offer: sell ${amount} ${selling} for ${buying}`;
+        details = `
+          <div>Продаём: ${selling}</div>
+          <div>Покупаем: ${buying}</div>
+          <div>Количество: ${amount}</div>
+          <div>Цена: ${price}</div>
+          <div>Offer ID: ${offerId}</div>
+        `;
+      } else {
+        mainLine = `Операция типа ${typeKey}`;
+        details = `<pre>${JSON.stringify(inner, null, 2)}</pre>`;
+      }
+
+      box.innerHTML = `
+        <p><strong>#${index + 1}</strong> · <span>${mainLine}</span></p>
+        <p class="is-size-7 mt-1">
+          Источник операции:
+          <span class="is-mono">${opSource || 'по умолчанию (источник транзакции)'}</span>
+        </p>
+        <div class="mt-2">${details}</div>
+      `;
+
+      container.appendChild(box);
+    });
+  }
+
+  async function main() {
+    const txHash = getTxHashFromUrl();
+    const txHashEl = document.getElementById('tx-hash');
+    const ledgerEl = document.getElementById('ledger');
+    const createdAtEl = document.getElementById('created-at');
+    const sourceAccountEl = document.getElementById('source-account');
+    const opCountEl = document.getElementById('op-count');
+    const feeChargedEl = document.getElementById('fee-charged');
+    const horizonLinkEl = document.getElementById('horizon-link');
+    const seqEl = document.getElementById('seq-num');
+    const memoEl = document.getElementById('memo');
+    const timeBoundsEl = document.getElementById('time-bounds');
+    const baseFeeEl = document.getElementById('base-fee');
+    const jsonBodyEl = document.getElementById('json-body');
+    const xdrRawEl = document.getElementById('xdr-raw');
+
+    if (!txHash) {
+      showError('Не удалось определить хэш транзакции из URL.');
+      return;
+    }
+
+    txHashEl.textContent = txHash;
+
+    document.getElementById('copy-hash-btn').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(txHash);
+        const btn = document.getElementById('copy-hash-btn');
+        const old = btn.textContent;
+        btn.textContent = 'Скопировано';
+        setTimeout(() => (btn.textContent = old), 1500);
+      } catch (e) {
+        alert('Не удалось скопировать хэш в буфер обмена.');
+      }
+    });
+
+    clearError();
+    showLoading(true);
+
+    try {
+      // 1) Тянем транзакцию из Horizon
+      const res = await fetch(`${horizonBase}/transactions/${encodeURIComponent(txHash)}`);
+      if (!res.ok) {
+        let detail = `Horizon error ${res.status}`;
+        try {
+          const err = await res.json();
+          if (err?.detail) detail = err.detail;
+        } catch (_) {}
+        throw new Error(detail);
+      }
+      const tx = await res.json();
+
+      const successful = tx.successful;
+      statusEl.textContent = successful ? 'Успешно' : 'Неуспешно';
+      statusEl.className = successful ? 'tag is-success' : 'tag is-warning';
+
+      ledgerEl.textContent = tx.ledger ?? '—';
+      createdAtEl.textContent = tx.created_at ?? '—';
+      sourceAccountEl.textContent = tx.source_account ?? '—';
+      opCountEl.textContent = tx.operation_count ?? '—';
+      feeChargedEl.textContent = `${formatStroopAmount(tx.fee_charged)} XLM`;
+
+      horizonLinkEl.href = `${horizonBase}/transactions/${encodeURIComponent(txHash)}`;
+
+      const envelopeXdr = tx.envelope_xdr;
+      if (!envelopeXdr) {
+        throw new Error('В ответе Horizon нет envelope_xdr.');
+      }
+
+      // 2) Показываем сырой XDR
+      xdrRawEl.textContent = envelopeXdr;
+
+      // 3) Подключаем stellar-xdr-json и декодируем
+      const mod = await import('https://esm.sh/@stellar/stellar-xdr-json');
+      const initFn = mod.default || mod.init;
+      if (typeof initFn === 'function') {
+        await initFn();
+      }
+      const decodeFn = mod.decode;
+      if (typeof decodeFn !== 'function') {
+        throw new Error('Функция decode() недоступна в @stellar/stellar-xdr-json');
+      }
+
+      const decoded = decodeFn('TransactionEnvelope', envelopeXdr.trim());
+      let decodedObj;
+      if (typeof decoded === 'string') {
+        try {
+          decodedObj = JSON.parse(decoded);
+        } catch (_) {
+          decodedObj = { raw: decoded };
+        }
+      } else {
+        decodedObj = decoded;
+      }
+
+      // 4) JSON-блок
+      jsonBodyEl.textContent = JSON.stringify(decodedObj, null, 2);
+
+      // 5) Человекочитаемый вывод
+      const txObj = extractTxObject(decodedObj);
+      seqEl.textContent = txObj.seq_num ?? '—';
+      memoEl.textContent = describeMemo(txObj.memo);
+      timeBoundsEl.textContent = describeTimeBounds(txObj.cond);
+      baseFeeEl.textContent = `${txObj.fee ?? '—'} stroops (на операцию)`; // это base fee
+
+      renderOperations(txObj);
+    } catch (e) {
+      console.error(e);
+      showError(e.message || 'Неизвестная ошибка при загрузке/декодировании транзакции.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  // запуск
+  main();
+</script>
+
+</body>
+</html>

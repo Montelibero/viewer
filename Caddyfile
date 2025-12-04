@@ -1,0 +1,18 @@
+:80 {
+    root * /srv
+    encode gzip
+
+    handle_path /account/* {
+        rewrite * /account.html
+        file_server
+    }
+
+    handle_path /transaction/* {
+        rewrite * /transaction.html
+        file_server
+    }
+
+    handle {
+        file_server
+    }
+}

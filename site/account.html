@@ -61,6 +61,24 @@
     .balance-meta {
       flex-shrink: 0;
     }
+    @media (prefers-color-scheme: dark) {
+      .button.is-light,
+      .tag.is-light {
+        background-color: var(--bulma-scheme-main-ter, #1f1f1f);
+        border-color: var(--bulma-border-strong, #3a3a3a);
+        color: var(--bulma-text, #f5f5f5);
+      }
+      .button.is-light:hover {
+        background-color: var(--bulma-scheme-main, #2a2a2a);
+      }
+      .button.is-light.is-link,
+      .tag.is-light.is-link {
+        color: var(--bulma-link, #7db8ff);
+      }
+      .tag.is-light.is-info {
+        color: var(--bulma-info, #7dd8ff);
+      }
+    }
   </style>
 </head>
 <body>

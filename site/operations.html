@@ -87,9 +87,14 @@
     </div>
 
     <div class="has-text-centered mt-4">
-      <button class="button is-link is-light" id="btn-load-more">
-        Загрузить ещё
-      </button>
+      <div class="buttons is-centered">
+        <button class="button is-link is-light" id="btn-load-more">
+          Загрузить ещё
+        </button>
+        <button class="button is-info is-light" id="btn-export-csv">
+          Экспорт в CSV
+        </button>
+      </div>
     </div>
 
   </div>
@@ -153,6 +158,12 @@
   function assetLabel(code, issuer) {
     if (!code) return 'XLM';
     if (issuer) return `${code}-${shorten(issuer)}`;
+    return code;
+  }
+
+  function assetLabelFull(code, issuer) {
+    if (!code || code === 'native') return 'XLM';
+    if (issuer) return `${code}-${issuer}`;
     return code;
   }
 
@@ -445,6 +456,67 @@
     });
 
     await loadInitial();
+
+    function exportToCsv(list, accountId) {
+      const header = 'Хэш транзакции,Дата,Операция,Откуда,Токен,Сумма,Куда,Токен 2,Сумма 2,Успешная';
+      const rows = list.map(op => {
+        let from = op.source_account || '';
+        let to = '',
+          token1 = '', amount1 = '',
+          token2 = '', amount2 = '';
+
+        if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
+          from = op.from || from;
+          to = op.to || '';
+          token1 = assetLabelFull(op.asset_code || op.asset_type, op.asset_issuer);
+          amount1 = op.amount || '';
+        } else if (op.type === 'create_account') {
+          to = op.account || '';
+          token1 = 'XLM';
+          amount1 = op.starting_balance || '';
+        } else if (op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer') {
+          token1 = assetLabelFull(op.selling_asset_code || op.selling_asset_type, op.selling_asset_issuer);
+          amount1 = op.amount || '';
+          token2 = assetLabelFull(op.buying_asset_code || op.buying_asset_type, op.buying_asset_issuer);
+          amount2 = op.price ? (parseFloat(op.amount) * parseFloat(op.price)).toFixed(7) : '';
+        }
+
+        const fields = [
+          op.transaction_hash || '',
+          op.created_at || '',
+          op.type || '',
+          from,
+          token1,
+          amount1,
+          to,
+          token2,
+          amount2,
+          op.transaction_successful,
+        ];
+        return fields.map(field => `"${String(field ?? '').replace(/"/g, '""')}"`).join(',');
+      });
+
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${accountId}_operations.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    document.getElementById('btn-export-csv').addEventListener('click', () => {
+      const filters = {
+        amount: parseAmountFilter(document.getElementById('filter-amount').value),
+        asset: document.getElementById('filter-asset').value.trim().toUpperCase() || null,
+        types: parseTypeTokens(document.getElementById('filter-type').value)
+      };
+      const list = applyFilters(operations, filters);
+      exportToCsv(list, accountId);
+    });
   }
 
   main();

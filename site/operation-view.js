@@ -143,9 +143,10 @@ export function renderAsset(asset) {
 
 function getOpType(op) {
   if (op?.type) return op.type;
-  const body = op?.body || {};
-  const keys = Object.keys(body || {});
-  if (!keys.length) return typeof body === 'string' ? body : 'unknown';
+  const body = op?.body;
+  if (typeof body === 'string') return body;
+  const keys = body ? Object.keys(body) : [];
+  if (!keys.length) return 'unknown';
   return keys[0];
 }
 
@@ -328,8 +329,8 @@ export function renderOperationDetails(op) {
     const authorize = op.authorize ?? xdrInner?.authorize ?? xdrInner?.setFlags;
     const maintain = op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities;
     const clawback = op.clawback_enabled ?? xdrInner?.clawbackEnabled;
-    const clear = op.clear_flags ?? op.clear_flags_s ?? xdrInner?.clearFlags;
-    const set = op.set_flags ?? op.set_flags_s ?? xdrInner?.setFlags;
+    const clear = op.clear_flags ?? op.clear_flags_s ?? xdrInner?.clearFlags ?? xdrInner?.clear_flags;
+    const set = op.set_flags ?? op.set_flags_s ?? xdrInner?.setFlags ?? xdrInner?.set_flags;
     addLine('Флаги', `set: ${set ?? '—'}, clear: ${clear ?? '—'}, auth: ${authorize ?? '—'}, maintain: ${maintain ?? '—'}, clawback: ${clawback ?? '—'}`);
   } else if (type === 'liquidity_pool_deposit') {
     const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;

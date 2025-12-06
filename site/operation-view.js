@@ -283,7 +283,9 @@ export function renderOperationDetails(op) {
     const id = xdrInner ? xdrInner.balanceId : op.balance_id;
     addLine('Balance ID', id || '—');
   } else if (type === 'begin_sponsoring_future_reserves') {
-    const sponsored = xdrInner ? (xdrInner.sponsoredId || xdrInner.sponsoredID) : op.sponsored_id;
+    const sponsored = xdrInner
+      ? (xdrInner.sponsoredId || xdrInner.sponsoredID || xdrInner.sponsored_id)
+      : op.sponsored_id;
     addLine('Спонсируемый', renderAccount(sponsored));
   } else if (type === 'end_sponsoring_future_reserves') {
     const sponsored = op.sponsored_id || xdrInner?.sponsoredId || xdrInner?.sponsoredID;
@@ -323,12 +325,12 @@ export function renderOperationDetails(op) {
     const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);
     addLine('Трастор', renderAccount(trustor));
     addLine('Актив', asset);
-    const flags = {
-      authorize: op.authorize ?? xdrInner?.authorize,
-      maintain: op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities,
-      clawback: op.clawback_enabled ?? xdrInner?.clawbackEnabled
-    };
-    addLine('Флаги', `auth: ${flags.authorize ?? '—'}, maintain: ${flags.maintain ?? '—'}, clawback: ${flags.clawback ?? '—'}`);
+    const authorize = op.authorize ?? xdrInner?.authorize ?? xdrInner?.setFlags;
+    const maintain = op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities;
+    const clawback = op.clawback_enabled ?? xdrInner?.clawbackEnabled;
+    const clear = op.clear_flags ?? op.clear_flags_s ?? xdrInner?.clearFlags;
+    const set = op.set_flags ?? op.set_flags_s ?? xdrInner?.setFlags;
+    addLine('Флаги', `set: ${set ?? '—'}, clear: ${clear ?? '—'}, auth: ${authorize ?? '—'}, maintain: ${maintain ?? '—'}, clawback: ${clawback ?? '—'}`);
   } else if (type === 'liquidity_pool_deposit') {
     const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;
     const maxA = xdrInner ? formatStroopAmount(xdrInner.maxAmountA) : formatAmount(op.reserves_max_a);

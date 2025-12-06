@@ -50,9 +50,70 @@ export function assetLabelFull(code, issuer) {
   return code;
 }
 
+const td = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+
+function decodeDataValue(raw) {
+  if (raw === undefined || raw === null) {
+    return { raw: '—', decodedText: null, hex: null };
+  }
+  const str = String(raw);
+
+  const tryHex = () => {
+    if (!/^[0-9a-fA-F]+$/.test(str) || str.length % 2 !== 0) return null;
+    const bytes = [];
+    for (let i = 0; i < str.length; i += 2) {
+      bytes.push(parseInt(str.slice(i, i + 2), 16));
+    }
+    let text = null;
+    try {
+      text = decodeURIComponent(escape(String.fromCharCode(...bytes)));
+    } catch (_) {}
+    return { decodedText: text, hex: str.toLowerCase(), format: 'hex' };
+  };
+
+  const tryBase64 = () => {
+    try {
+      const bin = atob(str);
+      let text = null;
+      try {
+        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+        text = td ? td.decode(bytes) : decodeURIComponent(escape(bin));
+      } catch (_) {}
+      const hex = Array.from(bin, c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+      return { decodedText: text, hex, format: 'base64' };
+    } catch (_) {
+      return null;
+    }
+  };
+
+  return tryBase64() || tryHex() || { raw: str, decodedText: null, hex: null };
+}
+
 function assetLink(code, issuer) {
   if (!code || !issuer) return null;
   return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
+}
+
+function formatPriceObj(price) {
+  if (!price) return '—';
+  if (typeof price === 'string' || typeof price === 'number') return String(price);
+  if (price.n !== undefined && price.d !== undefined) return `${price.n}/${price.d}`;
+  if (price.numerator !== undefined && price.denominator !== undefined) return `${price.numerator}/${price.denominator}`;
+  return JSON.stringify(price);
+}
+
+function renderClaimants(list) {
+  if (!Array.isArray(list) || !list.length) return '—';
+  const ul = document.createElement('ul');
+  ul.className = 'ml-3';
+  list.forEach((c, idx) => {
+    const li = document.createElement('li');
+    const dest = c.destination || c?.v0?.destination;
+    const predicate = c.predicate || c?.v0?.predicate;
+    li.innerHTML = `<strong>#${idx + 1}</strong>: ${renderAccount(dest)} · <code>${JSON.stringify(predicate)}</code>`;
+    ul.appendChild(li);
+  });
+  return ul.outerHTML;
 }
 
 export function renderAsset(asset) {
@@ -100,13 +161,30 @@ export function renderOperationDetails(op) {
     container.appendChild(p);
   };
 
-  if (type === 'payment' || type === 'path_payment_strict_receive' || type === 'path_payment_strict_send') {
+  if (type === 'payment') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
     const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
-    const destLink = renderAccount(dest);
     addLine('Сумма', `${amount} ${asset}`);
-    addLine('Получатель', destLink);
+    addLine('Получатель', renderAccount(dest));
+  } else if (type === 'path_payment_strict_receive') {
+    const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
+    const destAmount = xdrInner ? formatStroopAmount(xdrInner.destAmount) : formatAmount(op.amount);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const sourceAmount = xdrInner ? formatStroopAmount(xdrInner.sendMax) : formatAmount(op.source_amount);
+    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    addLine('Получатель', renderAccount(dest));
+    addLine('Получает', `${destAmount} ${destAsset}`);
+    addLine('Потратим максимум', `${sourceAmount} ${sourceAsset}`);
+  } else if (type === 'path_payment_strict_send') {
+    const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
+    const sendAmount = xdrInner ? formatStroopAmount(xdrInner.sendAmount) : formatAmount(op.source_amount);
+    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    const destMin = xdrInner ? formatStroopAmount(xdrInner.destMin) : formatAmount(op.destination_min);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    addLine('Получатель', renderAccount(dest));
+    addLine('Отправляем', `${sendAmount} ${sendAsset}`);
+    addLine('Ожидаем минимум', `${destMin} ${destAsset}`);
   } else if (type === 'create_account') {
     const amount = xdrInner ? formatStroopAmount(xdrInner.starting_balance) : formatAmount(op.starting_balance);
     const account = xdrInner ? xdrInner.destination : op.account;
@@ -120,11 +198,139 @@ export function renderOperationDetails(op) {
     addLine('Продаём', `${amount} ${selling}`);
     addLine('Покупаем', buying);
     addLine('Цена', price);
+  } else if (type === 'set_options') {
+    const inflation = xdrInner ? xdrInner.inflationDest : op.inflation_dest;
+    const homeDomain = xdrInner ? xdrInner.homeDomain : op.home_domain;
+    const thresholds = {
+      master: xdrInner ? xdrInner.masterWeight : op.master_key_weight,
+      low: xdrInner ? xdrInner.lowThreshold : op.low_threshold,
+      med: xdrInner ? xdrInner.medThreshold : op.med_threshold,
+      high: xdrInner ? xdrInner.highThreshold : op.high_threshold
+    };
+    const clear = xdrInner ? xdrInner.clearFlags : op.clear_flags_s || op.clear_flags;
+    const set = xdrInner ? xdrInner.setFlags : op.set_flags_s || op.set_flags;
+    addLine('Домейн', homeDomain || '—');
+    addLine('Инфляционный адрес', inflation ? renderAccount(inflation, { short: false }) : '—');
+    addLine('Пороги', `low: ${thresholds.low ?? '—'}, med: ${thresholds.med ?? '—'}, high: ${thresholds.high ?? '—'}`);
+    addLine('Вес мастера', thresholds.master ?? '—');
+    if (set !== undefined) addLine('Установить флаги', set);
+    if (clear !== undefined) addLine('Сбросить флаги', clear);
+    const signer = xdrInner ? xdrInner.signer : (op.signer_key ? { key: op.signer_key, weight: op.signer_weight } : null);
+    if (signer) {
+      const key = signer.ed25519 || signer.preAuthTx || signer.hashX || signer.key || signer.ed25519PublicKey || signer.sha256Hash;
+      addLine('Сигнер', `${key || '—'} (weight ${signer.weight ?? signer.signer_weight ?? '—'})`);
+    }
   } else if (type === 'change_trust') {
     const asset = xdrInner ? renderAsset(xdrInner.line) : assetLabel(op.asset_code, op.asset_issuer);
     const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
     addLine('Траст к активу', asset);
     addLine('Лимит', limit);
+  } else if (type === 'allow_trust') {
+    const trustor = xdrInner ? xdrInner.trustor : op.trustor;
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);
+    const auth = op.authorize !== undefined ? op.authorize : xdrInner?.authorize;
+    addLine('Трастор', renderAccount(trustor));
+    addLine('Актив', asset);
+    addLine('Авторизация', auth ? 'Да' : 'Нет');
+  } else if (type === 'account_merge') {
+    const dest = xdrInner ? xdrInner.destination : (op.into || op.account || op.account_merge_dest);
+    addLine('Перевести на', renderAccount(dest, { short: false }));
+  } else if (type === 'inflation') {
+    addLine('Действие', 'Вызов инфляции');
+  } else if (type === 'manage_data') {
+    const name = xdrInner ? xdrInner.data_name : op.data_name;
+    const valueRaw = xdrInner ? xdrInner.data_value : op.data_value;
+    const decoded = decodeDataValue(valueRaw);
+    addLine('Имя', name || '—');
+    addLine('Значение (raw)', valueRaw || '—');
+    if (decoded.decodedText) {
+      addLine('Значение (строка)', decoded.decodedText);
+    }
+    if (decoded.hex) {
+      addLine('Значение (hex)', decoded.hex);
+    }
+  } else if (type === 'bump_sequence') {
+    const bump = xdrInner ? xdrInner.bumpTo : op.bump_to;
+    addLine('Новый sequence', bump || '—');
+  } else if (type === 'create_claimable_balance') {
+    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const claimants = xdrInner ? xdrInner.claimants : op.claimants;
+    addLine('Сумма', `${amount} ${asset}`);
+    addLine('Клейманты', renderClaimants(claimants));
+  } else if (type === 'claim_claimable_balance') {
+    const id = xdrInner ? xdrInner.balanceId : op.balance_id;
+    addLine('Balance ID', id || '—');
+  } else if (type === 'begin_sponsoring_future_reserves') {
+    const sponsored = xdrInner ? (xdrInner.sponsoredId || xdrInner.sponsoredID) : op.sponsored_id;
+    addLine('Спонсируемый', renderAccount(sponsored));
+  } else if (type === 'end_sponsoring_future_reserves') {
+    addLine('Действие', 'Завершение спонсирования резервов');
+  } else if (type === 'revoke_sponsorship') {
+    const target =
+      op.account_id || op.trustline_account_id || op.signer_account_id || op.data_account_id ||
+      op.claimable_balance_id || op.liquidity_pool_id || op.offer_id ||
+      xdrInner?.accountId || xdrInner?.claimableBalanceId || xdrInner?.liquidityPoolId;
+    const dataName = op.data_name || xdrInner?.dataName;
+    const signerKey = op.signer_key || xdrInner?.signerKey;
+    const trustAsset = op.trustline_asset || xdrInner?.trustLine?.asset || xdrInner?.trustLine?.assetId;
+    let targetDesc = '';
+    if (target && dataName) targetDesc = `Data: ${renderAccount(target)} / ${dataName}`;
+    else if (target && signerKey) targetDesc = `Signer: ${renderAccount(target)} / ${signerKey}`;
+    else if (target && trustAsset) {
+      const assetLabelStr = typeof trustAsset === 'object' ? renderAsset(trustAsset) : trustAsset;
+      targetDesc = `Trustline: ${renderAccount(target)} / ${assetLabelStr}`;
+    }
+    else if (target) targetDesc = renderAccount(target, { short: false });
+    if (op.offer_id) targetDesc = `Offer ${op.offer_id}`;
+    if (op.claimable_balance_id) targetDesc = `Claimable balance ${op.claimable_balance_id}`;
+    if (op.liquidity_pool_id) targetDesc = `Liquidity pool ${op.liquidity_pool_id}`;
+    addLine('Отзыв спонсирования', targetDesc || JSON.stringify(xdrInner || op));
+  } else if (type === 'clawback') {
+    const from = xdrInner ? xdrInner.from : op.from;
+    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    addLine('Изъять у', renderAccount(from));
+    addLine('Сумма', `${amount} ${asset}`);
+  } else if (type === 'clawback_claimable_balance') {
+    const id = xdrInner ? xdrInner.balanceId : op.balance_id;
+    addLine('Claimable balance', id || '—');
+  } else if (type === 'set_trust_line_flags') {
+    const trustor = xdrInner ? xdrInner.trustor : op.trustor;
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);
+    addLine('Трастор', renderAccount(trustor));
+    addLine('Актив', asset);
+    const flags = {
+      authorize: op.authorize ?? xdrInner?.authorize,
+      maintain: op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities,
+      clawback: op.clawback_enabled ?? xdrInner?.clawbackEnabled
+    };
+    addLine('Флаги', `auth: ${flags.authorize ?? '—'}, maintain: ${flags.maintain ?? '—'}, clawback: ${flags.clawback ?? '—'}`);
+  } else if (type === 'liquidity_pool_deposit') {
+    const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;
+    const maxA = xdrInner ? formatStroopAmount(xdrInner.maxAmountA) : formatAmount(op.reserves_max_a);
+    const maxB = xdrInner ? formatStroopAmount(xdrInner.maxAmountB) : formatAmount(op.reserves_max_b);
+    const minPrice = xdrInner ? formatPriceObj(xdrInner.minPrice) : formatPriceObj(op.min_price);
+    const maxPrice = xdrInner ? formatPriceObj(xdrInner.maxPrice) : formatPriceObj(op.max_price);
+    addLine('Pool', pool || '—');
+    addLine('Макс. резерв A', maxA);
+    addLine('Макс. резерв B', maxB);
+    addLine('Мин. цена', minPrice);
+    addLine('Макс. цена', maxPrice);
+    if (op.reserves_deposited_a) addLine('Зачислено A', op.reserves_deposited_a);
+    if (op.reserves_deposited_b) addLine('Зачислено B', op.reserves_deposited_b);
+    if (op.shares_received) addLine('Получено долей', op.shares_received);
+  } else if (type === 'liquidity_pool_withdraw') {
+    const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;
+    const shares = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.shares);
+    const minA = xdrInner ? formatStroopAmount(xdrInner.minAmountA) : formatAmount(op.reserves_min_a);
+    const minB = xdrInner ? formatStroopAmount(xdrInner.minAmountB) : formatAmount(op.reserves_min_b);
+    addLine('Pool', pool || '—');
+    addLine('Списать долей', shares);
+    addLine('Мин. резерв A', minA);
+    addLine('Мин. резерв B', minB);
+    if (op.reserves_received_a) addLine('Получено A', op.reserves_received_a);
+    if (op.reserves_received_b) addLine('Получено B', op.reserves_received_b);
   } else {
     const raw = xdrInner || op;
     const pre = document.createElement('pre');

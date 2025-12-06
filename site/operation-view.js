@@ -148,6 +148,16 @@ function isXdrOp(op) {
   return Boolean(op?.body);
 }
 
+function renderStatusTag(success) {
+  if (success === true) {
+    return '<span class="tag is-success is-light is-pulled-right">Success</span>';
+  }
+  if (success === false) {
+    return '<span class="tag is-danger is-light is-pulled-right">Failed</span>';
+  }
+  return '<span class="tag is-info is-light is-pulled-right">—</span>';
+}
+
 export function renderOperationDetails(op) {
   const container = document.createElement('div');
   container.className = 'is-size-7';
@@ -345,9 +355,7 @@ export function createOperationCard(op) {
   const box = document.createElement('div');
   box.className = 'box is-size-7 op-card';
 
-  const statusTag = op.transaction_successful
-    ? '<span class="tag is-success is-light is-pulled-right">Success</span>'
-    : '<span class="tag is-danger is-light is-pulled-right">Failed</span>';
+  const statusTag = renderStatusTag(op.transaction_successful ?? op.successful ?? op.success);
 
   const header = document.createElement('p');
   header.innerHTML = `<strong>${getOpType(op) || 'operation'}</strong> · ${op.created_at || ''}${statusTag}`;
@@ -373,16 +381,17 @@ export function createOperationCard(op) {
   return box;
 }
 
-export function createXdrOperationBox(op, index, txSource) {
+export function createXdrOperationBox(op, index, txSource, { txSuccessful = null } = {}) {
   const box = document.createElement('div');
   box.className = 'box is-size-7';
 
   const opSource = op.source_account || txSource;
   const type = getOpType(op);
   const details = renderOperationDetails(op);
+  const statusTag = renderStatusTag(txSuccessful);
 
   box.innerHTML = `
-    <p><strong>#${index + 1}</strong> · <span>${type}</span></p>
+    <p><strong>#${index + 1}</strong> · <span>${type}</span>${statusTag}</p>
     <p class="is-size-7 mt-1">
       Источник операции: ${renderAccount(opSource, { short: false })}
     </p>

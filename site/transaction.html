@@ -206,7 +206,7 @@
     }
 
     ops.forEach((op, index) => {
-      const box = createXdrOperationBox(op, index, tx.source_account);
+      const box = createXdrOperationBox(op, index, tx.source_account, { txSuccessful: tx.successful });
       container.appendChild(box);
     });
   }

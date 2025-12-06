@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
   <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
@@ -67,29 +67,21 @@
 <script type="module">
   const commonBase = (() => {
     if (window.location.protocol === 'file:') return './common';
-    const m = window.location.pathname.match(/^(.*\/site)\//);
-    if (m) return `${m[1]}/common`;
-    return '/common';
+  const m = window.location.pathname.match(/^(.*\/site)\//);
+  if (m) return `${m[1]}/common`;
+  return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
+  const moduleBase = (() => {
+    if (window.location.protocol === 'file:') return './';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/`;
+    return '/';
+  })();
   const { shorten } = await import(`${commonBase}.js`);
+  const { accountLink, renderOperationDetails } = await import(`${moduleBase}operation-view.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
-
-  function assetLabel(code, issuer) {
-    if (!code) return 'XLM';
-    if (issuer) return `${code}-${shorten(issuer)}`;
-    return code;
-  }
-
-  function assetLink(code, issuer) {
-    if (!code || !issuer) return null;
-    return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
-  }
-
-  function accountLink(acc) {
-    return acc ? `/account/${encodeURIComponent(acc)}` : null;
-  }
 
   function getOpIdFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -126,35 +118,6 @@
     status.classList.add('is-success');
   }
 
-  function renderDetails(op) {
-    const details = document.getElementById('op-details');
-    details.innerHTML = '';
-
-    const addLine = (label, value) => {
-      const p = document.createElement('p');
-      p.innerHTML = `<strong>${label}:</strong> ${value}`;
-      details.appendChild(p);
-    };
-
-    if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
-      const asset = assetLabel(op.asset_code || op.asset, op.asset_issuer);
-      addLine('Сумма', `${op.amount} ${asset}`);
-      addLine('Получатель', op.to ? `<a href="/account/${op.to}">${shorten(op.to)}</a>` : '—');
-    } else if (op.type === 'create_account') {
-      addLine('Начальный баланс', `${op.starting_balance} XLM`);
-      addLine('Новый аккаунт', `<a href="/account/${op.account}">${shorten(op.account)}</a>`);
-    } else if (op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer') {
-      addLine('Продаём', `${op.amount} ${assetLabel(op.selling_asset_code, op.selling_asset_issuer)}`);
-      addLine('Покупаем', assetLabel(op.buying_asset_code, op.buying_asset_issuer));
-      addLine('Цена', op.price || '—');
-    } else if (op.type === 'change_trust') {
-      addLine('Траст к активу', assetLabel(op.asset_code, op.asset_issuer));
-      addLine('Лимит', op.limit || '—');
-    } else {
-      addLine('Данные', `<pre>${JSON.stringify(op, null, 2)}</pre>`);
-    }
-  }
-
   async function loadOp() {
     const opId = getOpIdFromUrl();
     if (!opId) {
@@ -184,7 +147,9 @@
       document.getElementById('op-tx').innerHTML =
         txLink ? `<a class="is-mono" href="${txLink}">${shorten(op.transaction_hash)}</a>` : '—';
 
-      renderDetails(op);
+      const details = document.getElementById('op-details');
+      details.innerHTML = '';
+      details.appendChild(renderOperationDetails(op));
       document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
 
       const status = document.getElementById('status-label');

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
   <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
@@ -103,12 +103,22 @@
 <script type="module">
   const commonBase = (() => {
     if (window.location.protocol === 'file:') return './common';
-    const m = window.location.pathname.match(/^(.*\/site)\//);
-    if (m) return `${m[1]}/common`;
-    return '/common';
+  const m = window.location.pathname.match(/^(.*\/site)\//);
+  if (m) return `${m[1]}/common`;
+  return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
-  const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+  const moduleBase = (() => {
+    if (window.location.protocol === 'file:') return './';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/`;
+    return '/';
+  })();
+  const { isLocalLike } = await import(`${commonBase}.js`);
+  const {
+    assetLabelFull,
+    createOperationCard
+  } = await import(`${moduleBase}operation-view.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
@@ -149,31 +159,6 @@
     status.textContent = 'OK';
     status.classList.remove('is-danger');
     status.classList.add('is-success');
-  }
-
-  function formatAmount(val) {
-    return typeof val === 'string' ? val : String(val ?? '');
-  }
-
-  function assetLabel(code, issuer) {
-    if (!code) return 'XLM';
-    if (issuer) return `${code}-${shorten(issuer)}`;
-    return code;
-  }
-
-  function assetLabelFull(code, issuer) {
-    if (!code || code === 'native') return 'XLM';
-    if (issuer) return `${code}-${issuer}`;
-    return code;
-  }
-
-  function assetLink(code, issuer) {
-    if (!code || !issuer) return null;
-    return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
-  }
-
-  function accountLink(acc) {
-    return acc ? `/account/${encodeURIComponent(acc)}` : null;
   }
 
   function parseAmountFilter(value) {
@@ -257,60 +242,7 @@
     }
 
     list.forEach(op => {
-      const box = document.createElement('div');
-      box.className = 'box is-size-7 op-card';
-
-      const statusTag = op.transaction_successful
-        ? '<span class="tag is-success is-light is-pulled-right">Success</span>'
-        : '<span class="tag is-danger is-light is-pulled-right">Failed</span>';
-
-      const header = document.createElement('p');
-      header.innerHTML = `<strong>${op.type || 'operation'}</strong> · ${op.created_at || ''}${statusTag}`;
-      box.appendChild(header);
-
-      const src = document.createElement('p');
-      src.className = 'is-size-7';
-      const srcLink = accountLink(op.source_account);
-      src.innerHTML = `Источник: ${srcLink ? `<a href="${srcLink}" class="is-mono">${shorten(op.source_account)}</a>` : (op.source_account || '—')}`;
-      box.appendChild(src);
-
-      if (op.transaction_hash) {
-        const tx = document.createElement('p');
-        tx.className = 'is-size-7';
-        tx.innerHTML = `Транзакция: <a class="is-mono" href="/transaction/${op.transaction_hash}">${shorten(op.transaction_hash)}</a>`;
-        box.appendChild(tx);
-      }
-
-      const details = document.createElement('div');
-      details.className = 'mt-2';
-
-      if (op.type === 'payment' || op.type === 'path_payment_strict_receive' || op.type === 'path_payment_strict_send') {
-        const amount = formatAmount(op.amount);
-        const asset = assetLabel(op.asset_code || op.asset, op.asset_issuer);
-        const destAccount = op.to_muxed || op.to || op.to_muxed_id;
-        const destLink = accountLink(destAccount);
-        details.innerHTML = `
-          <div>Сумма: <span class="has-text-weight-semibold">${amount}</span> ${asset}</div>
-          <div>Получатель: ${destLink ? `<a href="${destLink}">${shorten(destAccount)}</a>` : '—'}</div>
-        `;
-      } else if (op.type === 'create_account') {
-        details.innerHTML = `
-          <div>Начальный баланс: <span class="has-text-weight-semibold">${formatAmount(op.starting_balance)}</span> XLM</div>
-          <div>Новый аккаунт: <a href="/account/${op.account}">${shorten(op.account)}</a></div>
-        `;
-      } else if (op.type === 'manage_sell_offer' || op.type === 'manage_buy_offer' || op.type === 'create_passive_sell_offer') {
-        const selling = assetLabel(op.selling_asset_code, op.selling_asset_issuer);
-        const buying = assetLabel(op.buying_asset_code, op.buying_asset_issuer);
-        details.innerHTML = `
-          <div>Продаём: <span class="has-text-weight-semibold">${formatAmount(op.amount)}</span> ${selling}</div>
-          <div>Покупаем: ${buying}</div>
-          <div>Цена: ${op.price || '—'}</div>
-        `;
-      } else {
-        details.innerHTML = `<pre>${JSON.stringify(op, null, 2)}</pre>`;
-      }
-
-      box.appendChild(details);
+      const box = createOperationCard(op);
       container.appendChild(box);
     });
   }

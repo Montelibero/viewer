@@ -7,7 +7,7 @@
 
   <!-- Bulma -->
   <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css">
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
   <link id="common-css" rel="stylesheet" href="/common.css">
 </head>
 <body>
@@ -111,12 +111,24 @@
 <script type="module">
   const commonBase = (() => {
     if (window.location.protocol === 'file:') return './common';
-    const m = window.location.pathname.match(/^(.*\/site)\//);
-    if (m) return `${m[1]}/common`;
-    return '/common';
+  const m = window.location.pathname.match(/^(.*\/site)\//);
+  if (m) return `${m[1]}/common`;
+  return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
-  const { shorten } = await import(`${commonBase}.js`);
+  const moduleBase = (() => {
+    if (window.location.protocol === 'file:') return './';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/`;
+    return '/';
+  })();
+  const {
+    accountLink,
+    createXdrOperationBox,
+    formatStroopAmount,
+    renderAccount,
+    renderAsset
+  } = await import(`${moduleBase}operation-view.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
 
@@ -151,59 +163,6 @@
       return parts[1];
     }
     return null;
-  }
-
-  // stroops -> строка с 7 знаками после запятой (без лишних нулей)
-  function formatStroopAmount(raw) {
-    if (raw === undefined || raw === null) return '—';
-    let s = String(raw);
-    const negative = s.startsWith('-');
-    if (negative) s = s.slice(1);
-
-    let digits = s.replace(/^0+/, '');
-    if (digits === '') digits = '0';
-
-    while (digits.length < 8) {
-      digits = '0' + digits;
-    }
-    let intPart = digits.slice(0, digits.length - 7);
-    let frac = digits.slice(-7);
-
-    if (!intPart) intPart = '0';
-    // убираем лишние нули справа
-    frac = frac.replace(/0+$/, '');
-    const sign = negative ? '-' : '';
-    if (!frac) return sign + intPart;
-    return sign + intPart + '.' + frac;
-  }
-
-  function accountLink(acc) {
-    return acc ? `/account/${encodeURIComponent(acc)}` : null;
-  }
-
-  function renderAccount(acc, { short = true } = {}) {
-    if (!acc) return '—';
-    const label = short ? shorten(acc) : acc;
-    const href = accountLink(acc);
-    return href ? `<a class="is-mono" href="${href}">${label}</a>` : label;
-  }
-
-  function assetDetails(asset) {
-    if (!asset) return { label: '—', href: null };
-    if (asset.native) return { label: 'XLM (native)', href: null };
-    const a = asset.credit_alphanum4 || asset.credit_alphanum12;
-    if (a) {
-      return {
-        label: `${a.asset_code} · ${shorten(a.issuer)}`,
-        href: `/assets/${encodeURIComponent(`${a.asset_code}-${a.issuer}`)}`
-      };
-    }
-    return { label: JSON.stringify(asset), href: null };
-  }
-
-  function renderAsset(asset) {
-    const { label, href } = assetDetails(asset);
-    return href ? `<a href="${href}">${label}</a>` : label;
   }
 
   function describeMemo(memo) {
@@ -247,55 +206,7 @@
     }
 
     ops.forEach((op, index) => {
-      const box = document.createElement('div');
-      box.className = 'box is-size-7';
-
-      const opSource = op.source_account || tx.source_account;
-      const body = op.body || {};
-      const typeKey = Object.keys(body)[0] || 'unknown';
-      const inner = body[typeKey] || {};
-
-      let mainLine = '';
-      let details = '';
-
-      if (typeKey === 'payment') {
-        const dest = inner.destination;
-        const asset = inner.asset;
-        const amount = formatStroopAmount(inner.amount);
-        mainLine = `Payment ${amount} ${renderAsset(asset)} → ${renderAccount(dest)}`;
-        details = `
-          <div>Получатель: ${renderAccount(dest, { short: false })}</div>
-          <div>Актив: ${renderAsset(asset)}</div>
-          <div>Сумма (в единицах актива): ${amount}</div>
-        `;
-      } else if (typeKey === 'manage_sell_offer') {
-        const selling = renderAsset(inner.selling);
-        const buying = renderAsset(inner.buying);
-        const amount = formatStroopAmount(inner.amount);
-        const price = inner.price ? `${inner.price.n}/${inner.price.d}` : '—';
-        const offerId = inner.offer_id ?? '0';
-        mainLine = `Manage Sell Offer: sell ${amount} ${selling} for ${buying}`;
-        details = `
-          <div>Продаём: ${selling}</div>
-          <div>Покупаем: ${buying}</div>
-          <div>Количество: ${amount}</div>
-          <div>Цена: ${price}</div>
-          <div>Offer ID: ${offerId}</div>
-        `;
-      } else {
-        mainLine = `Операция типа ${typeKey}`;
-        details = `<pre>${JSON.stringify(inner, null, 2)}</pre>`;
-      }
-
-      box.innerHTML = `
-        <p><strong>#${index + 1}</strong> · <span>${mainLine}</span></p>
-        <p class="is-size-7 mt-1">
-          Источник операции:
-          ${opSource ? renderAccount(opSource, { short: false }) : renderAccount(tx.source_account, { short: false })}
-        </p>
-        <div class="mt-2">${details}</div>
-      `;
-
+      const box = createXdrOperationBox(op, index, tx.source_account);
       container.appendChild(box);
     });
   }

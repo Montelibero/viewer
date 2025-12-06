@@ -69,6 +69,7 @@
            rel="noreferrer">
           GitHub проекта
         </a>
+        <p class="is-size-7 has-text-grey mt-2" id="version-label">Версия: —</p>
       </div>
     </div>
   </div>
@@ -82,7 +83,7 @@
     return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
-  const { shorten } = await import(`${commonBase}.js`);
+  const { shorten, appVersion } = await import(`${commonBase}.js`);
 
   const inputEl = document.getElementById('search-input');
   const buttonEl = document.getElementById('search-btn');
@@ -270,6 +271,7 @@
   });
 
   renderHistory();
+  document.getElementById('version-label').textContent = `Версия: ${appVersion}`;
 </script>
 
 </body>

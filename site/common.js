@@ -8,3 +8,6 @@ export function shorten(value) {
 export function isLocalLike() {
   return window.location.protocol === 'file:' || location.hostname === 'localhost';
 }
+
+// Статическая версия приложения, показываем в интерфейсе
+export const appVersion = '1.0.2';

@@ -44,8 +44,11 @@
         <button class="button is-small is-light" id="copy-hash-btn" data-i18n="copy-hash">
           Скопировать хэш
         </button>
-        <a class="button is-small is-link is-light" id="horizon-link" target="_blank" rel="noopener" data-i18n="horizon-link">
-          Открыть в Horizon
+        <a class="button is-small is-link is-light" id="btn-scopuly" target="_blank" rel="noreferrer" data-i18n="link-scopuly">
+          Scopuly
+        </a>
+        <a class="button is-small is-link is-light" id="btn-expert" target="_blank" rel="noreferrer" data-i18n="link-expert">
+          Stellar Expert
         </a>
       </div>
 
@@ -191,6 +194,22 @@
     setStatus('error');
   }
 
+  function setExternalLinks(hash) {
+    const scopulyBtn = document.getElementById('btn-scopuly');
+    const expertBtn = document.getElementById('btn-expert');
+    if (hash) {
+      scopulyBtn.href = `https://scopuly.com/transaction/${hash}`;
+      expertBtn.href = `https://stellar.expert/explorer/public/tx/${hash}`;
+      scopulyBtn.classList.remove('is-static');
+      expertBtn.classList.remove('is-static');
+    } else {
+      scopulyBtn.href = '#';
+      expertBtn.href = '#';
+      scopulyBtn.classList.add('is-static');
+      expertBtn.classList.add('is-static');
+    }
+  }
+
   function clearError() {
     errorBox.classList.add('is-hidden');
   }
@@ -265,7 +284,6 @@
     const sourceAccountEl = document.getElementById('source-account');
     const opCountEl = document.getElementById('op-count');
     const feeChargedEl = document.getElementById('fee-charged');
-    const horizonLinkEl = document.getElementById('horizon-link');
     const seqEl = document.getElementById('seq-num');
     const memoEl = document.getElementById('memo');
     const timeBoundsEl = document.getElementById('time-bounds');
@@ -280,6 +298,7 @@
 
     currentTxHash = txHash;
     txHashEl.textContent = txHash;
+    setExternalLinks(txHash);
 
     document.getElementById('copy-hash-btn').addEventListener('click', async () => {
       try {
@@ -328,7 +347,7 @@
       opCountEl.textContent = tx.operation_count ?? '—';
       feeChargedEl.textContent = `${formatStroopAmount(tx.fee_charged)} XLM`;
 
-      horizonLinkEl.href = `${horizonBase}/transactions/${encodeURIComponent(txHash)}`;
+      setExternalLinks(txHash);
 
       const envelopeXdr = tx.envelope_xdr;
       if (!envelopeXdr) {
@@ -394,6 +413,7 @@
 
   function reapplyLanguage() {
     if (currentTxHash) document.getElementById('tx-hash').textContent = currentTxHash;
+    setExternalLinks(currentTxHash);
     if (txData) {
       const { ledger, created_at, source_account, operation_count, fee_charged, successful } = txData;
       document.getElementById('ledger').textContent = ledger ?? '—';

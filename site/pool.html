@@ -39,6 +39,30 @@
 
       <p class="is-mono is-size-7" id="pool-id">—</p>
 
+      <div class="mt-2 buttons">
+        <a class="button is-small is-link is-light"
+           id="btn-stellarx"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-stellarx">
+          StellarX
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-scopuly"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-scopuly">
+          Scopuly
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-expert"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-expert">
+          Stellar Expert
+        </a>
+      </div>
+
       <div class="mt-3 is-size-7">
         <p><span data-i18n="fee-label">Fee</span>: <span id="pool-fee">—</span> bps</p>
         <p><span data-i18n="shares-label">Shares</span>: <span class="has-text-weight-semibold" id="pool-shares">—</span></p>
@@ -245,6 +269,49 @@
       `${horizonBase}/liquidity_pools/${pool.id}/operations?limit=20&order=desc`;
     document.getElementById('btn-transactions').href =
       `${horizonBase}/liquidity_pools/${pool.id}/transactions?limit=20&order=desc`;
+
+    // External links
+    const stellarXBtn = document.getElementById('btn-stellarx');
+    const scopulyBtn = document.getElementById('btn-scopuly');
+    const expertBtn = document.getElementById('btn-expert');
+
+    const reserves = Array.isArray(pool.reserves) ? pool.reserves : [];
+    const assetPathPart = (asset) => {
+      if (!asset) return null;
+      if (asset === 'native') return 'native';
+      const [code, issuer] = asset.split(':');
+      if (!code || !issuer) return null;
+      return `${code}:${issuer}`;
+    };
+    let stellarXPath = null;
+    if (reserves.length === 2) {
+      const parts = reserves.map(r => assetPathPart(r.asset)).filter(Boolean);
+      if (parts.length === 2) {
+        parts.sort((a, b) => {
+          if (a === 'native') return -1;
+          if (b === 'native') return 1;
+          return a.localeCompare(b);
+        });
+        stellarXPath = `https://www.stellarx.com/amm/analytics/${parts[0]}/${parts[1]}`;
+      }
+    }
+    if (stellarXPath) {
+      stellarXBtn.href = stellarXPath;
+      stellarXBtn.classList.remove('is-static');
+      stellarXBtn.target = '_blank';
+      stellarXBtn.rel = 'noreferrer';
+    } else {
+      stellarXBtn.href = '#';
+      stellarXBtn.classList.add('is-static');
+    }
+
+    scopulyBtn.href = `https://scopuly.com/pool/${pool.id}`;
+    scopulyBtn.target = '_blank';
+    scopulyBtn.rel = 'noreferrer';
+
+    expertBtn.href = `https://stellar.expert/explorer/public/liquidity-pool/${pool.id}`;
+    expertBtn.target = '_blank';
+    expertBtn.rel = 'noreferrer';
   }
 
   async function loadPool() {

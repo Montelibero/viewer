@@ -1,0 +1,21 @@
+{
+  "back-home": "Inicio",
+  "header-title": "Ofertas de la cuenta",
+  "status-loading": "Cargando…",
+  "status-ok": "OK",
+  "status-error": "Error",
+  "error-title": "Error",
+  "loader-text": "Cargando",
+  "offers-empty": "No hay ofertas.",
+  "load-more": "Cargar más",
+  "seller-label": "Vendedor",
+  "selling-label": "Vendemos",
+  "buying-label": "Compramos",
+  "amount-label": "Cantidad",
+  "price-label": "Precio",
+  "ledger-label": "Ledger",
+  "offer-label": "Offer #",
+  "error-no-account-id": "No se pudo obtener accountId de la URL.",
+  "error-load-offers": "No se pudieron cargar las ofertas",
+  "error-unknown": "Error desconocido"
+}

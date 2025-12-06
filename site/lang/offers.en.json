@@ -1,0 +1,21 @@
+{
+  "back-home": "Home",
+  "header-title": "Account offers",
+  "status-loading": "Loading…",
+  "status-ok": "OK",
+  "status-error": "Error",
+  "error-title": "Error",
+  "loader-text": "Loading",
+  "offers-empty": "No offers.",
+  "load-more": "Load more",
+  "seller-label": "Seller",
+  "selling-label": "Selling",
+  "buying-label": "Buying",
+  "amount-label": "Amount",
+  "price-label": "Price",
+  "ledger-label": "Ledger",
+  "offer-label": "Offer #",
+  "error-no-account-id": "Could not detect accountId from URL.",
+  "error-load-offers": "Failed to load offers",
+  "error-unknown": "Unknown error"
+}

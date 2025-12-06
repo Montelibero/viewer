@@ -1,0 +1,21 @@
+{
+  "back-home": "Inicio",
+  "header-title": "Oferta",
+  "status-loading": "Cargando…",
+  "status-ok": "OK",
+  "status-error": "Error",
+  "error-title": "Error",
+  "loader-text": "Cargando",
+  "seller-label": "Vendedor",
+  "updated-label": "Última actualización",
+  "ledger-label": "Ledger",
+  "details-title": "Detalles",
+  "raw-json-title": "JSON crudo",
+  "selling-label": "Vendemos",
+  "buying-label": "Compramos",
+  "amount-label": "Cantidad",
+  "price-label": "Precio",
+  "error-no-offer-id": "No se pudo obtener el ID de la oferta de la URL.",
+  "error-load-offer": "No se pudo cargar la oferta",
+  "error-unknown": "Error desconocido"
+}

@@ -1,0 +1,21 @@
+{
+  "back-home": "На главную",
+  "header-title": "Оффер",
+  "status-loading": "Загрузка…",
+  "status-ok": "OK",
+  "status-error": "Ошибка",
+  "error-title": "Ошибка",
+  "loader-text": "Загрузка",
+  "seller-label": "Продавец",
+  "updated-label": "Последнее обновление",
+  "ledger-label": "Ledger",
+  "details-title": "Детали",
+  "raw-json-title": "Сырой JSON",
+  "selling-label": "Продаём",
+  "buying-label": "Покупаем",
+  "amount-label": "Количество",
+  "price-label": "Цена",
+  "error-no-offer-id": "Не удалось определить ID оффера из URL.",
+  "error-load-offer": "Не удалось загрузить оффер",
+  "error-unknown": "Неизвестная ошибка"
+}

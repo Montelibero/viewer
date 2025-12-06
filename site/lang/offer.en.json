@@ -1,0 +1,21 @@
+{
+  "back-home": "Home",
+  "header-title": "Offer",
+  "status-loading": "Loading…",
+  "status-ok": "OK",
+  "status-error": "Error",
+  "error-title": "Error",
+  "loader-text": "Loading",
+  "seller-label": "Seller",
+  "updated-label": "Last updated",
+  "ledger-label": "Ledger",
+  "details-title": "Details",
+  "raw-json-title": "Raw JSON",
+  "selling-label": "Selling",
+  "buying-label": "Buying",
+  "amount-label": "Amount",
+  "price-label": "Price",
+  "error-no-offer-id": "Could not detect offer ID from URL.",
+  "error-load-offer": "Failed to load offer",
+  "error-unknown": "Unknown error"
+}

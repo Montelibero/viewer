@@ -1,0 +1,21 @@
+{
+  "back-home": "На главную",
+  "header-title": "Офферы аккаунта",
+  "status-loading": "Загрузка…",
+  "status-ok": "OK",
+  "status-error": "Ошибка",
+  "error-title": "Ошибка",
+  "loader-text": "Загрузка",
+  "offers-empty": "Офферов нет.",
+  "load-more": "Загрузить ещё",
+  "seller-label": "Продавец",
+  "selling-label": "Продаём",
+  "buying-label": "Покупаем",
+  "amount-label": "Количество",
+  "price-label": "Цена",
+  "ledger-label": "Ledger",
+  "offer-label": "Offer #",
+  "error-no-account-id": "Не удалось определить accountId из URL.",
+  "error-load-offers": "Не удалось загрузить офферы",
+  "error-unknown": "Неизвестная ошибка"
+}

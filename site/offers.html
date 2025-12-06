@@ -13,8 +13,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -22,12 +27,12 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Офферы аккаунта</p>
+            <p class="title is-5" data-i18n="header-title">Офферы аккаунта</p>
             <p class="subtitle is-7" id="account-id">—</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
     </div>
@@ -35,14 +40,14 @@
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">—</div>
     </article>
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- OFFERS LIST -->
     <div id="offers-container">
@@ -50,7 +55,7 @@
     </div>
 
     <div class="has-text-centered mt-4">
-      <button class="button is-link is-light" id="btn-load-more">
+      <button class="button is-link is-light" id="btn-load-more" data-i18n="load-more">
         Загрузить ещё
       </button>
     </div>
@@ -65,11 +70,24 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   document.getElementById('common-css').href = `${commonBase}.css`;
   const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'offers' });
+  const { t } = i18n;
+
+  let offersState = [];
+  let nextCursorState = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let accountIdState = null;
+  let loadingVisible = false;
 
   function accountLink(acc) {
     return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -87,29 +105,42 @@
 
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
+    loadingVisible = on;
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
     document.getElementById('error-box').classList.add('is-hidden');
   }
 
-  function setStatusOk() {
+  function setStatus(state) {
+    statusState = state;
     const status = document.getElementById('status-label');
-    status.textContent = 'OK';
-    status.classList.remove('is-danger');
-    status.classList.add('is-success');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'ok') {
+      status.classList.add('is-success');
+      key = 'status-ok';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
   }
 
   function getAccountFromUrl() {
@@ -142,7 +173,7 @@
     container.innerHTML = '';
 
     if (!list.length) {
-      container.innerHTML = '<p class="has-text-grey">Офферов нет.</p>';
+      container.innerHTML = `<p class="has-text-grey">${t('offers-empty')}</p>`;
       return;
     }
 
@@ -154,17 +185,17 @@
 
       box.innerHTML = `
         <p class="mb-1">
-          <strong><a href="/offer/${offer.id}">Offer #${offer.id}</a></strong>
+          <strong><a href="/offer/${offer.id}">${t('offer-label')}${offer.id}</a></strong>
           · ${offer.last_modified_time || ''}
         </p>
         <p class="is-size-7">
-          Продавец: ${accountLink(offer.seller) ? `<a class="is-mono" href="${accountLink(offer.seller)}">${shorten(offer.seller)}</a>` : '—'}
+          ${t('seller-label')}: ${accountLink(offer.seller) ? `<a class="is-mono" href="${accountLink(offer.seller)}">${shorten(offer.seller)}</a>` : '—'}
         </p>
-        <p class="mt-2">Продаём: ${assetLabel(offer.selling)}</p>
-        <p>Покупаем: ${assetLabel(offer.buying)}</p>
-        <p>Количество: <span class="has-text-weight-semibold">${offer.amount || '—'}</span></p>
-        <p>Цена: ${price}</p>
-        <p class="is-size-7 has-text-grey">Ledger: ${offer.last_modified_ledger || '—'}</p>
+        <p class="mt-2">${t('selling-label')}: ${assetLabel(offer.selling)}</p>
+        <p>${t('buying-label')}: ${assetLabel(offer.buying)}</p>
+        <p>${t('amount-label')}: <span class="has-text-weight-semibold">${offer.amount || '—'}</span></p>
+        <p>${t('price-label')}: ${price}</p>
+        <p class="is-size-7 has-text-grey">${t('ledger-label')}: ${offer.last_modified_ledger || '—'}</p>
       `;
 
       container.appendChild(box);
@@ -177,10 +208,11 @@
     const loadMoreBtn = document.getElementById('btn-load-more');
 
     if (!accountId) {
-      showError('Не удалось определить accountId из URL.');
+      showError('error-no-account-id');
       return;
     }
 
+    accountIdState = accountId;
     accountEl.textContent = accountId;
 
     let offers = [];
@@ -197,12 +229,14 @@
           offers = batch;
         }
         nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
+        offersState = offers;
+        nextCursorState = nextCursor;
         renderOffers(offers);
         loadMoreBtn.disabled = !nextCursor;
-        setStatusOk();
+        setStatus('ok');
       } catch (e) {
         console.error(e);
-        showError(e.message || 'Не удалось загрузить офферы.');
+        showError('error-load-offers', { detail: e.message || t('error-unknown') });
       } finally {
         showLoading(false);
       }
@@ -218,6 +252,41 @@
 
     await loadBatch({ limit: 50 });
   }
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function reapplyLanguage() {
+    if (accountIdState) {
+      document.getElementById('account-id').textContent = accountIdState;
+    }
+    renderOffers(offersState);
+    const loadMoreBtn = document.getElementById('btn-load-more');
+    if (loadMoreBtn) loadMoreBtn.disabled = !nextCursorState;
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    showLoading(loadingVisible);
+    setStatus(statusState);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
+  });
 
   main();
 </script>

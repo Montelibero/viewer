@@ -66,13 +66,16 @@ function decodeDataValue(raw) {
     }
     let text = null;
     try {
-      text = decodeURIComponent(escape(String.fromCharCode(...bytes)));
+      const arr = Uint8Array.from(bytes);
+      text = td ? td.decode(arr) : decodeURIComponent(escape(String.fromCharCode(...bytes)));
     } catch (_) {}
     return { decodedText: text, hex: str.toLowerCase(), format: 'hex' };
   };
 
   const tryBase64 = () => {
     try {
+      const b64re = /^[A-Za-z0-9+/]+={0,2}$/;
+      if (!b64re.test(str)) return null;
       const bin = atob(str);
       let text = null;
       try {
@@ -86,7 +89,9 @@ function decodeDataValue(raw) {
     }
   };
 
-  return tryBase64() || tryHex() || { raw: str, decodedText: null, hex: null };
+  const hex = tryHex();
+  if (hex) return hex;
+  return tryBase64() || { raw: str, decodedText: null, hex: null };
 }
 
 function assetLink(code, issuer) {
@@ -139,13 +144,17 @@ export function renderAsset(asset) {
 function getOpType(op) {
   if (op?.type) return op.type;
   const body = op?.body || {};
-  const keys = Object.keys(body);
-  if (keys.length) return keys[0];
-  return 'unknown';
+  const keys = Object.keys(body || {});
+  if (!keys.length) return typeof body === 'string' ? body : 'unknown';
+  return keys[0];
 }
 
 function isXdrOp(op) {
-  return Boolean(op?.body);
+  if (!op || typeof op !== 'object') return false;
+  if (op.body && typeof op.body === 'object') return true;
+  if (typeof op.body === 'string') return true;
+  if (op.type === 'end_sponsoring_future_reserves' && op.body === 'end_sponsoring_future_reserves') return true;
+  return false;
 }
 
 function renderStatusTag(success) {
@@ -163,7 +172,9 @@ export function renderOperationDetails(op) {
   container.className = 'is-size-7';
 
   const type = getOpType(op);
-  const xdrInner = isXdrOp(op) ? op.body?.[type] || {} : null;
+  const xdrInner = isXdrOp(op)
+    ? (typeof op.body === 'string' ? {} : op.body?.[type] || {})
+    : null;
 
   const addLine = (label, value) => {
     const p = document.createElement('p');
@@ -275,7 +286,9 @@ export function renderOperationDetails(op) {
     const sponsored = xdrInner ? (xdrInner.sponsoredId || xdrInner.sponsoredID) : op.sponsored_id;
     addLine('Спонсируемый', renderAccount(sponsored));
   } else if (type === 'end_sponsoring_future_reserves') {
+    const sponsored = op.sponsored_id || xdrInner?.sponsoredId || xdrInner?.sponsoredID;
     addLine('Действие', 'Завершение спонсирования резервов');
+    if (sponsored) addLine('Спонсируемый', renderAccount(sponsored));
   } else if (type === 'revoke_sponsorship') {
     const target =
       op.account_id || op.trustline_account_id || op.signer_account_id || op.data_account_id ||

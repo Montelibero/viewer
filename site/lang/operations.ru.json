@@ -2,7 +2,7 @@
   "back-home": "На главную",
   "header-title": "Операции аккаунта",
   "status-loading": "Загрузка…",
-  "status-ok": "OK",
+  "status-ok": "Успешно",
   "status-error": "Ошибка",
   "filters-title": "Фильтры",
   "filter-amount-label": "Сумма (25, >25, <1000)",

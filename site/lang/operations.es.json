@@ -2,7 +2,7 @@
   "back-home": "Inicio",
   "header-title": "Operaciones de la cuenta",
   "status-loading": "Cargando…",
-  "status-ok": "OK",
+  "status-ok": "Éxito",
   "status-error": "Error",
   "filters-title": "Filtros",
   "filter-amount-label": "Monto (25, >25, <1000)",

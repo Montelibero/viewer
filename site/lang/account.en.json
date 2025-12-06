@@ -3,7 +3,7 @@
   "header-title": "Stellar Account",
   "network-mainnet": "Mainnet",
   "status-loading": "Loading…",
-  "status-ok": "OK",
+  "status-ok": "Success",
   "status-error": "Error",
   "copy-address": "Copy address",
   "copy-success": "Copied",

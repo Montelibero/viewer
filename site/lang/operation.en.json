@@ -1,0 +1,17 @@
+{
+  "back-home": "Home",
+  "header-title": "Operation",
+  "status-loading": "Loading…",
+  "status-success": "Success",
+  "status-failed": "Failed",
+  "status-error": "Error",
+  "source-label": "Source:",
+  "tx-label": "Transaction:",
+  "error-title": "Error",
+  "loader-text": "Loading",
+  "details-title": "Details",
+  "json-title": "JSON",
+  "error-no-op-id": "Could not detect operation id from URL.",
+  "error-load-op": "Failed to load operation",
+  "error-unknown": "Unknown error"
+}

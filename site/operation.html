@@ -13,8 +13,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -22,42 +27,42 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Операция</p>
+            <p class="title is-5" data-i18n="header-title">Операция</p>
             <p class="subtitle is-7" id="op-type">—</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
 
       <p class="is-mono is-size-7" id="op-id">—</p>
       <p class="is-size-7" id="op-created">—</p>
-      <p class="is-size-7">Источник: <span id="op-source">—</span></p>
-      <p class="is-size-7">Транзакция: <span id="op-tx">—</span></p>
+      <p class="is-size-7"><span data-i18n="source-label">Источник:</span> <span id="op-source">—</span></p>
+      <p class="is-size-7"><span data-i18n="tx-label">Транзакция:</span> <span id="op-tx">—</span></p>
     </div>
 
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">—</div>
     </article>
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- DETAILS -->
     <div class="box" id="op-details-box">
-      <p class="title is-6">Детали</p>
+      <p class="title is-6" data-i18n="details-title">Детали</p>
       <div id="op-details" class="is-size-7"></div>
     </div>
 
     <!-- RAW JSON -->
     <div class="box" id="op-json-box">
-      <p class="title is-6">JSON</p>
+      <p class="title is-6" data-i18n="json-title">JSON</p>
       <pre id="op-json" class="is-size-7"></pre>
     </div>
 
@@ -72,6 +77,7 @@
     return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
     const m = window.location.pathname.match(/^(.*\/site)\//);
@@ -80,9 +86,20 @@
   })();
   const { shorten, isLocalLike } = await import(`${commonBase}.js`);
   const { accountLink, renderOperationDetails } = await import(`${moduleBase}operation-view.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultOpId = '257949658419138561';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'operation' });
+  const { t } = i18n;
+
+  let opData = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let loaderVisible = false;
+  let currentOpId = null;
 
   function getOpIdFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -97,39 +114,57 @@
 
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
+    loaderVisible = on;
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  function setStatus(state) {
+    statusState = state;
+    const status = document.getElementById('status-label');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'success') {
+      status.classList.add('is-success');
+      key = 'status-success';
+    } else if (state === 'failed') {
+      status.classList.add('is-danger');
+      key = 'status-failed';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
+  }
+
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
     document.getElementById('error-box').classList.add('is-hidden');
   }
 
-  function setStatusOk() {
-    const status = document.getElementById('status-label');
-    status.textContent = 'OK';
-    status.classList.remove('is-danger');
-    status.classList.add('is-success');
-  }
-
   async function loadOp() {
     const opId = getOpIdFromUrl();
     if (!opId) {
-      showError('Не удалось определить id операции.');
+      showError('error-no-op-id');
       return;
     }
 
+    currentOpId = opId;
     clearError();
+    setStatus('loading');
     showLoading(true);
 
     try {
@@ -138,6 +173,7 @@
         throw new Error(`Horizon error ${res.status}`);
       }
       const op = await res.json();
+      opData = op;
 
       document.getElementById('op-id').textContent = op.id || opId;
       document.getElementById('op-type').textContent = op.type || '—';
@@ -159,25 +195,76 @@
       const status = document.getElementById('status-label');
       const headerBox = document.getElementById('op-header-box');
       if (op.transaction_successful) {
-        status.textContent = 'Success';
-        status.classList.remove('is-info', 'is-danger');
-        status.classList.add('is-success');
+        setStatus('success');
         headerBox.classList.remove('is-failed');
       } else {
-        status.textContent = 'Failed';
-        status.classList.remove('is-info', 'is-success');
-        status.classList.add('is-danger');
+        setStatus('failed');
         headerBox.classList.add('is-failed');
       }
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Не удалось загрузить операцию.');
+      showError('error-load-op', { detail: e.message || t('error-unknown') });
     } finally {
       showLoading(false);
     }
   }
 
   loadOp();
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function reapplyLanguage() {
+    if (currentOpId) document.getElementById('op-id').textContent = currentOpId;
+    if (opData) {
+      document.getElementById('op-type').textContent = opData.type || '—';
+      document.getElementById('op-created').textContent = opData.created_at || '';
+
+      const srcLink = accountLink(opData.source_account);
+      document.getElementById('op-source').innerHTML =
+        srcLink ? `<a class="is-mono" href="${srcLink}">${shorten(opData.source_account)}</a>` : (opData.source_account || '—');
+
+      const txLink = opData.transaction_hash ? `/transaction/${opData.transaction_hash}` : null;
+      document.getElementById('op-tx').innerHTML =
+        txLink ? `<a class="is-mono" href="${txLink}">${shorten(opData.transaction_hash)}</a>` : '—';
+
+      const details = document.getElementById('op-details');
+      details.innerHTML = '';
+      details.appendChild(renderOperationDetails(opData));
+      document.getElementById('op-json').textContent = JSON.stringify(opData, null, 2);
+
+      const headerBox = document.getElementById('op-header-box');
+      if (opData.transaction_successful) {
+        setStatus('success');
+        headerBox.classList.remove('is-failed');
+      } else {
+        setStatus('failed');
+        headerBox.classList.add('is-failed');
+      }
+    }
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    showLoading(loaderVisible);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
+  });
 </script>
 
 </body>

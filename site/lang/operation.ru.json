@@ -1,0 +1,17 @@
+{
+  "back-home": "На главную",
+  "header-title": "Операция",
+  "status-loading": "Загрузка…",
+  "status-success": "Успешно",
+  "status-failed": "Неуспешно",
+  "status-error": "Ошибка",
+  "source-label": "Источник:",
+  "tx-label": "Транзакция:",
+  "error-title": "Ошибка",
+  "loader-text": "Загрузка",
+  "details-title": "Детали",
+  "json-title": "JSON",
+  "error-no-op-id": "Не удалось определить id операции.",
+  "error-load-op": "Не удалось загрузить операцию",
+  "error-unknown": "Неизвестная ошибка"
+}

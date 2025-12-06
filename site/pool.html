@@ -14,8 +14,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -23,21 +28,21 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Liquidity Pool</p>
+            <p class="title is-5" data-i18n="header-title">Liquidity Pool</p>
             <p class="subtitle is-7" id="pool-type">—</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
 
       <p class="is-mono is-size-7" id="pool-id">—</p>
 
       <div class="mt-3 is-size-7">
-        <p>Fee: <span id="pool-fee">—</span> bps</p>
-        <p>Shares: <span class="has-text-weight-semibold" id="pool-shares">—</span></p>
-        <p>Trustlines: <span id="pool-tl">—</span></p>
+        <p><span data-i18n="fee-label">Fee</span>: <span id="pool-fee">—</span> bps</p>
+        <p><span data-i18n="shares-label">Shares</span>: <span class="has-text-weight-semibold" id="pool-shares">—</span></p>
+        <p><span data-i18n="trustlines-label">Trustlines</span>: <span id="pool-tl">—</span></p>
         <p class="is-size-7" id="pool-updated">—</p>
       </div>
     </div>
@@ -45,7 +50,7 @@
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">
         —
@@ -54,11 +59,11 @@
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- RESERVES -->
     <div class="box">
-      <p class="title is-6">Резервы</p>
+      <p class="title is-6" data-i18n="reserves-title">Резервы</p>
       <ul id="reserves" class="is-size-7">
         <!-- сюда пойдут резервы -->
       </ul>
@@ -66,22 +71,25 @@
 
     <!-- LINKS -->
     <div class="box">
-      <p class="title is-6">Horizon</p>
+      <p class="title is-6" data-i18n="links-title">Horizon</p>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-operations">
+           id="btn-operations"
+           data-i18n="link-operations">
           Операции
         </a>
       </div>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-transactions">
+           id="btn-transactions"
+           data-i18n="link-transactions">
           Транзакции
         </a>
       </div>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-holders">
+           id="btn-holders"
+           data-i18n="link-holders">
           Холдеры
         </a>
       </div>
@@ -89,9 +97,9 @@
 
     <!-- HOLDERS -->
     <div class="box is-hidden" id="holders-box">
-      <p class="title is-6">Холдеры</p>
+      <p class="title is-6" data-i18n="holders-title">Холдеры</p>
       <progress class="progress is-small is-primary is-hidden"
-                max="100" id="holders-loader">Загрузка</progress>
+                max="100" id="holders-loader" data-i18n="loader-text">Загрузка</progress>
       <div id="holders-list"></div>
     </div>
 
@@ -105,11 +113,24 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   document.getElementById('common-css').href = `${commonBase}.css`;
   const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultPoolId = '49a48dd6aa8b247a553a07acd2957efa85fc0233a40af5bb75cf5d27624d42d9';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'pool' });
+  const { t } = i18n;
+
+  let poolData = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let holdersData = null;
+  let holdersVisible = false;
+  let loaderVisible = false;
 
   function getPoolIdFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -124,18 +145,38 @@
 
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
+    loaderVisible = on;
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  function setStatus(state) {
+    statusState = state;
+    const status = document.getElementById('status-label');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'ok') {
+      status.classList.add('is-success');
+      key = 'status-ok';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
+  }
+
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
@@ -147,7 +188,7 @@
     listEl.innerHTML = '';
 
     if (!reserves?.length) {
-      listEl.textContent = 'Нет резервов.';
+      listEl.textContent = t('reserves-empty');
       return;
     }
 
@@ -178,7 +219,7 @@
       }
 
       const amount = document.createElement('div');
-      amount.innerHTML = `amount: <span class="has-text-weight-semibold">${r.amount}</span>`;
+      amount.innerHTML = `${t('amount-label')}: <span class="has-text-weight-semibold">${r.amount}</span>`;
       li.appendChild(amount);
 
       listEl.appendChild(li);
@@ -186,17 +227,16 @@
   }
 
   function renderPool(pool) {
+    poolData = pool;
     document.getElementById('pool-id').textContent = pool.id;
     document.getElementById('pool-type').textContent = pool.type || '—';
     document.getElementById('pool-fee').textContent = pool.fee_bp ?? '—';
     document.getElementById('pool-shares').textContent = pool.total_shares ?? '—';
     document.getElementById('pool-tl').textContent = pool.total_trustlines ?? '—';
     document.getElementById('pool-updated').textContent =
-      pool.last_modified_time ? `Updated: ${pool.last_modified_time}` : '';
+      pool.last_modified_time ? `${t('updated-label')}: ${pool.last_modified_time}` : '';
 
-    document.getElementById('status-label').textContent = 'OK';
-    document.getElementById('status-label').classList.remove('is-danger');
-    document.getElementById('status-label').classList.add('is-success');
+    setStatus('ok');
 
     renderReserves(pool.reserves);
 
@@ -210,11 +250,12 @@
   async function loadPool() {
     const poolId = getPoolIdFromUrl();
     if (!poolId) {
-      showError('Не удалось определить poolId из URL.');
+      showError('error-no-pool-id');
       return;
     }
 
     clearError();
+    setStatus('loading');
     showLoading(true);
 
     try {
@@ -226,7 +267,7 @@
       renderPool(data);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке пула.');
+      showError('error-load-pool', { detail: e.message || t('error-unknown') });
     } finally {
       showLoading(false);
     }
@@ -274,18 +315,21 @@
 
     const holdersBox = document.getElementById('holders-box');
     holdersBox.classList.remove('is-hidden');
+    holdersVisible = true;
 
     const loader = document.getElementById('holders-loader');
+    loader.textContent = t('loader-text');
     loader.classList.remove('is-hidden');
 
     try {
       const holders = (await fetchAllHolders(poolId))
         .sort((a, b) => b.balance - a.balance);
 
+      holdersData = holders;
       renderHolders(holders);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке холдеров.');
+      showError('error-load-holders', { detail: e.message || t('error-unknown') });
     } finally {
       loader.classList.add('is-hidden');
     }
@@ -296,7 +340,7 @@
     listEl.innerHTML = '';
 
     if (!holders.length) {
-      listEl.textContent = 'Нет холдеров.';
+      listEl.textContent = t('holders-empty');
       return;
     }
 
@@ -304,7 +348,7 @@
     table.className = 'table is-fullwidth is-striped is-hoverable is-size-7';
 
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr><th>Account ID</th><th class="has-text-right">Balance</th></tr>`;
+    thead.innerHTML = `<tr><th>${t('holders-th-account')}</th><th class="has-text-right">${t('holders-th-balance')}</th></tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
@@ -334,6 +378,40 @@
   document.getElementById('btn-holders').addEventListener('click', (e) => {
     e.preventDefault();
     loadHolders();
+  });
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function reapplyLanguage() {
+    if (poolData) renderPool(poolData);
+    if (holdersData && holdersVisible) {
+      document.getElementById('holders-box').classList.remove('is-hidden');
+      renderHolders(holdersData);
+    }
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    showLoading(loaderVisible);
+    setStatus(statusState);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
   });
 </script>
 

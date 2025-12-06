@@ -14,8 +14,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- Шапка -->
@@ -23,40 +28,40 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5 box-title">Stellar Transaction</p>
-            <p class="subtitle is-7" id="network-label">Mainnet · horizon.stellar.org</p>
+            <p class="title is-5 box-title" data-i18n="header-title">Stellar Transaction</p>
+            <p class="subtitle is-7" id="network-label" data-i18n="network-label">Mainnet · horizon.stellar.org</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag" id="status-label">Загрузка…</span>
+          <span class="tag" id="status-label" data-i18n="status-loading">Загрузка…</span>
         </div>
       </div>
 
-      <p class="is-size-7 mb-1"><strong>Хэш транзакции</strong></p>
+      <p class="is-size-7 mb-1"><strong data-i18n="hash-title">Хэш транзакции</strong></p>
       <p class="is-mono is-size-7" id="tx-hash">—</p>
 
       <div class="mt-2">
-        <button class="button is-small is-light" id="copy-hash-btn">
+        <button class="button is-small is-light" id="copy-hash-btn" data-i18n="copy-hash">
           Скопировать хэш
         </button>
-        <a class="button is-small is-link is-light" id="horizon-link" target="_blank" rel="noopener">
+        <a class="button is-small is-link is-light" id="horizon-link" target="_blank" rel="noopener" data-i18n="horizon-link">
           Открыть в Horizon
         </a>
       </div>
 
       <div class="mt-3 is-size-7">
-        <div>Леджер: <span id="ledger">—</span></div>
-        <div>Создана: <span id="created-at">—</span></div>
-        <div>Источник: <span class="is-mono" id="source-account">—</span></div>
-        <div>Операций: <span id="op-count">—</span></div>
-        <div>Комиссия (фактическая): <span id="fee-charged">—</span></div>
+        <div><span data-i18n="ledger-label">Леджер</span>: <span id="ledger">—</span></div>
+        <div><span data-i18n="created-label">Создана</span>: <span id="created-at">—</span></div>
+        <div><span data-i18n="source-label">Источник</span>: <span class="is-mono" id="source-account">—</span></div>
+        <div><span data-i18n="op-count-label">Операций</span>: <span id="op-count">—</span></div>
+        <div><span data-i18n="fee-charged-label">Комиссия (фактическая)</span>: <span id="fee-charged">—</span></div>
       </div>
     </div>
 
     <!-- Ошибка -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body is-size-7" id="error-text">
         —
@@ -65,32 +70,32 @@
 
     <!-- Лоадер -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- Декодированные данные XDR (человеческий вид) -->
     <div class="box">
-      <p class="title is-6 box-title">Данные транзакции (из XDR)</p>
+      <p class="title is-6 box-title" data-i18n="tx-data-title">Данные транзакции (из XDR)</p>
 
       <div class="is-size-7">
-        <div>Sequence: <span id="seq-num">—</span></div>
-        <div>Memo: <span id="memo">—</span></div>
-        <div>Временные границы: <span id="time-bounds">—</span></div>
-        <div>Base fee (из XDR): <span id="base-fee">—</span></div>
+        <div><span data-i18n="seq-label">Sequence</span>: <span id="seq-num">—</span></div>
+        <div><span data-i18n="memo-label">Memo</span>: <span id="memo">—</span></div>
+        <div><span data-i18n="time-bounds-label">Временные границы</span>: <span id="time-bounds">—</span></div>
+        <div><span data-i18n="base-fee-label">Base fee (из XDR)</span>: <span id="base-fee">—</span></div>
       </div>
 
       <hr>
 
-      <p class="title is-7">Операции</p>
-      <div id="operations-list" class="is-size-7">
+      <p class="title is-7" data-i18n="operations-title">Операции</p>
+      <div id="operations-list" class="is-size-7" data-i18n="operations-loading">
         Загрузка операций…
       </div>
     </div>
 
     <!-- Чистый JSON из XDR -->
     <div class="box">
-      <p class="title is-6 box-title">Чистый JSON (decode TransactionEnvelope)</p>
+      <p class="title is-6 box-title" data-i18n="json-title">Чистый JSON (decode TransactionEnvelope)</p>
       <p class="is-size-7 mb-2">
-        Это прямой результат декодирования XDR → JSON через
+        <span data-i18n="json-desc">Это прямой результат декодирования XDR → JSON через</span>
         <code>@stellar/stellar-xdr-json</code>.
       </p>
       <pre><code id="json-body" class="is-mono">—</code></pre>
@@ -98,8 +103,8 @@
 
     <!-- Сырой XDR -->
     <div class="box">
-      <p class="title is-6 box-title">Сырой XDR (envelope_xdr)</p>
-      <p class="is-size-7 mb-2">
+      <p class="title is-6 box-title" data-i18n="xdr-title">Сырой XDR (envelope_xdr)</p>
+      <p class="is-size-7 mb-2" data-i18n="xdr-desc">
         На случай, если захочется проверить декодирование вручную.
       </p>
       <pre><code id="xdr-raw" class="is-mono">—</code></pre>
@@ -116,6 +121,7 @@
   return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
     const m = window.location.pathname.match(/^(.*\/site)\//);
@@ -129,23 +135,60 @@
     renderAccount,
     renderAsset
   } = await import(`${moduleBase}operation-view.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'transaction' });
+  const { t } = i18n;
 
   const statusEl = document.getElementById('status-label');
   const errorBox = document.getElementById('error-box');
   const errorText = document.getElementById('error-text');
   const loader = document.getElementById('loader');
+  const operationsList = document.getElementById('operations-list');
+
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let statusState = 'loading';
+  let loaderVisible = false;
+  let txData = null;
+  let decodedTxObj = null;
+  let currentTxHash = null;
 
   function showLoading(on) {
+    loader.textContent = t('loader-text');
+    loaderVisible = on;
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(msg) {
-    errorText.textContent = msg;
+  function setStatus(state) {
+    statusState = state;
+    statusEl.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'success') {
+      statusEl.classList.add('is-success');
+      key = 'status-success';
+    } else if (state === 'failed') {
+      statusEl.classList.add('is-danger');
+      key = 'status-failed';
+    } else if (state === 'error') {
+      statusEl.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      statusEl.classList.add('is-info');
+    }
+    statusEl.textContent = t(key);
+  }
+
+  function showError(messageKey, { detail = '' } = {}) {
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    errorText.textContent = msg || detail || '';
     errorBox.classList.remove('is-hidden');
-    statusEl.textContent = 'Ошибка';
-    statusEl.className = 'tag is-danger';
+    setStatus('error');
   }
 
   function clearError() {
@@ -169,25 +212,25 @@
   }
 
   function describeMemo(memo) {
-    if (!memo) return 'нет';
+    if (!memo) return t('memo-none');
     const keys = Object.keys(memo);
-    if (!keys.length) return 'нет';
-    const t = keys[0];
-    const v = memo[t];
-    if (t === 'text') return `TEXT: "${v}"`;
-    if (t === 'id') return `ID: ${v}`;
-    if (t === 'hash') return `HASH (base64): ${v}`;
-    if (t === 'ret_hash' || t === 'return') return `RETURN HASH (base64): ${v}`;
-    return `${t}: ${JSON.stringify(v)}`;
+    if (!keys.length) return t('memo-none');
+    const tkey = keys[0];
+    const v = memo[tkey];
+    if (tkey === 'text') return t('memo-text').replace('{text}', v);
+    if (tkey === 'id') return t('memo-id').replace('{id}', v);
+    if (tkey === 'hash') return t('memo-hash').replace('{hash}', v);
+    if (tkey === 'ret_hash' || tkey === 'return') return t('memo-return').replace('{hash}', v);
+    return `${tkey}: ${JSON.stringify(v)}`;
   }
 
   function describeTimeBounds(cond) {
-    if (!cond || !cond.time) return 'нет';
+    if (!cond || !cond.time) return t('time-bounds-none');
     const { min_time, max_time } = cond.time;
     if ((!min_time || min_time === '0') && (!max_time || max_time === '0')) {
-      return 'нет';
+      return t('time-bounds-none');
     }
-    return `min: ${min_time || '0'}, max: ${max_time || '0'}`;
+    return `${t('time-bounds-min')}: ${min_time || '0'}, ${t('time-bounds-max')}: ${max_time || '0'}`;
   }
 
   function extractTxObject(decoded) {
@@ -204,7 +247,7 @@
 
     const ops = Array.isArray(tx.operations) ? tx.operations : [];
     if (!ops.length) {
-      container.textContent = 'Операций нет.';
+      container.textContent = t('operations-empty');
       return;
     }
 
@@ -231,10 +274,11 @@
     const xdrRawEl = document.getElementById('xdr-raw');
 
     if (!txHash) {
-      showError('Не удалось определить хэш транзакции из URL.');
+      showError('error-no-hash');
       return;
     }
 
+    currentTxHash = txHash;
     txHashEl.textContent = txHash;
 
     document.getElementById('copy-hash-btn').addEventListener('click', async () => {
@@ -242,14 +286,15 @@
         await navigator.clipboard.writeText(txHash);
         const btn = document.getElementById('copy-hash-btn');
         const old = btn.textContent;
-        btn.textContent = 'Скопировано';
+        btn.textContent = t('copy-success');
         setTimeout(() => (btn.textContent = old), 1500);
       } catch (e) {
-        alert('Не удалось скопировать хэш в буфер обмена.');
+        alert(t('copy-failed'));
       }
     });
 
     clearError();
+    setStatus('loading');
     showLoading(true);
 
     try {
@@ -264,10 +309,10 @@
         throw new Error(detail);
       }
       const tx = await res.json();
+      txData = tx;
 
       const successful = tx.successful;
-      statusEl.textContent = successful ? 'Успешно' : 'Неуспешно';
-      statusEl.className = successful ? 'tag is-success' : 'tag is-danger';
+      setStatus(successful ? 'success' : 'failed');
       const headerBox = document.getElementById('tx-header-box');
       if (headerBox) {
         if (successful) headerBox.classList.remove('is-failed');
@@ -287,7 +332,7 @@
 
       const envelopeXdr = tx.envelope_xdr;
       if (!envelopeXdr) {
-        throw new Error('В ответе Horizon нет envelope_xdr.');
+        throw new Error(t('error-no-envelope'));
       }
 
       // 2) Показываем сырой XDR
@@ -301,7 +346,7 @@
       }
       const decodeFn = mod.decode;
       if (typeof decodeFn !== 'function') {
-        throw new Error('Функция decode() недоступна в @stellar/stellar-xdr-json');
+        throw new Error(t('error-decode'));
       }
 
       const decoded = decodeFn('TransactionEnvelope', envelopeXdr.trim());
@@ -321,15 +366,16 @@
 
       // 5) Человекочитаемый вывод
       const txObj = extractTxObject(decodedObj);
+      decodedTxObj = txObj;
       seqEl.textContent = txObj.seq_num ?? '—';
       memoEl.textContent = describeMemo(txObj.memo);
       timeBoundsEl.textContent = describeTimeBounds(txObj.cond);
-      baseFeeEl.textContent = `${txObj.fee ?? '—'} stroops (на операцию)`; // это base fee
+      baseFeeEl.textContent = `${txObj.fee ?? '—'} ${t('base-fee-suffix')}`; // это base fee
 
       renderOperations(txObj);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке/декодировании транзакции.');
+      showError('error-load-tx', { detail: e.message || t('error-unknown') });
     } finally {
       showLoading(false);
     }
@@ -337,6 +383,61 @@
 
   // запуск
   main();
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function reapplyLanguage() {
+    if (currentTxHash) document.getElementById('tx-hash').textContent = currentTxHash;
+    if (txData) {
+      const { ledger, created_at, source_account, operation_count, fee_charged, successful } = txData;
+      document.getElementById('ledger').textContent = ledger ?? '—';
+      document.getElementById('created-at').textContent = created_at ?? '—';
+      const srcLink = accountLink(source_account);
+      document.getElementById('source-account').innerHTML = srcLink
+        ? `<a class="is-mono" href="${srcLink}">${source_account}</a>`
+        : (source_account ?? '—');
+      document.getElementById('op-count').textContent = operation_count ?? '—';
+      document.getElementById('fee-charged').textContent = `${formatStroopAmount(fee_charged)} XLM`;
+      setStatus(successful ? 'success' : 'failed');
+      const headerBox = document.getElementById('tx-header-box');
+      if (headerBox) {
+        if (successful) headerBox.classList.remove('is-failed');
+        else headerBox.classList.add('is-failed');
+      }
+    }
+    if (decodedTxObj) {
+      document.getElementById('seq-num').textContent = decodedTxObj.seq_num ?? '—';
+      document.getElementById('memo').textContent = describeMemo(decodedTxObj.memo);
+      document.getElementById('time-bounds').textContent = describeTimeBounds(decodedTxObj.cond);
+      document.getElementById('base-fee').textContent = `${decodedTxObj.fee ?? '—'} ${t('base-fee-suffix')}`;
+      renderOperations(decodedTxObj);
+    } else {
+      operationsList.textContent = t('operations-loading');
+    }
+    const errorVisible = !errorBox.classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    showLoading(loaderVisible);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
+  });
 </script>
 
 </body>

@@ -13,8 +13,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -22,48 +27,51 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Операции аккаунта</p>
+            <p class="title is-5" data-i18n="header-title">Операции аккаунта</p>
             <p class="subtitle is-7" id="account-id">—</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
     </div>
 
     <!-- FILTERS -->
     <div class="box">
-      <p class="title is-6">Фильтры</p>
+      <p class="title is-6" data-i18n="filters-title">Фильтры</p>
       <div class="columns is-multiline is-mobile">
         <div class="column is-12-mobile is-4-tablet">
-          <label class="label is-size-7">Сумма (25, >25, <1000)</label>
+          <label class="label is-size-7" data-i18n="filter-amount-label">Сумма (25, >25, <1000)</label>
           <input class="input is-small"
                  type="text"
                  id="filter-amount"
+                 data-i18n-placeholder="filter-amount-placeholder"
                  placeholder="например >25">
         </div>
         <div class="column is-12-mobile is-4-tablet">
-          <label class="label is-size-7">Актив (код)</label>
+          <label class="label is-size-7" data-i18n="filter-asset-label">Актив (код)</label>
           <input class="input is-small"
                  type="text"
                  id="filter-asset"
+                 data-i18n-placeholder="filter-asset-placeholder"
                  placeholder="USDM">
         </div>
         <div class="column is-12-mobile is-4-tablet">
-          <label class="label is-size-7">Тип (+payment, -data, +payment -data)</label>
+          <label class="label is-size-7" data-i18n="filter-type-label">Тип (+payment, -data, +payment -data)</label>
           <input class="input is-small"
                  type="text"
                  id="filter-type"
+                 data-i18n-placeholder="filter-type-placeholder"
                  placeholder="+payment -data">
         </div>
       </div>
       <p class="help is-danger is-hidden" id="filter-error"></p>
       <div class="buttons mt-2">
-        <button class="button is-primary is-small" id="btn-apply-filter">
+        <button class="button is-primary is-small" id="btn-apply-filter" data-i18n="btn-apply-filter">
           Фильтр (загрузить 200)
         </button>
-        <button class="button is-light is-small" id="btn-clear-filter">
+        <button class="button is-light is-small" id="btn-clear-filter" data-i18n="btn-clear-filter">
           Сбросить
         </button>
       </div>
@@ -72,14 +80,14 @@
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">—</div>
     </article>
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- OPERATIONS LIST -->
     <div id="operations-container">
@@ -88,10 +96,10 @@
 
     <div class="has-text-centered mt-4">
       <div class="buttons is-centered">
-        <button class="button is-link is-light" id="btn-load-more">
+        <button class="button is-link is-light" id="btn-load-more" data-i18n="load-more">
           Загрузить ещё
         </button>
-        <button class="button is-info is-light" id="btn-export-csv">
+        <button class="button is-info is-light" id="btn-export-csv" data-i18n="export-csv">
           Экспорт в CSV
         </button>
       </div>
@@ -108,6 +116,7 @@
   return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
     const m = window.location.pathname.match(/^(.*\/site)\//);
@@ -119,9 +128,13 @@
     assetLabelFull,
     createOperationCard
   } = await import(`${moduleBase}operation-view.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'operations' });
+  const { t } = i18n;
 
   function getAccountFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean);
@@ -136,36 +149,57 @@
 
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  let operationsState = [];
+  let nextCursorState = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let accountIdState = null;
+  let filterErrorState = '';
+  let filterErrorKey = '';
+
+  function setStatus(state) {
+    statusState = state;
+    const status = document.getElementById('status-label');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'ok') {
+      status.classList.add('is-success');
+      key = 'status-ok';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
+  }
+
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
     document.getElementById('error-box').classList.add('is-hidden');
   }
 
-  function setStatusOk() {
-    const status = document.getElementById('status-label');
-    status.textContent = 'OK';
-    status.classList.remove('is-danger');
-    status.classList.add('is-success');
-  }
-
   function parseAmountFilter(value) {
     if (!value.trim()) return null;
     const re = /^([<>])?\s*(\d+(?:\.\d+)?)$/;
     const m = value.trim().match(re);
-    if (!m) return { error: 'Сумма: используйте числа, опционально с > или <.' };
+    if (!m) return { error: t('filter-amount-error') };
     return { op: m[1] || '=', value: parseFloat(m[2]) };
   }
 
@@ -237,7 +271,7 @@
     container.innerHTML = '';
 
     if (!list.length) {
-      container.innerHTML = '<p class="has-text-grey">Нет операций по заданным условиям.</p>';
+      container.innerHTML = `<p class="has-text-grey">${t('ops-empty')}</p>`;
       return;
     }
 
@@ -274,10 +308,11 @@
     const loadMoreBtn = document.getElementById('btn-load-more');
 
     if (!accountId) {
-      showError('Не удалось определить accountId из URL.');
+      showError('error-no-account');
       return;
     }
 
+    accountIdState = accountId;
     accountEl.textContent = accountId;
 
     let operations = [];
@@ -288,9 +323,13 @@
       if (amountFilter?.error) {
         filterErrorEl.textContent = amountFilter.error;
         filterErrorEl.classList.remove('is-hidden');
+        filterErrorState = filterErrorEl.textContent;
+        filterErrorKey = 'filter-amount-error';
         return;
       }
       filterErrorEl.classList.add('is-hidden');
+      filterErrorState = '';
+      filterErrorKey = '';
 
       const filters = {
         amount: amountFilter,
@@ -309,19 +348,25 @@
       if (amountFilter?.error) {
         filterErrorEl.textContent = amountFilter.error;
         filterErrorEl.classList.remove('is-hidden');
+        filterErrorState = filterErrorEl.textContent;
+        filterErrorKey = 'filter-amount-error';
         return;
       }
       filterErrorEl.classList.add('is-hidden');
+      filterErrorState = '';
+      filterErrorKey = '';
       showLoading(true);
       try {
         const batch = await fetchOperations(accountId, { limit: 200 });
         operations = batch;
         nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
+        operationsState = operations;
+        nextCursorState = nextCursor;
         applyAndRender();
         loadMoreBtn.disabled = !nextCursor;
       } catch (e) {
         console.error(e);
-        showError(e.message || 'Не удалось применить фильтр.');
+        showError('error-apply-filter', { detail: e.message || t('error-unknown') });
       } finally {
         showLoading(false);
       }
@@ -334,12 +379,14 @@
         const batch = await fetchOperations(accountId, { limit: 50 });
         operations = batch;
         nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
-        setStatusOk();
+        operationsState = operations;
+        nextCursorState = nextCursor;
+        setStatus('ok');
         renderOperations(operations);
         loadMoreBtn.disabled = !nextCursor;
       } catch (e) {
         console.error(e);
-        showError(e.message || 'Неизвестная ошибка при загрузке операций.');
+        showError('error-load-ops', { detail: e.message || t('error-unknown') });
       } finally {
         showLoading(false);
       }
@@ -359,11 +406,13 @@
         } else {
           operations = operations.concat(batch);
           nextCursor = batch[batch.length - 1].paging_token;
+          operationsState = operations;
+          nextCursorState = nextCursor;
           applyAndRender();
         }
       } catch (e) {
         console.error(e);
-        showError(e.message || 'Не удалось загрузить ещё.');
+        showError('error-load-more', { detail: e.message || t('error-unknown') });
       } finally {
         showLoading(false);
       }
@@ -391,7 +440,8 @@
     await loadInitial();
 
     function exportToCsv(list, accountId) {
-      const header = 'Хэш транзакции,Дата,Операция,Откуда,Токен,Сумма,Куда,Токен 2,Сумма 2,Успешная';
+      // Keep CSV headers in English for consistency across exports
+      const header = 'Transaction hash,Date,Operation,From,Token,Amount,To,Token 2,Amount 2,Successful';
       const rows = list.map(op => {
         let from = op.source_account || '';
         let to = '',
@@ -451,6 +501,46 @@
       exportToCsv(list, accountId);
     });
   }
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function reapplyLanguage() {
+    if (accountIdState) document.getElementById('account-id').textContent = accountIdState;
+    const filterErrorEl = document.getElementById('filter-error');
+    if (filterErrorState) {
+      filterErrorEl.textContent = filterErrorKey ? t(filterErrorKey) : filterErrorState;
+      filterErrorEl.classList.remove('is-hidden');
+    } else {
+      filterErrorEl.classList.add('is-hidden');
+    }
+    renderOperations(operationsState);
+    const loadMoreBtn = document.getElementById('btn-load-more');
+    if (loadMoreBtn) loadMoreBtn.disabled = !nextCursorState;
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    showLoading(!document.getElementById('loader').classList.contains('is-hidden'));
+    setStatus(statusState);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
+  });
 
   main();
 </script>

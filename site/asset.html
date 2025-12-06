@@ -14,8 +14,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -23,18 +28,18 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Asset</p>
+            <p class="title is-5" data-i18n="header-title">Asset</p>
             <p class="subtitle is-7" id="asset-type">—</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
 
       <p class="title is-6" id="asset-code">—</p>
       <p class="is-size-7 is-mono">
-        Issuer:
+        <span data-i18n="issuer-label">Issuer:</span>
         <a id="asset-issuer" href="#" class="is-mono">—</a>
       </p>
     </div>
@@ -42,7 +47,7 @@
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">
         —
@@ -51,35 +56,35 @@
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- STATS -->
     <div class="box">
-      <p class="title is-6">Показатели</p>
+      <p class="title is-6" data-i18n="metrics-title">Показатели</p>
       <ul class="is-size-7">
-        <li>В обращении (holders): <span class="has-text-weight-semibold" id="asset-circulating">—</span></li>
-        <li>Доступно в пулах: <span id="asset-pools">—</span></li>
-        <li>Доступно в claimable: <span id="asset-claims">—</span></li>
-        <li>Контракты: <span id="asset-contracts">—</span></li>
-        <li>Количество пуллов: <span id="asset-num-pools">—</span></li>
-        <li>Claimable balances: <span id="asset-num-claims">—</span></li>
-        <li>Всего эмиссия: <span id="asset-supply">—</span></li>
+        <li><span data-i18n="metric-circulating-label">В обращении (holders):</span> <span class="has-text-weight-semibold" id="asset-circulating">—</span></li>
+        <li><span data-i18n="metric-pools-amount-label">Доступно в пулах:</span> <span id="asset-pools">—</span></li>
+        <li><span data-i18n="metric-claims-amount-label">Доступно в claimable:</span> <span id="asset-claims">—</span></li>
+        <li><span data-i18n="metric-contracts-label">Контракты:</span> <span id="asset-contracts">—</span></li>
+        <li><span data-i18n="metric-num-pools-label">Количество пуллов:</span> <span id="asset-num-pools">—</span></li>
+        <li><span data-i18n="metric-num-claims-label">Claimable balances:</span> <span id="asset-num-claims">—</span></li>
+        <li><span data-i18n="metric-supply-label">Всего эмиссия:</span> <span id="asset-supply">—</span></li>
       </ul>
     </div>
 
     <!-- ACCOUNTS -->
     <div class="box">
-      <p class="title is-6">Аккаунты</p>
+      <p class="title is-6" data-i18n="accounts-title">Аккаунты</p>
       <ul class="is-size-7">
-        <li>Authorized: <span class="has-text-weight-semibold" id="asset-auth">—</span></li>
-        <li>Authorized to maintain liabilities: <span id="asset-auth-ml">—</span></li>
-        <li>Unauthorized: <span id="asset-unauth">—</span></li>
+        <li><span data-i18n="accounts-auth">Authorized:</span> <span class="has-text-weight-semibold" id="asset-auth">—</span></li>
+        <li><span data-i18n="accounts-auth-ml">Authorized to maintain liabilities:</span> <span id="asset-auth-ml">—</span></li>
+        <li><span data-i18n="accounts-unauth">Unauthorized:</span> <span id="asset-unauth">—</span></li>
       </ul>
     </div>
 
     <!-- FLAGS -->
     <div class="box">
-      <p class="title is-6">Флаги</p>
+      <p class="title is-6" data-i18n="flags-title">Флаги</p>
       <ul class="is-size-7" id="asset-flags">
         <!-- flags go here -->
       </ul>
@@ -87,10 +92,11 @@
 
     <!-- LINKS -->
     <div class="box">
-      <p class="title is-6">Ссылки</p>
+      <p class="title is-6" data-i18n="links-title">Ссылки</p>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-issuer">
+           id="btn-issuer"
+           data-i18n="link-issuer">
           Эмитент
         </a>
       </div>
@@ -99,18 +105,20 @@
            id="btn-toml"
            target="_blank"
            rel="noreferrer">
-          TOML
+          <span data-i18n="link-toml">TOML</span>
         </a>
       </div>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-holders">
+           id="btn-holders"
+           data-i18n="link-holders">
           Холдеры
         </a>
       </div>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-pools">
+           id="btn-pools"
+           data-i18n="link-pools">
           Показать пулы
         </a>
       </div>
@@ -118,17 +126,17 @@
 
     <!-- POOLS -->
     <div class="box is-hidden" id="pools-box">
-      <p class="title is-6">Пулы</p>
+      <p class="title is-6" data-i18n="pools-title">Пулы</p>
       <progress class="progress is-small is-primary is-hidden"
-                max="100" id="pools-loader">Загрузка</progress>
+                max="100" id="pools-loader" data-i18n="loader-text">Загрузка</progress>
       <div id="pools-list"></div>
     </div>
 
     <!-- HOLDERS -->
     <div class="box is-hidden" id="holders-box">
-      <p class="title is-6">Холдеры</p>
+      <p class="title is-6" data-i18n="holders-title">Холдеры</p>
       <progress class="progress is-small is-primary is-hidden"
-                max="100" id="holders-loader">Загрузка</progress>
+                max="100" id="holders-loader" data-i18n="loader-text">Загрузка</progress>
       <div id="holders-list"></div>
     </div>
 
@@ -142,14 +150,28 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   document.getElementById('common-css').href = `${commonBase}.css`;
   const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAsset = {
     code: 'USDM',
     issuer: 'GDHDC4GBNPMENZAOBB4NCQ25TGZPDRK6ZGWUGSI22TVFATOLRPSUUSDM'
   };
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'asset' });
+  const { t } = i18n;
+
+  let assetRecord = null;
+  let holdersData = null;
+  let poolsData = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
+  let poolsVisible = false;
+  let holdersVisible = false;
 
   function parseAssetFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean); // ['assets', 'CODE-ISSUER']
@@ -176,20 +198,47 @@
     return `${asset.code}:${asset.issuer}`;
   }
 
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function setStatus(state) {
+    statusState = state;
+    const status = document.getElementById('status-label');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'ok') {
+      status.classList.add('is-success');
+      key = 'status-ok';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
+  }
+
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
@@ -201,7 +250,7 @@
     flagsEl.innerHTML = '';
     const entries = Object.entries(flags);
     if (!entries.length) {
-      flagsEl.textContent = 'Нет данных о флагах.';
+      flagsEl.textContent = t('flags-empty');
       return;
     }
     entries.forEach(([key, val]) => {
@@ -212,6 +261,7 @@
   }
 
   function renderAsset(record) {
+    assetRecord = record;
     document.getElementById('asset-code').textContent = record.asset_code;
     const issuerLink = document.getElementById('asset-issuer');
     issuerLink.textContent = record.asset_issuer;
@@ -247,19 +297,18 @@
       tomlBtn.classList.add('is-static');
     }
 
-    document.getElementById('status-label').textContent = 'OK';
-    document.getElementById('status-label').classList.remove('is-danger');
-    document.getElementById('status-label').classList.add('is-success');
+    setStatus('ok');
   }
 
   async function loadAsset() {
     const asset = resolveAsset();
     if (!asset) {
-      showError('Неверный формат asset: ожидается /assets/CODE-ISSUER');
+      showError('error-invalid-asset');
       return;
     }
 
     clearError();
+    setStatus('loading');
     showLoading(true);
 
     try {
@@ -271,13 +320,13 @@
       const data = await res.json();
       const record = data?._embedded?.records?.[0];
       if (!record) {
-        showError('Ассет не найден.');
+        showError('error-asset-not-found');
         return;
       }
       renderAsset(record);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке ассета.');
+      showError('error-load-asset', { detail: e.message || t('error-unknown') });
     } finally {
       showLoading(false);
     }
@@ -326,18 +375,21 @@
 
     const holdersBox = document.getElementById('holders-box');
     holdersBox.classList.remove('is-hidden');
+    holdersVisible = true;
 
     const loader = document.getElementById('holders-loader');
+    loader.textContent = t('loader-text');
     loader.classList.remove('is-hidden');
 
     try {
       const holders = (await fetchAllHolders(asset))
         .sort((a, b) => b.balance - a.balance);
 
+      holdersData = holders;
       renderHolders(holders);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке холдеров.');
+      showError('error-load-holders', { detail: e.message || t('error-unknown') });
     } finally {
       loader.classList.add('is-hidden');
     }
@@ -348,7 +400,7 @@
     listEl.innerHTML = '';
 
     if (!holders.length) {
-      listEl.textContent = 'Нет холдеров.';
+      listEl.textContent = t('holders-empty');
       return;
     }
 
@@ -356,7 +408,7 @@
     table.className = 'table is-fullwidth is-striped is-hoverable is-size-7';
 
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr><th>Account ID</th><th class="has-text-right">Balance</th></tr>`;
+    thead.innerHTML = `<tr><th>${t('holders-th-account')}</th><th class="has-text-right">${t('holders-th-balance')}</th></tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
@@ -421,7 +473,7 @@
     listEl.innerHTML = '';
 
     if (!pools.length) {
-      listEl.textContent = 'Нет пулов для данного ассета.';
+      listEl.textContent = t('pools-empty');
       return;
     }
 
@@ -429,7 +481,7 @@
     table.className = 'table is-fullwidth is-striped is-hoverable is-size-7';
 
     const thead = document.createElement('thead');
-    thead.innerHTML = `<tr><th>Pool ID</th><th>Reserves</th><th class="has-text-right">Shares</th></tr>`;
+    thead.innerHTML = `<tr><th>${t('pools-th-id')}</th><th>${t('pools-th-reserves')}</th><th class="has-text-right">${t('pools-th-shares')}</th></tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement('tbody');
@@ -470,16 +522,19 @@
 
     const poolsBox = document.getElementById('pools-box');
     poolsBox.classList.remove('is-hidden');
+    poolsVisible = true;
 
     const loader = document.getElementById('pools-loader');
+    loader.textContent = t('loader-text');
     loader.classList.remove('is-hidden');
 
     try {
       const pools = await fetchAllPools(asset);
+      poolsData = pools;
       renderPools(pools);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке пулов.');
+      showError('error-load-pools', { detail: e.message || t('error-unknown') });
     } finally {
       loader.classList.add('is-hidden');
     }
@@ -488,6 +543,38 @@
   document.getElementById('btn-pools').addEventListener('click', (e) => {
     e.preventDefault();
     loadPools();
+  });
+
+  function reapplyLanguage() {
+    showLoading(!document.getElementById('loader').classList.contains('is-hidden'));
+    if (assetRecord) {
+      renderAsset(assetRecord);
+    }
+    if (holdersData && holdersVisible) {
+      document.getElementById('holders-box').classList.remove('is-hidden');
+      renderHolders(holdersData);
+    }
+    if (poolsData && poolsVisible) {
+      document.getElementById('pools-box').classList.remove('is-hidden');
+      renderPools(poolsData);
+    }
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    setStatus(statusState);
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
   });
 </script>
 

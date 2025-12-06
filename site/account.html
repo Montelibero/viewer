@@ -14,8 +14,13 @@
 <section class="section">
   <div class="container">
 
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">На главную</a>
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <div class="buttons are-small" id="lang-switcher">
+        <button class="button is-light" data-lang="ru">RU</button>
+        <button class="button is-light" data-lang="en">EN</button>
+        <button class="button is-light" data-lang="es">ES</button>
+      </div>
     </div>
 
     <!-- HEADER -->
@@ -23,19 +28,19 @@
       <div class="level is-mobile">
         <div class="level-left">
           <div>
-            <p class="title is-5">Stellar Account</p>
-            <p class="subtitle is-7" id="network-label">Mainnet</p>
+            <p class="title is-5" data-i18n="header-title">Stellar Account</p>
+            <p class="subtitle is-7" id="network-label" data-i18n="network-mainnet">Mainnet</p>
           </div>
         </div>
         <div class="level-right">
-          <span class="tag is-info is-light" id="status-label">Loading…</span>
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
         </div>
       </div>
 
       <p class="is-mono account-address" id="account-id">—</p>
 
       <div class="mt-2 buttons">
-        <button class="button is-small is-light" id="copy-btn">
+        <button class="button is-small is-light" id="copy-btn" data-i18n="copy-address">
           Скопировать адрес
         </button>
         <a class="button is-small is-link is-light"
@@ -60,8 +65,8 @@
 
       <div class="mt-3">
         <p class="is-size-7">
-          Sequence: <span id="seq">—</span><br>
-          Subentries: <span id="subentries">—</span>
+          <span data-i18n="sequence-label">Sequence</span>: <span id="seq">—</span><br>
+          <span data-i18n="subentries-label">Subentries</span>: <span id="subentries">—</span>
         </p>
       </div>
     </div>
@@ -69,7 +74,7 @@
     <!-- ERROR MESSAGE -->
     <article class="message is-danger is-hidden" id="error-box">
       <div class="message-header">
-        <p>Ошибка</p>
+        <p data-i18n="error-title">Ошибка</p>
       </div>
       <div class="message-body" id="error-text">
         —
@@ -78,27 +83,27 @@
 
     <!-- LOADER -->
     <progress class="progress is-small is-primary is-hidden"
-              max="100" id="loader">Загрузка</progress>
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
     <!-- BALANCES -->
     <div class="box">
-      <p class="title is-6">Балансы</p>
+      <p class="title is-6" data-i18n="balances-title">Балансы</p>
 
       <div id="balance-native" class="mb-3 balance-grid"></div>
 
       <hr class="my-3">
 
-      <p class="subtitle is-7 has-text-weight-semibold mb-1">Ассеты</p>
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="assets-title">Ассеты</p>
       <div id="balance-assets" class="mb-3 balance-grid">
         <!-- карточки ассетов -->
       </div>
 
-      <p class="subtitle is-7 has-text-weight-semibold mb-1">Пулы</p>
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="pools-title">Пулы</p>
       <div id="balance-pools" class="mb-3 balance-grid">
         <!-- карточки пулов -->
       </div>
 
-      <p class="subtitle is-7 has-text-weight-semibold mb-1">Выпущенные ассеты</p>
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="issued-title">Выпущенные ассеты</p>
       <div id="balance-issued" class="balance-grid">
         <!-- карточки выпущенных ассетов -->
       </div>
@@ -106,9 +111,9 @@
 
     <!-- SIGNERS -->
     <div class="box">
-      <p class="title is-6">Подписанты и пороги</p>
+      <p class="title is-6" data-i18n="signers-title">Подписанты и пороги</p>
       <p class="is-size-7">
-        Пороги:
+        <span data-i18n="thresholds-label">Пороги</span>:
         <span id="thresholds">—</span>
       </p>
       <ul id="signers" class="is-size-7 mt-2">
@@ -118,7 +123,7 @@
 
     <!-- DATA -->
     <div class="box">
-      <p class="title is-6">Data</p>
+      <p class="title is-6" data-i18n="data-title">Data</p>
       <ul id="data" class="is-size-7">
         <!-- сюда пойдут data-поля -->
       </ul>
@@ -128,13 +133,15 @@
     <div class="bottom-actions">
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-operations">
+           id="btn-operations"
+           data-i18n="btn-operations">
           Операции
         </a>
       </div>
       <div class="buttons">
         <a class="button is-link is-light is-fullwidth"
-           id="btn-offers">
+           id="btn-offers"
+           data-i18n="btn-offers">
           Офферы
         </a>
       </div>
@@ -150,11 +157,22 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   document.getElementById('common-css').href = `${commonBase}.css`;
   const { shorten, isLocalLike } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const horizonBase = 'https://horizon.stellar.org'; // на будущее можно сделать переключатель сети
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const i18n = await initI18n({ baseName: 'account' });
+  const { t } = i18n;
+
+  let currentAccount = null;
+  let issuedRecords = null;
+  let statusState = 'loading';
+  let lastErrorKey = '';
+  let lastErrorDetail = '';
 
   function getAccountIdFromUrl() {
     const path = window.location.pathname; // /account/GD...
@@ -220,7 +238,7 @@
   async function describePool(poolId, linkEl, subtitleEl) {
     if (poolMetaCache.has(poolId)) {
       const label = poolMetaCache.get(poolId);
-      if (label) linkEl.textContent = `Пул: ${label}`;
+      if (label) linkEl.textContent = `${t('pool-label')}: ${label}`;
       return;
     }
     try {
@@ -231,29 +249,56 @@
       const labels = reserves.map(r => formatAssetLabel(r.asset).text).filter(Boolean);
       const label = labels.length ? labels.join(' / ') : shorten(poolId);
       poolMetaCache.set(poolId, label);
-      linkEl.textContent = `Пул: ${label}`;
+      linkEl.textContent = `${t('pool-label')}: ${label}`;
       if (subtitleEl) {
-        subtitleEl.textContent = `ID: ${shorten(poolId)}`;
+        subtitleEl.textContent = `${t('pool-id-label')}: ${shorten(poolId)}`;
       }
     } catch (e) {
       poolMetaCache.set(poolId, null);
     }
   }
 
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function setStatus(state) {
+    statusState = state;
+    const status = document.getElementById('status-label');
+    status.classList.remove('is-danger', 'is-success', 'is-info');
+    let key = 'status-loading';
+    if (state === 'ok') {
+      status.classList.add('is-success');
+      key = 'status-ok';
+    } else if (state === 'error') {
+      status.classList.add('is-danger');
+      key = 'status-error';
+    } else {
+      status.classList.add('is-info');
+    }
+    status.textContent = t(key);
+  }
+
   function showLoading(on) {
     const loader = document.getElementById('loader');
+    loader.textContent = t('loader-text');
     loader.classList.toggle('is-hidden', !on);
   }
 
-  function showError(message) {
+  function showError(messageKey, { detail = '' } = {}) {
     const box = document.getElementById('error-box');
     const text = document.getElementById('error-text');
-    text.textContent = message;
+    lastErrorKey = messageKey || '';
+    lastErrorDetail = detail || '';
+    const base = messageKey ? t(messageKey) : '';
+    const msg = detail ? `${base ? base + ': ' : ''}${detail}` : base;
+    text.textContent = msg || detail || '';
     box.classList.remove('is-hidden');
-    const status = document.getElementById('status-label');
-    status.textContent = 'Error';
-    status.classList.remove('is-info');
-    status.classList.add('is-danger');
+    setStatus('error');
   }
 
   function clearError() {
@@ -278,16 +323,16 @@
     if (native.length) {
       const b = native[0];
       const metaParts = [];
-      if (b.limit) metaParts.push(`limit: ${b.limit}`);
+      if (b.limit) metaParts.push(`${t('balance-limit')}: ${b.limit}`);
       const card = createBalanceCard({
         title: 'XLM',
-        subtitle: 'native',
+        subtitle: t('balance-native-subtitle'),
         amount: b.balance,
         meta: metaParts.length ? metaParts.join(' · ') : ''
       });
       nativeEl.appendChild(card);
     } else {
-      nativeEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет XLM баланса.</p>';
+      nativeEl.innerHTML = `<p class="is-size-7 has-text-grey">${t('balance-no-xlm')}</p>`;
     }
 
     if (assets.length) {
@@ -295,17 +340,17 @@
         const issuer = b.asset_issuer || '';
         const assetId = b.asset_code && issuer ? `${b.asset_code}-${issuer}` : null;
         const extras = [];
-        if (b.limit) extras.push(`limit: ${b.limit}`);
-        if (b.is_authorized === false) extras.push('not authorized');
-        if (b.is_authorized_to_maintain_liabilities === false) extras.push('no maintain liabilities');
-        if (b.is_clawback_enabled) extras.push('clawback enabled');
+        if (b.limit) extras.push(`${t('balance-limit')}: ${b.limit}`);
+        if (b.is_authorized === false) extras.push(t('balance-not-authorized'));
+        if (b.is_authorized_to_maintain_liabilities === false) extras.push(t('balance-no-maintain'));
+        if (b.is_clawback_enabled) extras.push(t('balance-clawback-enabled'));
         const meta = extras.length
-          ? `<span class="tag is-light is-size-7" title="${extras.join(' • ')}">★ детали</span>`
+          ? `<span class="tag is-light is-size-7" title="${extras.join(' • ')}">★ ${t('balance-details')}</span>`
           : '';
 
         const card = createBalanceCard({
           title: b.asset_code || '—',
-          subtitle: issuer ? `issuer: ${shorten(issuer)}` : '',
+          subtitle: issuer ? `${t('balance-issuer')}: ${shorten(issuer)}` : '',
           amount: b.balance,
           meta,
           href: assetId ? `/assets/${encodeURIComponent(assetId)}` : null
@@ -313,83 +358,30 @@
         assetsEl.appendChild(card);
       });
     } else {
-      assetsEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет trustline-ассетов.</p>';
+      assetsEl.innerHTML = `<p class="is-size-7 has-text-grey">${t('assets-empty')}</p>`;
     }
 
     if (pools.length) {
       pools.forEach(b => {
         const poolId = b.liquidity_pool_id || '—';
         const card = createBalanceCard({
-          title: 'Пул ликвидности',
-          subtitle: `ID: ${shorten(poolId)}`,
+          title: t('pool-card-title'),
+          subtitle: `${t('pool-id-label')}: ${shorten(poolId)}`,
           amount: b.balance,
           href: poolId !== '—' ? `/pool/${encodeURIComponent(poolId)}` : null
         });
         poolsEl.appendChild(card);
       });
     } else {
-      poolsEl.innerHTML = '<p class="is-size-7 has-text-grey">Нет пулов.</p>';
+      poolsEl.innerHTML = `<p class="is-size-7 has-text-grey">${t('pools-empty')}</p>`;
     }
   }
 
-  async function loadIssuedAssets(issuer) {
-    const issuedEl = document.getElementById('balance-issued');
-    issuedEl.textContent = 'Загрузка…';
-    try {
-      const res = await fetch(`${horizonBase}/assets?asset_issuer=${encodeURIComponent(issuer)}&limit=200`);
-      if (!res.ok) {
-        throw new Error(`Horizon error ${res.status}`);
-      }
-      const data = await res.json();
-      const records = data?._embedded?.records || [];
-      issuedEl.innerHTML = '';
-
-      if (!records.length) {
-        issuedEl.textContent = 'Нет выпущенных ассетов.';
-        return;
-      }
-
-      records.forEach(asset => {
-        const id = asset.asset_code || '—';
-        const extras = [];
-        if (typeof asset.num_accounts !== 'undefined') {
-          extras.push(`holders: ${asset.num_accounts}`);
-        }
-        const card = createBalanceCard({
-          title: id,
-          subtitle: 'issuer: этот аккаунт',
-          amount: asset.amount,
-          meta: extras.length ? extras.join(' · ') : '',
-          href: `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
-        });
-        issuedEl.appendChild(card);
-      });
-    } catch (e) {
-      issuedEl.textContent = 'Не удалось загрузить выпущенные ассеты.';
-      console.error(e);
-    }
-  }
-
-  function renderAccount(account) {
-    // Header
-    document.getElementById('seq').textContent = account.sequence;
-    document.getElementById('subentries').textContent = account.subentry_count;
-    document.getElementById('status-label').textContent = 'OK';
-    document.getElementById('status-label').classList.remove('is-danger');
-    document.getElementById('status-label').classList.add('is-success');
-
-    // Thresholds
-    const th = account.thresholds || {};
-    document.getElementById('thresholds').textContent =
-      `low=${th.low_threshold}, med=${th.med_threshold}, high=${th.high_threshold}`;
-
-    // Balances
-    renderBalances(account);
-
-    // Signers
+  function renderSignersSection(account) {
     const signersEl = document.getElementById('signers');
     signersEl.innerHTML = '';
-    account.signers.forEach(s => {
+    const signers = account?.signers || [];
+    signers.forEach(s => {
       const li = document.createElement('li');
       li.className = 'mb-1';
 
@@ -401,21 +393,22 @@
         ${link
           ? `<a class="is-mono is-size-7" href="${link}" title="${s.key}">${keyLabel}</a>`
           : `<code class="is-mono is-size-7">${s.key}</code>`}<br>
-        <span>weight: ${s.weight}</span>
+        <span>${t('weight-label')}: ${s.weight}</span>
       `;
       signersEl.appendChild(li);
     });
-    if (!account.signers.length) {
-      signersEl.textContent = 'Нет подписантов.';
+    if (!signers.length) {
+      signersEl.textContent = t('signers-empty');
     }
+  }
 
-    // Data
+  function renderDataSection(account) {
     const dataEl = document.getElementById('data');
     dataEl.innerHTML = '';
-    const dataAttr = account.data_attr || account.data || {};
+    const dataAttr = account?.data_attr || account?.data || {};
     const entries = Object.entries(dataAttr);
     if (!entries.length) {
-      dataEl.textContent = 'Нет data-полей.';
+      dataEl.textContent = t('data-empty');
     } else {
       entries.forEach(([key, value]) => {
         const li = document.createElement('li');
@@ -430,7 +423,7 @@
         try {
           decoded = atob(value);
         } catch (e) {
-          decoded = '[не удалось декодировать base64]';
+          decoded = t('data-decode-failed');
         }
 
         const isAccountId = /^G[A-Z2-7]{55}$/.test(decoded);
@@ -455,6 +448,73 @@
         dataEl.appendChild(li);
       });
     }
+  }
+
+  function renderIssuedAssets(records) {
+    const issuedEl = document.getElementById('balance-issued');
+    issuedEl.innerHTML = '';
+
+    if (!records.length) {
+      issuedEl.textContent = t('issued-empty');
+      return;
+    }
+
+    records.forEach(asset => {
+      const id = asset.asset_code || '—';
+      const extras = [];
+      if (typeof asset.num_accounts !== 'undefined') {
+        extras.push(`${t('issued-holders')}: ${asset.num_accounts}`);
+      }
+      const card = createBalanceCard({
+        title: id,
+        subtitle: t('issued-subtitle'),
+        amount: asset.amount,
+        meta: extras.length ? extras.join(' · ') : '',
+        href: `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
+      });
+      issuedEl.appendChild(card);
+    });
+  }
+
+  async function loadIssuedAssets(issuer) {
+    const issuedEl = document.getElementById('balance-issued');
+    issuedEl.textContent = t('issued-loading');
+    try {
+      const res = await fetch(`${horizonBase}/assets?asset_issuer=${encodeURIComponent(issuer)}&limit=200`);
+      if (!res.ok) {
+        throw new Error(`Horizon error ${res.status}`);
+      }
+      const data = await res.json();
+      const records = data?._embedded?.records || [];
+      issuedRecords = records;
+      renderIssuedAssets(records);
+    } catch (e) {
+      issuedRecords = null;
+      issuedEl.textContent = t('issued-error');
+      console.error(e);
+    }
+  }
+
+  function renderAccount(account) {
+    currentAccount = account;
+    // Header
+    document.getElementById('seq').textContent = account.sequence;
+    document.getElementById('subentries').textContent = account.subentry_count;
+    setStatus('ok');
+
+    // Thresholds
+    const th = account.thresholds || {};
+    document.getElementById('thresholds').textContent =
+      `low=${th.low_threshold}, med=${th.med_threshold}, high=${th.high_threshold}`;
+
+    // Balances
+    renderBalances(account);
+
+    // Signers
+    renderSignersSection(account);
+
+    // Data
+    renderDataSection(account);
 
     // Внешние ссылки
     const id = account.id;
@@ -478,12 +538,13 @@
     const accountEl = document.getElementById('account-id');
 
     if (!accountId) {
-      showError('Не удалось определить accountId из URL.');
+      showError('error-no-account-id');
       return;
     }
 
     accountEl.textContent = accountId;
     clearError();
+    setStatus('loading');
     showLoading(true);
 
     try {
@@ -496,13 +557,13 @@
         } catch (_) {
           // ignore
         }
-        throw new Error(detail);
+        throw new Error(detail || t('error-unknown'));
       }
       const data = await res.json();
       renderAccount(data);
     } catch (e) {
       console.error(e);
-      showError(e.message || 'Неизвестная ошибка при загрузке аккаунта.');
+      showError('error-load-account', { detail: e.message || t('error-unknown') });
     } finally {
       showLoading(false);
     }
@@ -515,11 +576,40 @@
       await navigator.clipboard.writeText(text);
       const btn = document.getElementById('copy-btn');
       const old = btn.textContent;
-      btn.textContent = 'Скопировано';
+      btn.textContent = t('copy-success');
       setTimeout(() => (btn.textContent = old), 1500);
     } catch (e) {
-      alert('Не удалось скопировать в буфер обмена.');
+      alert(t('copy-failed'));
     }
+  });
+
+  function reapplyLanguage() {
+    showLoading(!document.getElementById('loader').classList.contains('is-hidden'));
+    setStatus(statusState);
+    const errorVisible = !document.getElementById('error-box').classList.contains('is-hidden');
+    if (errorVisible) {
+      showError(lastErrorKey, { detail: lastErrorDetail });
+    }
+    if (currentAccount) {
+      renderBalances(currentAccount);
+      renderSignersSection(currentAccount);
+      renderDataSection(currentAccount);
+      if (issuedRecords) {
+        renderIssuedAssets(issuedRecords);
+      }
+    }
+    setActiveLangButton(i18n.lang());
+  }
+
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      reapplyLanguage();
+    });
   });
 
   // старт

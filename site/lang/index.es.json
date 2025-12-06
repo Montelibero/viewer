@@ -1,0 +1,22 @@
+{
+  "title": "Stellar Viewer",
+  "subtitle-prefix": "Pega la dirección de la cuenta ",
+  "subtitle-hash": " el hash de la transacción ",
+  "subtitle-op": " id de la operación ",
+  "subtitle-op-format": "número",
+  "subtitle-or": " o el código del activo ",
+  "subtitle-suffix": " — te enviaremos a la página correcta.",
+  "input-label": "Dirección o hash",
+  "input-placeholder": "GDLT… o 73e9ec35…",
+  "search-button": "Buscar",
+  "history-title": "Historial de direcciones",
+  "asset-results-title": "Resultados de activos",
+  "history-empty": "El historial está vacío.",
+  "assets-empty": "No se encontró nada.",
+  "message-empty-input": "Ingresa una dirección de cuenta o hash de transacción.",
+  "message-unknown-format": "Aún no soportamos este formato. Vuelve más tarde 🙂",
+  "message-loading-assets": "Buscando activos…",
+  "message-asset-error": "No pudimos obtener los activos.",
+  "version-label": "Versión",
+  "github-link": "GitHub del proyecto"
+}

@@ -17,60 +17,77 @@
 
     <!-- Заголовок -->
     <div class="box">
-      <p class="title is-4">Stellar Viewer</p>
+      <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+        <p class="title is-4" data-i18n="title">Stellar Viewer</p>
+        <div class="buttons are-small" id="lang-switcher">
+          <button class="button is-light" data-lang="ru">RU</button>
+          <button class="button is-light" data-lang="en">EN</button>
+          <button class="button is-light" data-lang="es">ES</button>
+        </div>
+      </div>
       <p class="subtitle is-7">
-        Вставь адрес аккаунта <span class="is-mono">G...</span>, хэш транзакции
-        <span class="is-mono">[0-9a-f]{64}</span>, id операции
-        <span class="is-mono">число</span> или код ассета
-        <span class="is-mono">[A-Z0-9]{3,12}</span> — отправим на нужную страницу.
+        <span data-i18n="subtitle-prefix">Вставь адрес аккаунта </span>
+        <span class="is-mono">G...</span>,
+        <span data-i18n="subtitle-hash"> хэш транзакции </span>
+        <span class="is-mono">[0-9a-f]{64}</span>,
+        <span data-i18n="subtitle-op"> id операции </span>
+        <span class="is-mono" data-i18n="subtitle-op-format">число</span>
+        <span data-i18n="subtitle-or"> или код ассета </span>
+        <span class="is-mono">[A-Z0-9]{3,12}</span>
+        <span data-i18n="subtitle-suffix"> — отправим на нужную страницу.</span>
       </p>
 
-        <!-- Форма поиска -->
-        <div class="field">
-          <label class="label is-size-7">Адрес или хэш</label>
-          <div class="control">
-            <input class="input is-medium"
-                   id="search-input"
-                   type="text"
-                   placeholder="GDLT… или 73e9ec35…">
-          </div>
+      <!-- Форма поиска -->
+      <div class="field">
+        <label class="label is-size-7" data-i18n="input-label">Адрес или хэш</label>
+        <div class="control">
+          <input class="input is-medium"
+                 id="search-input"
+                 type="text"
+                 data-i18n-placeholder="input-placeholder"
+                 placeholder="GDLT… или 73e9ec35…">
         </div>
-
-        <div class="field mt-3">
-          <div class="control">
-            <button class="button is-primary is-fullwidth"
-                    id="search-btn">
-              Искать
-            </button>
-          </div>
-        </div>
-
-        <!-- Сообщения -->
-        <p class="help is-danger is-hidden"
-           id="message"></p>
-
-        <!-- История -->
-        <div class="mt-4">
-          <p class="is-size-7 has-text-weight-semibold mb-2">История запросов адресов</p>
-          <ul class="is-size-7" id="history"></ul>
-        </div>
-
-        <!-- Ассеты -->
-        <div class="mt-4">
-          <p class="is-size-7 has-text-weight-semibold mb-2">Результаты ассетов</p>
-          <ul class="is-size-7" id="asset-results"></ul>
-        </div>
-
       </div>
 
-      <div class="has-text-centered mt-4">
-        <a href="https://github.com/Montelibero/viewer"
-           target="_blank"
-           rel="noreferrer">
-          GitHub проекта
-        </a>
-        <p class="is-size-7 has-text-grey mt-2" id="version-label">Версия: —</p>
+      <div class="field mt-3">
+        <div class="control">
+          <button class="button is-primary is-fullwidth"
+                  id="search-btn"
+                  data-i18n="search-button">
+            Искать
+          </button>
+        </div>
       </div>
+
+      <!-- Сообщения -->
+      <p class="help is-danger is-hidden"
+         id="message"></p>
+
+      <!-- История -->
+      <div class="mt-4">
+        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="history-title">История запросов адресов</p>
+        <ul class="is-size-7" id="history"></ul>
+      </div>
+
+      <!-- Ассеты -->
+      <div class="mt-4">
+        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="asset-results-title">Результаты ассетов</p>
+        <ul class="is-size-7" id="asset-results"></ul>
+      </div>
+
+    </div>
+
+    <div class="has-text-centered mt-4">
+      <a href="https://github.com/Montelibero/viewer"
+         target="_blank"
+         rel="noreferrer"
+         data-i18n="github-link">
+        GitHub проекта
+      </a>
+      <p class="is-size-7 has-text-grey mt-2">
+        <span data-i18n="version-label">Версия</span>:
+        <span id="version-value">—</span>
+      </p>
     </div>
   </div>
 </section>
@@ -82,24 +99,42 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
   document.getElementById('common-css').href = `${commonBase}.css`;
   const { shorten, appVersion } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
 
   const inputEl = document.getElementById('search-input');
   const buttonEl = document.getElementById('search-btn');
   const messageEl = document.getElementById('message');
   const historyEl = document.getElementById('history');
   const assetResultsEl = document.getElementById('asset-results');
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+  const versionValueEl = document.getElementById('version-value');
   const STORAGE_KEY = 'viewer_account_history';
   const horizonBase = 'https://horizon.stellar.org';
+  let assetState = 'idle';
+  let lastMessageKey = '';
 
-  function showMessage(text) {
-    if (!text) {
+  const i18n = await initI18n({ baseName: 'index' });
+  const { t } = i18n;
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  function showMessage(key) {
+    lastMessageKey = key;
+    if (!key) {
       messageEl.textContent = '';
       messageEl.classList.add('is-hidden');
       return;
     }
-    messageEl.textContent = text;
+    messageEl.textContent = t(key);
     messageEl.classList.remove('is-hidden');
   }
 
@@ -150,7 +185,7 @@
   function renderHistory(list = loadHistory()) {
     historyEl.innerHTML = '';
     if (!list.length) {
-      historyEl.textContent = 'История пуста.';
+      historyEl.textContent = t('history-empty');
       return;
     }
     list.forEach((acc) => {
@@ -166,12 +201,14 @@
 
   function clearAssetResults() {
     assetResultsEl.innerHTML = '';
+    assetState = 'idle';
   }
 
   function renderAssetResults(list) {
     clearAssetResults();
     if (!list.length) {
-      assetResultsEl.textContent = 'Ничего не найдено.';
+      assetResultsEl.textContent = t('assets-empty');
+      assetState = 'empty';
       return;
     }
     list.forEach((asset) => {
@@ -196,11 +233,12 @@
       }
       assetResultsEl.appendChild(li);
     });
+    assetState = 'filled';
   }
 
   async function searchAssets(code) {
     clearAssetResults();
-    showMessage('Ищем ассеты…');
+    showMessage('message-loading-assets');
     try {
       const url = new URL(`${horizonBase}/assets`);
       url.searchParams.set('asset_code', code);
@@ -214,7 +252,7 @@
       showMessage('');
     } catch (e) {
       console.error(e);
-      showMessage('Не удалось получить ассеты.');
+      showMessage('message-asset-error');
     }
   }
 
@@ -225,7 +263,7 @@
     showMessage('');
 
     if (!trimmed) {
-      showMessage('Введите адрес аккаунта или хэш транзакции.');
+      showMessage('message-empty-input');
       return;
     }
 
@@ -253,7 +291,7 @@
       return;
     }
 
-    showMessage('Такой формат мы пока не умеем. Приходите позже 🙂');
+    showMessage('message-unknown-format');
   }
 
   // Кнопка
@@ -271,7 +309,24 @@
   });
 
   renderHistory();
-  document.getElementById('version-label').textContent = `Версия: ${appVersion}`;
+  versionValueEl.textContent = appVersion;
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      renderHistory();
+      if (assetState === 'empty') {
+        assetResultsEl.textContent = t('assets-empty');
+      }
+      if (lastMessageKey) {
+        showMessage(lastMessageKey);
+      }
+      setActiveLangButton(i18n.lang());
+    });
+  });
 </script>
 
 </body>

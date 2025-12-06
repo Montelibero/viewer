@@ -1,0 +1,22 @@
+{
+  "title": "Stellar Viewer",
+  "subtitle-prefix": "Paste an account address ",
+  "subtitle-hash": " transaction hash ",
+  "subtitle-op": " operation id ",
+  "subtitle-op-format": "number",
+  "subtitle-or": " or asset code ",
+  "subtitle-suffix": " — we will send you to the right page.",
+  "input-label": "Address or hash",
+  "input-placeholder": "GDLT… or 73e9ec35…",
+  "search-button": "Search",
+  "history-title": "Address history",
+  "asset-results-title": "Asset results",
+  "history-empty": "History is empty.",
+  "assets-empty": "Nothing found.",
+  "message-empty-input": "Enter an account address or transaction hash.",
+  "message-unknown-format": "We do not support this format yet. Come back later 🙂",
+  "message-loading-assets": "Searching assets…",
+  "message-asset-error": "Could not fetch assets.",
+  "version-label": "Version",
+  "github-link": "Project GitHub"
+}

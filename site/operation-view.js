@@ -356,6 +356,8 @@ export function createOperationCard(op) {
   box.className = 'box is-size-7 op-card';
 
   const statusTag = renderStatusTag(op.transaction_successful ?? op.successful ?? op.success);
+  const failed = op.transaction_successful === false || op.successful === false || op.success === false;
+  if (failed) box.classList.add('is-failed');
 
   const header = document.createElement('p');
   header.innerHTML = `<strong>${getOpType(op) || 'operation'}</strong> · ${op.created_at || ''}${statusTag}`;
@@ -383,12 +385,13 @@ export function createOperationCard(op) {
 
 export function createXdrOperationBox(op, index, txSource, { txSuccessful = null } = {}) {
   const box = document.createElement('div');
-  box.className = 'box is-size-7';
+  box.className = 'box is-size-7 op-card';
 
   const opSource = op.source_account || txSource;
   const type = getOpType(op);
   const details = renderOperationDetails(op);
   const statusTag = renderStatusTag(txSuccessful);
+  if (txSuccessful === false) box.classList.add('is-failed');
 
   box.innerHTML = `
     <p><strong>#${index + 1}</strong> · <span>${type}</span>${statusTag}</p>

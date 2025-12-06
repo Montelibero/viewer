@@ -19,7 +19,7 @@
     </div>
 
     <!-- Шапка -->
-    <div class="box">
+    <div class="box" id="tx-header-box">
       <div class="level is-mobile">
         <div class="level-left">
           <div>
@@ -162,6 +162,9 @@
     if (parts[0] === 'transaction' && parts[1]) {
       return parts[1];
     }
+    if (window.location.protocol === 'file:' || location.hostname === 'localhost') {
+      return '46e6e7a0766783aad562f2e01738635a2a794e199070f3847bc834a82f16b6a9';
+    }
     return null;
   }
 
@@ -265,6 +268,11 @@
       const successful = tx.successful;
       statusEl.textContent = successful ? 'Успешно' : 'Неуспешно';
       statusEl.className = successful ? 'tag is-success' : 'tag is-danger';
+      const headerBox = document.getElementById('tx-header-box');
+      if (headerBox) {
+        if (successful) headerBox.classList.remove('is-failed');
+        else headerBox.classList.add('is-failed');
+      }
 
       ledgerEl.textContent = tx.ledger ?? '—';
       createdAtEl.textContent = tx.created_at ?? '—';

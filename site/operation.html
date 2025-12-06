@@ -18,7 +18,7 @@
     </div>
 
     <!-- HEADER -->
-    <div class="box">
+    <div class="box" id="op-header-box">
       <div class="level is-mobile">
         <div class="level-left">
           <div>
@@ -50,13 +50,13 @@
               max="100" id="loader">Загрузка</progress>
 
     <!-- DETAILS -->
-    <div class="box">
+    <div class="box" id="op-details-box">
       <p class="title is-6">Детали</p>
       <div id="op-details" class="is-size-7"></div>
     </div>
 
     <!-- RAW JSON -->
-    <div class="box">
+    <div class="box" id="op-json-box">
       <p class="title is-6">JSON</p>
       <pre id="op-json" class="is-size-7"></pre>
     </div>
@@ -67,9 +67,9 @@
 <script type="module">
   const commonBase = (() => {
     if (window.location.protocol === 'file:') return './common';
-  const m = window.location.pathname.match(/^(.*\/site)\//);
-  if (m) return `${m[1]}/common`;
-  return '/common';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/common`;
+    return '/common';
   })();
   document.getElementById('common-css').href = `${commonBase}.css`;
   const moduleBase = (() => {
@@ -78,15 +78,19 @@
     if (m) return `${m[1]}/`;
     return '/';
   })();
-  const { shorten } = await import(`${commonBase}.js`);
+  const { shorten, isLocalLike } = await import(`${commonBase}.js`);
   const { accountLink, renderOperationDetails } = await import(`${moduleBase}operation-view.js`);
 
   const horizonBase = 'https://horizon.stellar.org';
+  const defaultOpId = '257949658419138561';
 
   function getOpIdFromUrl() {
     const parts = window.location.pathname.split('/').filter(Boolean);
     if (parts.length >= 2 && parts[0] === 'operation') {
       return parts[1];
+    }
+    if (isLocalLike()) {
+      return defaultOpId;
     }
     return null;
   }
@@ -153,14 +157,17 @@
       document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
 
       const status = document.getElementById('status-label');
+      const headerBox = document.getElementById('op-header-box');
       if (op.transaction_successful) {
         status.textContent = 'Success';
         status.classList.remove('is-info', 'is-danger');
         status.classList.add('is-success');
+        headerBox.classList.remove('is-failed');
       } else {
         status.textContent = 'Failed';
         status.classList.remove('is-info', 'is-success');
         status.classList.add('is-danger');
+        headerBox.classList.add('is-failed');
       }
     } catch (e) {
       console.error(e);

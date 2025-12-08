@@ -2,6 +2,11 @@
     root * /srv
     encode gzip
 
+    handle_errors {
+        rewrite * /404.html
+        file_server
+    }
+
     handle_path /account/* {
         rewrite * /account.html
         file_server

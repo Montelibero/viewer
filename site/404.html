@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>404 Not Found</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bulma через CDN -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+  <link id="common-css" rel="stylesheet" href="/common.css">
+</head>
+<body>
+<section class="hero is-fullheight">
+  <div class="hero-body">
+  <div class="container">
+
+    <!-- Заголовок -->
+    <div class="box">
+      <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
+        <p class="title is-4" data-i18n="app-title">Stellar Viewer</p>
+        <div class="buttons are-small" id="lang-switcher">
+          <button class="button is-light" data-lang="ru">RU</button>
+          <button class="button is-light" data-lang="en">EN</button>
+          <button class="button is-light" data-lang="es">ES</button>
+        </div>
+      </div>
+
+      <div class="py-6 has-text-centered">
+        <p class="title is-1 has-text-danger">404</p>
+        <p class="subtitle is-4" data-i18n="page-title">Страница не найдена</p>
+        <p class="mb-5" data-i18n="message">Страница, которую вы ищете, не существует.</p>
+        <a href="/" class="button is-primary" data-i18n="back-home">На главную</a>
+      </div>
+
+    </div>
+
+    <div class="has-text-centered mt-4">
+      <a href="https://github.com/Montelibero/viewer"
+         target="_blank"
+         rel="noreferrer"
+         data-i18n="github-link">
+        GitHub проекта
+      </a>
+      <p class="is-size-7 has-text-grey mt-2">
+        <span data-i18n="version-label">Версия</span>:
+        <span id="version-value">—</span>
+      </p>
+    </div>
+  </div>
+  </div>
+</section>
+
+<script type="module">
+  const commonBase = (() => {
+    if (window.location.protocol === 'file:') return './common';
+    const m = window.location.pathname.match(/^(.*\/site)\//);
+    if (m) return `${m[1]}/common`;
+    return '/common';
+  })();
+  const i18nBase = commonBase.replace(/common$/, 'i18n');
+  document.getElementById('common-css').href = `${commonBase}.css`;
+  const { appVersion } = await import(`${commonBase}.js`);
+  const { initI18n } = await import(`${i18nBase}.js`);
+
+  const versionValueEl = document.getElementById('version-value');
+  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
+
+  const i18n = await initI18n({ baseName: '404' });
+
+  function setActiveLangButton(lang) {
+    langButtons.forEach((btn) => {
+      const isActive = btn.dataset.lang === lang;
+      btn.classList.toggle('is-primary', isActive);
+      btn.classList.toggle('is-light', !isActive);
+    });
+  }
+
+  versionValueEl.textContent = appVersion;
+  setActiveLangButton(i18n.lang());
+
+  langButtons.forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const nextLang = btn.dataset.lang;
+      await i18n.setLang(nextLang);
+      setActiveLangButton(i18n.lang());
+    });
+  });
+</script>
+
+</body>
+</html>

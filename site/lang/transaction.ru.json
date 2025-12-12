@@ -44,5 +44,9 @@
   "error-no-envelope": "В ответе Horizon нет envelope_xdr.",
   "error-load-tx": "Не удалось загрузить транзакцию",
   "error-decode": "Не удалось декодировать транзакцию",
-  "error-unknown": "Неизвестная ошибка"
+  "error-unknown": "Неизвестная ошибка",
+  "signatures-title": "Подписи",
+  "signatures-loading": "Загрузка подписей…",
+  "signer-weight": "Вес: {weight}",
+  "signer-hint": "Хинт: {hint}"
 }

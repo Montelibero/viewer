@@ -94,6 +94,14 @@
       </div>
     </div>
 
+    <!-- Подписи -->
+    <div class="box is-hidden" id="signatures-box">
+      <p class="title is-6 box-title" data-i18n="signatures-title">Подписи</p>
+      <div id="signatures-list" class="is-size-7">
+        <span data-i18n="signatures-loading">Загрузка подписей…</span>
+      </div>
+    </div>
+
     <!-- Чистый JSON из XDR -->
     <div class="box">
       <p class="title is-6 box-title" data-i18n="json-title">Чистый JSON (decode TransactionEnvelope)</p>
@@ -150,6 +158,8 @@
   const errorText = document.getElementById('error-text');
   const loader = document.getElementById('loader');
   const operationsList = document.getElementById('operations-list');
+  const signaturesBox = document.getElementById('signatures-box');
+  const signaturesList = document.getElementById('signatures-list');
 
   let lastErrorKey = '';
   let lastErrorDetail = '';
@@ -158,6 +168,217 @@
   let txData = null;
   let decodedTxObj = null;
   let currentTxHash = null;
+  let signaturesData = null;
+
+  const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const base32Lookup = {};
+  for(let i=0; i<base32Alphabet.length; i++) {
+    base32Lookup[base32Alphabet[i]] = i;
+  }
+
+  function decodeBase32(input) {
+    input = input.replace(/=+$/, '');
+    let length = input.length;
+    let leftover = (length * 5) % 8;
+
+    let bits = 0;
+    let value = 0;
+    let output = new Uint8Array(Math.floor(length * 5 / 8));
+    let index = 0;
+
+    for (let i = 0; i < length; i++) {
+      value = (value << 5) | base32Lookup[input[i]];
+      bits += 5;
+      if (bits >= 8) {
+        output[index++] = (value >>> (bits - 8)) & 0xFF;
+        bits -= 8;
+      }
+    }
+    return output;
+  }
+
+  function getHintFromAddress(address) {
+     try {
+       const bytes = decodeBase32(address);
+       if (bytes.length < 33) return null;
+       const hintBytes = bytes.slice(29, 33);
+       return Array.from(hintBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+     } catch (e) {
+       console.error('Error decoding address hint', address, e);
+       return null;
+     }
+  }
+
+  function hexToBytes(hex) {
+    if (!hex) return new Uint8Array(0);
+    // Handle potential Base64 input just in case
+    if (/^[0-9a-fA-F]+$/.test(hex)) {
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+          bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+        }
+        return bytes;
+    }
+    try {
+        const binString = atob(hex);
+        return Uint8Array.from(binString, c => c.charCodeAt(0));
+    } catch (e) {
+        return new Uint8Array(0);
+    }
+  }
+
+  function encodeBase32(data) {
+    let output = '';
+    let val = 0;
+    let bits = 0;
+    for (let i = 0; i < data.length; i++) {
+        val = (val << 8) | data[i];
+        bits += 8;
+        while (bits >= 5) {
+            output += base32Alphabet[(val >>> (bits - 5)) & 31];
+            bits -= 5;
+        }
+    }
+    if (bits > 0) {
+        output += base32Alphabet[(val << (5 - bits)) & 31];
+    }
+    return output;
+  }
+
+  function getMaskedHint(hexHint) {
+      try {
+          const hintBytes = hexToBytes(hexHint);
+          if (hintBytes.length !== 4) return hexHint;
+
+          const bytes = new Uint8Array(35);
+          bytes[0] = 48; // Version byte (logical for G)
+          bytes.set(hintBytes, 29); // Set last 4 bytes of key
+
+          const fullStr = encodeBase32(bytes);
+
+          // Format: G + 46 dashes + 5 chars + 4 dashes
+          return 'G' +
+                 '-'.repeat(46) +
+                 fullStr.slice(47, 52) +
+                 '-'.repeat(4);
+      } catch (e) {
+          console.error(e);
+          return hexHint;
+      }
+  }
+
+  async function loadSignatures(txData, decodedEnvelope, decodedTxBody) {
+    signaturesBox.classList.remove('is-hidden');
+    signaturesList.innerHTML = `<span class="loader"></span> ${t('signatures-loading')}`;
+    signaturesData = null;
+
+    try {
+        let sigs = [];
+        if (decodedEnvelope.signatures) sigs = decodedEnvelope.signatures;
+        else if (decodedEnvelope.v1 && decodedEnvelope.v1.signatures) sigs = decodedEnvelope.v1.signatures;
+        else if (decodedEnvelope.tx && decodedEnvelope.tx.signatures) sigs = decodedEnvelope.tx.signatures;
+        else if (decodedEnvelope.feeBump && decodedEnvelope.feeBump.signatures) sigs = decodedEnvelope.feeBump.signatures;
+
+        if (!sigs || !sigs.length) {
+            signaturesList.textContent = '—';
+            return;
+        }
+
+        const accountsToCheck = new Set();
+        if (txData.source_account) accountsToCheck.add(txData.source_account);
+        if (txData.fee_account) accountsToCheck.add(txData.fee_account);
+
+        if (decodedTxBody && decodedTxBody.operations) {
+            decodedTxBody.operations.forEach(op => {
+               const acc = op.sourceAccount || op.source_account;
+               if (typeof acc === 'string') accountsToCheck.add(acc);
+               else if (acc && acc.ed25519) accountsToCheck.add(acc.ed25519);
+            });
+        }
+
+        const signerMap = {};
+        const accounts = Array.from(accountsToCheck);
+
+        await Promise.all(accounts.map(async (accId) => {
+            try {
+                const res = await fetch(`${horizonBase}/accounts/${accId}`);
+                if (res.ok) {
+                    const accData = await res.json();
+                    if (accData.signers) {
+                        accData.signers.forEach(signer => {
+                           let hint = null;
+                           if (signer.key.startsWith('G')) {
+                               hint = getHintFromAddress(signer.key);
+                           } else if (signer.type === 'sha256_hash' || signer.type === 'preauth_tx') {
+                               // HashX / PreAuthTx keys are also encoded as StrKeys (X..., T...)
+                               // decodeBase32 handles them correctly.
+                               hint = getHintFromAddress(signer.key);
+                           }
+
+                           if (hint) {
+                               signerMap[hint] = {
+                                   address: signer.key,
+                                   weight: signer.weight,
+                                   type: signer.type
+                               };
+                           }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch account', accId, e);
+            }
+        }));
+
+        signaturesData = { sigs, signerMap };
+        renderSignatures();
+
+    } catch (e) {
+        console.error('Error loading signatures', e);
+        signaturesList.textContent = t('error-unknown');
+    }
+  }
+
+  function renderSignatures() {
+    if (!signaturesData) return;
+    const { sigs, signerMap } = signaturesData;
+    signaturesList.innerHTML = '';
+
+    if (!sigs.length) {
+       signaturesList.textContent = '—';
+       return;
+    }
+
+    const ul = document.createElement('ul');
+
+    sigs.forEach(sig => {
+        const hint = sig.hint;
+        const info = signerMap[hint];
+
+        const li = document.createElement('li');
+        li.className = 'mb-1 is-flex is-align-items-center is-flex-wrap-wrap';
+
+        if (info) {
+            const a = document.createElement('a');
+            a.href = accountLink(info.address);
+            a.className = 'is-mono mr-2';
+            a.style.wordBreak = 'break-all'; // Ensure long addresses wrap
+            a.textContent = info.address;
+            li.appendChild(a);
+        } else {
+            const hintSpan = document.createElement('span');
+            hintSpan.className = 'is-mono mr-2 has-text-grey';
+            hintSpan.style.wordBreak = 'break-all';
+            hintSpan.textContent = getMaskedHint(hint);
+            hintSpan.title = `Hex Hint: ${hint}`;
+            li.appendChild(hintSpan);
+        }
+
+        ul.appendChild(li);
+    });
+
+    signaturesList.appendChild(ul);
+  }
 
   function showLoading(on) {
     loader.textContent = t('loader-text');
@@ -392,6 +613,7 @@
       baseFeeEl.textContent = `${txObj.fee ?? '—'} ${t('base-fee-suffix')}`; // это base fee
 
       renderOperations(txObj);
+      loadSignatures(txData, decodedObj, txObj);
     } catch (e) {
       console.error(e);
       showError('error-load-tx', { detail: e.message || t('error-unknown') });
@@ -440,6 +662,7 @@
     } else {
       operationsList.textContent = t('operations-loading');
     }
+    renderSignatures();
     const errorVisible = !errorBox.classList.contains('is-hidden');
     if (errorVisible) {
       showError(lastErrorKey, { detail: lastErrorDetail });

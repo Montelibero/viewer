@@ -44,5 +44,9 @@
   "error-no-envelope": "No hay envelope_xdr en la respuesta de Horizon.",
   "error-load-tx": "No se pudo cargar la transacción",
   "error-decode": "No se pudo decodificar la transacción",
-  "error-unknown": "Error desconocido"
+  "error-unknown": "Error desconocido",
+  "signatures-title": "Firmas",
+  "signatures-loading": "Cargando firmas…",
+  "signer-weight": "Peso: {weight}",
+  "signer-hint": "Pista: {hint}"
 }

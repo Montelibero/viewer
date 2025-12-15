@@ -86,7 +86,7 @@
     return '/';
   })();
   const { shorten, isLocalLike } = await import(`${commonBase}.js?2`);
-  const { accountLink, renderOperationDetails } = await import(`${moduleBase}operation-view.js?2`);
+  const { accountLink, renderOperationDetails, renderEffects } = await import(`${moduleBase}operation-view.js?2`);
   const { initI18n } = await import(`${i18nBase}.js?2`);
 
   const horizonBase = 'https://horizon.stellar.org';
@@ -96,6 +96,7 @@
   const { t } = i18n;
 
   let opData = null;
+  let effectsData = null;
   let statusState = 'loading';
   let lastErrorKey = '';
   let lastErrorDetail = '';
@@ -191,6 +192,7 @@
       const details = document.getElementById('op-details');
       details.innerHTML = '';
       details.appendChild(renderOperationDetails(op));
+      appendEffectsSection(details);
       document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
 
       const status = document.getElementById('status-label');
@@ -237,6 +239,7 @@
       const details = document.getElementById('op-details');
       details.innerHTML = '';
       details.appendChild(renderOperationDetails(opData));
+      appendEffectsSection(details);
       document.getElementById('op-json').textContent = JSON.stringify(opData, null, 2);
 
       const headerBox = document.getElementById('op-header-box');
@@ -257,6 +260,33 @@
   }
 
   setActiveLangButton(i18n.lang());
+
+  function appendEffectsSection(container) {
+    if (effectsData) {
+      container.appendChild(renderEffects(effectsData, t));
+    } else {
+      const btn = document.createElement('a');
+      btn.className = 'button is-small is-ghost mt-2 pl-0';
+      btn.textContent = t('load-effects');
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        btn.classList.add('is-loading');
+        try {
+          const res = await fetch(`${horizonBase}/operations/${currentOpId}/effects`);
+          if (!res.ok) throw new Error(`Effects load error ${res.status}`);
+          const json = await res.json();
+          effectsData = json._embedded ? json._embedded.records : [];
+          reapplyLanguage();
+        } catch (err) {
+          console.error(err);
+          // Optional: show inline error for effects
+          btn.classList.remove('is-loading');
+          btn.textContent = t('error-unknown');
+        }
+      });
+      container.appendChild(btn);
+    }
+  }
 
   langButtons.forEach((btn) => {
     btn.addEventListener('click', async (e) => {

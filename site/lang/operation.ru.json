@@ -13,5 +13,11 @@
   "json-title": "JSON",
   "error-no-op-id": "Не удалось определить id операции.",
   "error-load-op": "Не удалось загрузить операцию",
-  "error-unknown": "Неизвестная ошибка"
+  "error-unknown": "Неизвестная ошибка",
+  "load-effects": "Загрузить доп. инфо",
+  "effect-trade": "Торговля",
+  "effect-credited": "Зачислено",
+  "effect-debited": "Списано",
+  "effect-bought": "Куплено",
+  "effect-sold": "Продано"
 }

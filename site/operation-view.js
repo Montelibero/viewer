@@ -399,6 +399,59 @@ export function createOperationCard(op) {
   return box;
 }
 
+export function renderEffects(effects, t) {
+  const container = document.createElement('div');
+  container.className = 'box mt-4 is-size-7';
+
+  if (!effects || effects.length === 0) {
+    container.textContent = '—';
+    return container;
+  }
+
+  effects.forEach((e, idx) => {
+    const wrapper = document.createElement('div');
+    if (idx > 0) {
+      wrapper.className = 'mt-2 pt-2';
+      wrapper.style.borderTop = '1px solid #eee';
+    }
+
+    const getAsset = (prefix = '') => {
+      const type = e[`${prefix}asset_type`];
+      if (type === 'native') return 'native';
+      return {
+        asset_code: e[`${prefix}asset_code`],
+        asset_issuer: e[`${prefix}asset_issuer`]
+      };
+    };
+
+    let content = '';
+    if (e.type === 'account_credited') {
+      const amt = formatAmount(e.amount);
+      const asset = renderAsset(getAsset());
+      const acc = renderAccount(e.account);
+      content = `<strong>${t('effect-credited')}:</strong> ${amt} ${asset} <span class="mx-1">→</span> ${acc}`;
+    } else if (e.type === 'account_debited') {
+      const amt = formatAmount(e.amount);
+      const asset = renderAsset(getAsset());
+      const acc = renderAccount(e.account);
+      content = `<strong>${t('effect-debited')}:</strong> ${amt} ${asset} <span class="mx-1">@</span> ${acc}`;
+    } else if (e.type === 'trade') {
+      const soldAmt = formatAmount(e.sold_amount);
+      const soldAsset = renderAsset(getAsset('sold_'));
+      const boughtAmt = formatAmount(e.bought_amount);
+      const boughtAsset = renderAsset(getAsset('bought_'));
+      content = `<strong>${t('effect-trade')}:</strong> ${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
+    } else {
+      content = `<strong>${e.type}</strong> <span class="is-italic has-text-grey-light">${e.id}</span>`;
+    }
+
+    wrapper.innerHTML = content;
+    container.appendChild(wrapper);
+  });
+
+  return container;
+}
+
 export function createXdrOperationBox(op, index, txSource, { txSuccessful = null } = {}) {
   const box = document.createElement('div');
   box.className = 'box is-size-7 op-card';

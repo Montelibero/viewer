@@ -1,4 +1,4 @@
-import { shorten } from './common.js';
+import { shorten } from './common.js?2';
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;

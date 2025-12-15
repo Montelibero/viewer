@@ -9,7 +9,7 @@
   <!-- Bulma через CDN -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css">
+  <link id="common-css" rel="stylesheet" href="/common.css?2">
 </head>
 <body>
 <section class="section">
@@ -159,9 +159,9 @@
     return '/common';
   })();
   const i18nBase = commonBase.replace(/common$/, 'i18n');
-  document.getElementById('common-css').href = `${commonBase}.css`;
-  const { shorten, isLocalLike } = await import(`${commonBase}.js`);
-  const { initI18n } = await import(`${i18nBase}.js`);
+  document.getElementById('common-css').href = `${commonBase}.css?2`;
+  const { shorten, isLocalLike } = await import(`${commonBase}.js?2`);
+  const { initI18n } = await import(`${i18nBase}.js?2`);
 
   const horizonBase = 'https://horizon.stellar.org'; // на будущее можно сделать переключатель сети
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';

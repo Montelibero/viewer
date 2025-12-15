@@ -9,7 +9,7 @@
   <!-- Bulma -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?3">
+  <link id="common-css" rel="stylesheet" href="/common.css?4">
 </head>
 <body>
 <section class="section">
@@ -132,7 +132,7 @@
   if (m) return `${m[1]}/common`;
   return '/common';
   })();
-  document.getElementById('common-css').href = `${commonBase}.css?3`;
+  document.getElementById('common-css').href = `${commonBase}.css?4`;
   const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
@@ -146,8 +146,8 @@
     formatStroopAmount,
     renderAccount,
     renderAsset
-  } = await import(`${moduleBase}operation-view.js?3`);
-  const { initI18n } = await import(`${i18nBase}.js?3`);
+  } = await import(`${moduleBase}operation-view.js?4`);
+  const { initI18n } = await import(`${i18nBase}.js?4`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
@@ -170,6 +170,7 @@
   let decodedTxObj = null;
   let currentTxHash = null;
   let signaturesData = null;
+  let horizonOps = null;
 
   const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const base32Lookup = {};
@@ -493,7 +494,17 @@
     }
 
     ops.forEach((op, index) => {
-      const box = createXdrOperationBox(op, index, tx.source_account, { txSuccessful: tx.successful });
+      // Try to find horizon ID for this operation
+      let opId = null;
+      if (horizonOps && horizonOps[index]) {
+        opId = horizonOps[index].id;
+      }
+
+      const box = createXdrOperationBox(op, index, tx.source_account, {
+        txSuccessful: tx.successful,
+        t,
+        opId
+      });
       container.appendChild(box);
     });
   }
@@ -551,6 +562,17 @@
       }
       const tx = await res.json();
       txData = tx;
+
+      // Fetch operations from Horizon to get IDs
+      try {
+        const opsRes = await fetch(`${horizonBase}/transactions/${encodeURIComponent(txHash)}/operations?limit=200`);
+        if (opsRes.ok) {
+          const opsJson = await opsRes.json();
+          horizonOps = opsJson._embedded ? opsJson._embedded.records : [];
+        }
+      } catch (err) {
+        console.warn('Failed to load horizon operations', err);
+      }
 
       const successful = tx.successful;
       setStatus(successful ? 'success' : 'failed');

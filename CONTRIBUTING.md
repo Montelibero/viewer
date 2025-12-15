@@ -29,7 +29,7 @@ The project relies on aggressive caching strategies. To ensure users receive the
 
 **Whenever you modify any JS file, CSS file, or Translation (JSON) file, you must update the version number everywhere.**
 
-Current Version: `3`
+Current Version: `4`
 
 #### Checklist for Updates:
 1.  **CSS**: Update the link in `<head>` of **all** HTML files:

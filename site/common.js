@@ -10,4 +10,4 @@ export function isLocalLike() {
 }
 
 // Статическая версия приложения, показываем в интерфейсе
-export const appVersion = '1.0.3';
+export const appVersion = '2';

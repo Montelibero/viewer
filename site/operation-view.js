@@ -191,24 +191,24 @@ export function renderOperationDetails(op) {
     addLine('Получатель', renderAccount(dest));
   } else if (type === 'path_payment_strict_receive') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
-    const destAmount = xdrInner ? formatStroopAmount(xdrInner.destAmount) : formatAmount(op.amount);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
-    const sourceAmount = xdrInner ? formatStroopAmount(xdrInner.sendMax) : formatAmount(op.source_amount);
-    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    const destAmount = xdrInner ? formatStroopAmount(xdrInner.destAmount ?? xdrInner.dest_amount) : formatAmount(op.amount);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const sourceAmount = xdrInner ? formatStroopAmount(xdrInner.sendMax ?? xdrInner.send_max) : formatAmount(op.source_amount);
+    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
     addLine('Получатель', renderAccount(dest));
     addLine('Получает', `${destAmount} ${destAsset}`);
     addLine('Потратим максимум', `${sourceAmount} ${sourceAsset}`);
   } else if (type === 'path_payment_strict_send') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
-    const sendAmount = xdrInner ? formatStroopAmount(xdrInner.sendAmount) : formatAmount(op.source_amount);
-    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
-    const destMin = xdrInner ? formatStroopAmount(xdrInner.destMin) : formatAmount(op.destination_min);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const sendAmount = xdrInner ? formatStroopAmount(xdrInner.sendAmount ?? xdrInner.send_amount) : formatAmount(op.source_amount);
+    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    const destMin = xdrInner ? formatStroopAmount(xdrInner.destMin ?? xdrInner.dest_min) : formatAmount(op.destination_min);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
     addLine('Получатель', renderAccount(dest));
     addLine('Отправляем', `${sendAmount} ${sendAsset}`);
     addLine('Ожидаем минимум', `${destMin} ${destAsset}`);
   } else if (type === 'create_account') {
-    const amount = xdrInner ? formatStroopAmount(xdrInner.starting_balance) : formatAmount(op.starting_balance);
+    const amount = xdrInner ? formatStroopAmount(xdrInner.startingBalance ?? xdrInner.starting_balance) : formatAmount(op.starting_balance);
     const account = xdrInner ? xdrInner.destination : op.account;
     addLine('Начальный баланс', `${amount} XLM`);
     addLine('Новый аккаунт', renderAccount(account));
@@ -221,16 +221,16 @@ export function renderOperationDetails(op) {
     addLine('Покупаем', buying);
     addLine('Цена', price);
   } else if (type === 'set_options') {
-    const inflation = xdrInner ? xdrInner.inflationDest : op.inflation_dest;
-    const homeDomain = xdrInner ? xdrInner.homeDomain : op.home_domain;
+    const inflation = xdrInner ? (xdrInner.inflationDest ?? xdrInner.inflation_dest) : op.inflation_dest;
+    const homeDomain = xdrInner ? (xdrInner.homeDomain ?? xdrInner.home_domain) : op.home_domain;
     const thresholds = {
-      master: xdrInner ? xdrInner.masterWeight : op.master_key_weight,
-      low: xdrInner ? xdrInner.lowThreshold : op.low_threshold,
-      med: xdrInner ? xdrInner.medThreshold : op.med_threshold,
-      high: xdrInner ? xdrInner.highThreshold : op.high_threshold
+      master: xdrInner ? (xdrInner.masterWeight ?? xdrInner.master_weight) : op.master_key_weight,
+      low: xdrInner ? (xdrInner.lowThreshold ?? xdrInner.low_threshold) : op.low_threshold,
+      med: xdrInner ? (xdrInner.medThreshold ?? xdrInner.med_threshold) : op.med_threshold,
+      high: xdrInner ? (xdrInner.highThreshold ?? xdrInner.high_threshold) : op.high_threshold
     };
-    const clear = xdrInner ? xdrInner.clearFlags : op.clear_flags_s || op.clear_flags;
-    const set = xdrInner ? xdrInner.setFlags : op.set_flags_s || op.set_flags;
+    const clear = xdrInner ? (xdrInner.clearFlags ?? xdrInner.clear_flags) : op.clear_flags_s || op.clear_flags;
+    const set = xdrInner ? (xdrInner.setFlags ?? xdrInner.set_flags) : op.set_flags_s || op.set_flags;
     addLine('Домейн', homeDomain || '—');
     addLine('Инфляционный адрес', inflation ? renderAccount(inflation, { short: false }) : '—');
     addLine('Пороги', `low: ${thresholds.low ?? '—'}, med: ${thresholds.med ?? '—'}, high: ${thresholds.high ?? '—'}`);
@@ -260,8 +260,8 @@ export function renderOperationDetails(op) {
   } else if (type === 'inflation') {
     addLine('Действие', 'Вызов инфляции');
   } else if (type === 'manage_data') {
-    const name = xdrInner ? xdrInner.data_name : op.data_name;
-    const valueRaw = xdrInner ? xdrInner.data_value : op.data_value;
+    const name = xdrInner ? (xdrInner.dataName ?? xdrInner.data_name) : op.data_name;
+    const valueRaw = xdrInner ? (xdrInner.dataValue ?? xdrInner.data_value) : op.data_value;
     const decoded = decodeDataValue(valueRaw);
     addLine('Имя', name || '—');
     addLine('Значение (raw)', valueRaw || '—');
@@ -272,7 +272,7 @@ export function renderOperationDetails(op) {
       addLine('Значение (hex)', decoded.hex);
     }
   } else if (type === 'bump_sequence') {
-    const bump = xdrInner ? xdrInner.bumpTo : op.bump_to;
+    const bump = xdrInner ? (xdrInner.bumpTo ?? xdrInner.bump_to) : op.bump_to;
     addLine('Новый sequence', bump || '—');
   } else if (type === 'create_claimable_balance') {
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
@@ -281,7 +281,7 @@ export function renderOperationDetails(op) {
     addLine('Сумма', `${amount} ${asset}`);
     addLine('Клейманты', renderClaimants(claimants));
   } else if (type === 'claim_claimable_balance') {
-    const id = xdrInner ? xdrInner.balanceId : op.balance_id;
+    const id = xdrInner ? (xdrInner.balanceId ?? xdrInner.balance_id) : op.balance_id;
     addLine('Balance ID', id || '—');
   } else if (type === 'begin_sponsoring_future_reserves') {
     const sponsored = xdrInner
@@ -289,17 +289,17 @@ export function renderOperationDetails(op) {
       : op.sponsored_id;
     addLine('Спонсируемый', renderAccount(sponsored));
   } else if (type === 'end_sponsoring_future_reserves') {
-    const sponsored = op.sponsored_id || xdrInner?.sponsoredId || xdrInner?.sponsoredID;
+    const sponsored = op.sponsored_id || xdrInner?.sponsoredId || xdrInner?.sponsoredID || xdrInner?.sponsored_id;
     addLine('Действие', 'Завершение спонсирования резервов');
     if (sponsored) addLine('Спонсируемый', renderAccount(sponsored));
   } else if (type === 'revoke_sponsorship') {
     const target =
       op.account_id || op.trustline_account_id || op.signer_account_id || op.data_account_id ||
       op.claimable_balance_id || op.liquidity_pool_id || op.offer_id ||
-      xdrInner?.accountId || xdrInner?.claimableBalanceId || xdrInner?.liquidityPoolId;
-    const dataName = op.data_name || xdrInner?.dataName;
-    const signerKey = op.signer_key || xdrInner?.signerKey;
-    const trustAsset = op.trustline_asset || xdrInner?.trustLine?.asset || xdrInner?.trustLine?.assetId;
+      xdrInner?.accountId || xdrInner?.account_id || xdrInner?.claimableBalanceId || xdrInner?.claimable_balance_id || xdrInner?.liquidityPoolId || xdrInner?.liquidity_pool_id;
+    const dataName = op.data_name || xdrInner?.dataName || xdrInner?.data_name;
+    const signerKey = op.signer_key || xdrInner?.signerKey || xdrInner?.signer_key;
+    const trustAsset = op.trustline_asset || xdrInner?.trustLine?.asset || xdrInner?.trustLine?.assetId || xdrInner?.trust_line?.asset || xdrInner?.trust_line?.asset_id;
     let targetDesc = '';
     if (target && dataName) targetDesc = `Data: ${renderAccount(target)} / ${dataName}`;
     else if (target && signerKey) targetDesc = `Signer: ${renderAccount(target)} / ${signerKey}`;
@@ -319,7 +319,7 @@ export function renderOperationDetails(op) {
     addLine('Изъять у', renderAccount(from));
     addLine('Сумма', `${amount} ${asset}`);
   } else if (type === 'clawback_claimable_balance') {
-    const id = xdrInner ? xdrInner.balanceId : op.balance_id;
+    const id = xdrInner ? (xdrInner.balanceId ?? xdrInner.balance_id) : op.balance_id;
     addLine('Claimable balance', id || '—');
   } else if (type === 'set_trust_line_flags') {
     const trustor = xdrInner ? xdrInner.trustor : op.trustor;
@@ -333,11 +333,11 @@ export function renderOperationDetails(op) {
     const set = op.set_flags ?? op.set_flags_s ?? xdrInner?.setFlags ?? xdrInner?.set_flags;
     addLine('Флаги', `set: ${set ?? '—'}, clear: ${clear ?? '—'}, auth: ${authorize ?? '—'}, maintain: ${maintain ?? '—'}, clawback: ${clawback ?? '—'}`);
   } else if (type === 'liquidity_pool_deposit') {
-    const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;
-    const maxA = xdrInner ? formatStroopAmount(xdrInner.maxAmountA) : formatAmount(op.reserves_max_a);
-    const maxB = xdrInner ? formatStroopAmount(xdrInner.maxAmountB) : formatAmount(op.reserves_max_b);
-    const minPrice = xdrInner ? formatPriceObj(xdrInner.minPrice) : formatPriceObj(op.min_price);
-    const maxPrice = xdrInner ? formatPriceObj(xdrInner.maxPrice) : formatPriceObj(op.max_price);
+    const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
+    const maxA = xdrInner ? formatStroopAmount(xdrInner.maxAmountA ?? xdrInner.max_amount_a) : formatAmount(op.reserves_max_a);
+    const maxB = xdrInner ? formatStroopAmount(xdrInner.maxAmountB ?? xdrInner.max_amount_b) : formatAmount(op.reserves_max_b);
+    const minPrice = xdrInner ? formatPriceObj(xdrInner.minPrice ?? xdrInner.min_price) : formatPriceObj(op.min_price);
+    const maxPrice = xdrInner ? formatPriceObj(xdrInner.maxPrice ?? xdrInner.max_price) : formatPriceObj(op.max_price);
     addLine('Pool', pool || '—');
     addLine('Макс. резерв A', maxA);
     addLine('Макс. резерв B', maxB);
@@ -347,10 +347,10 @@ export function renderOperationDetails(op) {
     if (op.reserves_deposited_b) addLine('Зачислено B', op.reserves_deposited_b);
     if (op.shares_received) addLine('Получено долей', op.shares_received);
   } else if (type === 'liquidity_pool_withdraw') {
-    const pool = xdrInner ? xdrInner.liquidityPoolId : op.liquidity_pool_id;
+    const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
     const shares = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.shares);
-    const minA = xdrInner ? formatStroopAmount(xdrInner.minAmountA) : formatAmount(op.reserves_min_a);
-    const minB = xdrInner ? formatStroopAmount(xdrInner.minAmountB) : formatAmount(op.reserves_min_b);
+    const minA = xdrInner ? formatStroopAmount(xdrInner.minAmountA ?? xdrInner.min_amount_a) : formatAmount(op.reserves_min_a);
+    const minB = xdrInner ? formatStroopAmount(xdrInner.minAmountB ?? xdrInner.min_amount_b) : formatAmount(op.reserves_min_b);
     addLine('Pool', pool || '—');
     addLine('Списать долей', shares);
     addLine('Мин. резерв A', minA);

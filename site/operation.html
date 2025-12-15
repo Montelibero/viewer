@@ -8,7 +8,7 @@
 
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?3">
+  <link id="common-css" rel="stylesheet" href="/common.css?4">
 </head>
 <body>
 <section class="section">
@@ -77,7 +77,7 @@
     if (m) return `${m[1]}/common`;
     return '/common';
   })();
-  document.getElementById('common-css').href = `${commonBase}.css?3`;
+  document.getElementById('common-css').href = `${commonBase}.css?4`;
   const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
@@ -85,9 +85,9 @@
     if (m) return `${m[1]}/`;
     return '/';
   })();
-  const { shorten, isLocalLike } = await import(`${commonBase}.js?3`);
-  const { accountLink, renderOperationDetails, renderEffects } = await import(`${moduleBase}operation-view.js?3`);
-  const { initI18n } = await import(`${i18nBase}.js?3`);
+  const { shorten, isLocalLike } = await import(`${commonBase}.js?4`);
+  const { accountLink, renderOperationDetails, renderEffects } = await import(`${moduleBase}operation-view.js?4`);
+  const { initI18n } = await import(`${i18nBase}.js?4`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultOpId = '257949658419138561';
@@ -191,7 +191,7 @@
 
       const details = document.getElementById('op-details');
       details.innerHTML = '';
-      details.appendChild(renderOperationDetails(op));
+      details.appendChild(renderOperationDetails(op, t));
       appendEffectsSection(details);
       document.getElementById('op-json').textContent = JSON.stringify(op, null, 2);
 
@@ -238,7 +238,7 @@
 
       const details = document.getElementById('op-details');
       details.innerHTML = '';
-      details.appendChild(renderOperationDetails(opData));
+      details.appendChild(renderOperationDetails(opData, t));
       appendEffectsSection(details);
       document.getElementById('op-json').textContent = JSON.stringify(opData, null, 2);
 

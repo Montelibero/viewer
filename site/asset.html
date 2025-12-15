@@ -9,7 +9,7 @@
   <!-- Bulma через CDN -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?2">
+  <link id="common-css" rel="stylesheet" href="/common.css?3">
 </head>
 <body>
 <section class="section">
@@ -152,9 +152,9 @@
     return '/common';
   })();
   const i18nBase = commonBase.replace(/common$/, 'i18n');
-  document.getElementById('common-css').href = `${commonBase}.css?2`;
-  const { shorten, isLocalLike } = await import(`${commonBase}.js?2`);
-  const { initI18n } = await import(`${i18nBase}.js?2`);
+  document.getElementById('common-css').href = `${commonBase}.css?3`;
+  const { shorten, isLocalLike } = await import(`${commonBase}.js?3`);
+  const { initI18n } = await import(`${i18nBase}.js?3`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAsset = {

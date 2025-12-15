@@ -13,5 +13,11 @@
   "json-title": "JSON",
   "error-no-op-id": "No se pudo obtener el id de la operación de la URL.",
   "error-load-op": "No se pudo cargar la operación",
-  "error-unknown": "Error desconocido"
+  "error-unknown": "Error desconocido",
+  "load-effects": "Cargar información adicional",
+  "effect-trade": "Intercambio",
+  "effect-credited": "Acreditado",
+  "effect-debited": "Debitado",
+  "effect-bought": "Comprado",
+  "effect-sold": "Vendido"
 }

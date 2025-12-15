@@ -9,7 +9,7 @@
   <!-- Bulma -->
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?2">
+  <link id="common-css" rel="stylesheet" href="/common.css?3">
 </head>
 <body>
 <section class="section">
@@ -132,7 +132,7 @@
   if (m) return `${m[1]}/common`;
   return '/common';
   })();
-  document.getElementById('common-css').href = `${commonBase}.css?2`;
+  document.getElementById('common-css').href = `${commonBase}.css?3`;
   const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
@@ -146,8 +146,8 @@
     formatStroopAmount,
     renderAccount,
     renderAsset
-  } = await import(`${moduleBase}operation-view.js?2`);
-  const { initI18n } = await import(`${i18nBase}.js?2`);
+  } = await import(`${moduleBase}operation-view.js?3`);
+  const { initI18n } = await import(`${i18nBase}.js?3`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));

@@ -13,5 +13,11 @@
   "json-title": "JSON",
   "error-no-op-id": "Could not detect operation id from URL.",
   "error-load-op": "Failed to load operation",
-  "error-unknown": "Unknown error"
+  "error-unknown": "Unknown error",
+  "load-effects": "Load additional info",
+  "effect-trade": "Trade",
+  "effect-credited": "Credited",
+  "effect-debited": "Debited",
+  "effect-bought": "Bought",
+  "effect-sold": "Sold"
 }

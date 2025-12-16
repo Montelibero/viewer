@@ -190,14 +190,14 @@
 
   function formatAssetLabel(asset) {
     if (!asset || asset === 'native') {
-      return { text: 'XLM', href: null };
+      return { text: 'XLM', code: 'XLM', href: null };
     }
     const [code, issuer] = asset.split(':');
     const text = `${code || '—'} · ${issuer ? shorten(issuer) : '—'}`;
     const href = code && issuer
       ? `/assets/${encodeURIComponent(`${code}-${issuer}`)}`
       : null;
-    return { text, href };
+    return { text, code: code || '—', href };
   }
 
   function accountLink(acc) {
@@ -257,7 +257,8 @@
       const reserves = data?.reserves || [];
       const totalShares = data?.total_shares || '0';
 
-      const labels = reserves.map(r => formatAssetLabel(r.asset).text).filter(Boolean);
+      // Для заголовка используем только коды (code), без эмитентов
+      const labels = reserves.map(r => formatAssetLabel(r.asset).code).filter(Boolean);
       const label = labels.length ? labels.join(' / ') : shorten(poolId);
 
       // Кэшируем всё, что нужно
@@ -293,7 +294,8 @@
         const valStr = myAmount < 0.01 ? myAmount.toFixed(7) : myAmount.toFixed(2);
         // Убираем лишние нули в конце, если это дроби
         const cleanVal = parseFloat(valStr).toString();
-        const symbol = formatAssetLabel(r.asset).text;
+        // Используем только код актива (code) для компактности
+        const symbol = formatAssetLabel(r.asset).code;
         return `${cleanVal} ${symbol}`;
       }).filter(Boolean);
 

@@ -8,7 +8,7 @@
 
   <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?4">
+  <link id="common-css" rel="stylesheet" href="/common.css?5">
 </head>
 <body>
 <section class="section">
@@ -116,7 +116,7 @@
   if (m) return `${m[1]}/common`;
   return '/common';
   })();
-  document.getElementById('common-css').href = `${commonBase}.css?4`;
+  document.getElementById('common-css').href = `${commonBase}.css?5`;
   const i18nBase = commonBase.replace(/common$/, 'i18n');
   const moduleBase = (() => {
     if (window.location.protocol === 'file:') return './';
@@ -124,12 +124,12 @@
     if (m) return `${m[1]}/`;
     return '/';
   })();
-  const { isLocalLike } = await import(`${commonBase}.js?4`);
+  const { isLocalLike } = await import(`${commonBase}.js?5`);
   const {
     assetLabelFull,
     createOperationCard
-  } = await import(`${moduleBase}operation-view.js?4`);
-  const { initI18n } = await import(`${i18nBase}.js?4`);
+  } = await import(`${moduleBase}operation-view.js?5`);
+  const { initI18n } = await import(`${i18nBase}.js?5`);
 
   const horizonBase = 'https://horizon.stellar.org';
   const defaultAccountId = 'GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';

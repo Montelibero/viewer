@@ -1,4 +1,4 @@
-import { shorten } from './common.js?4';
+import { shorten } from './common.js?5';
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -388,7 +388,8 @@ export function createOperationCard(op, t) {
   const src = document.createElement('p');
   src.className = 'is-size-7';
   const srcLink = accountLink(op.source_account);
-  src.innerHTML = `Источник: ${srcLink ? `<a href="${srcLink}" class="is-mono">${shorten(op.source_account)}</a>` : (op.source_account || '—')}`;
+  const srcLabel = t ? t('source-label') : 'Источник:';
+  src.innerHTML = `${srcLabel} ${srcLink ? `<a href="${srcLink}" class="is-mono">${shorten(op.source_account)}</a>` : (op.source_account || '—')}`;
   box.appendChild(src);
 
   if (op.transaction_hash) {
@@ -468,10 +469,12 @@ export function createXdrOperationBox(op, index, txSource, { txSuccessful = null
   const statusTag = renderStatusTag(txSuccessful);
   if (txSuccessful === false) box.classList.add('is-failed');
 
+  const T = (k, f) => resolveT(t, k, f);
+
   box.innerHTML = `
     <p><strong>#${index + 1}</strong> · <span>${type}</span>${statusTag}</p>
     <p class="is-size-7 mt-1">
-      Источник операции: ${renderAccount(opSource, { short: false })}
+      ${T('op-source', 'Источник операции')}: ${renderAccount(opSource, { short: false })}
     </p>
   `;
   details.classList.add('mt-2');

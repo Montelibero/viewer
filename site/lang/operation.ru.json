@@ -71,5 +71,7 @@
   "op-min-res-a": "Мин. резерв A",
   "op-min-res-b": "Мин. резерв B",
   "op-received-a": "Получено A",
-  "op-received-b": "Получено B"
+  "op-received-b": "Получено B",
+  "op-source": "Источник операции",
+  "source-label": "Источник:"
 }

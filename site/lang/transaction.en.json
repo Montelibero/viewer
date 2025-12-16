@@ -101,6 +101,7 @@
   "op-min-res-b": "Min res B",
   "op-received-a": "Received A",
   "op-received-b": "Received B",
+  "op-source": "Operation Source",
   "load-effects": "Load additional info",
   "effect-trade": "Trade",
   "effect-credited": "Credited",

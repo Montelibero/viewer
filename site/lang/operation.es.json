@@ -71,5 +71,7 @@
   "op-min-res-a": "Mín res A",
   "op-min-res-b": "Mín res B",
   "op-received-a": "Recibido A",
-  "op-received-b": "Recibido B"
+  "op-received-b": "Recibido B",
+  "op-source": "Fuente de operación",
+  "source-label": "Origen:"
 }

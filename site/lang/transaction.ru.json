@@ -101,6 +101,7 @@
   "op-min-res-b": "Мин. резерв B",
   "op-received-a": "Получено A",
   "op-received-b": "Получено B",
+  "op-source": "Источник операции",
   "load-effects": "Загрузить доп. инфо",
   "effect-trade": "Торговля",
   "effect-credited": "Зачислено",

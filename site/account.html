@@ -236,26 +236,72 @@
 
   const poolMetaCache = new Map();
 
-  async function describePool(poolId, linkEl, subtitleEl) {
+  async function describePool(poolId, linkEl, subtitleEl, shareBalance) {
     if (poolMetaCache.has(poolId)) {
-      const label = poolMetaCache.get(poolId);
-      if (label) linkEl.textContent = `${t('pool-label')}: ${label}`;
-      return;
+      const cached = poolMetaCache.get(poolId);
+      if (cached && cached.label) {
+        linkEl.textContent = `${t('pool-label')}: ${cached.label}`;
+        // Если есть закэшированные данные и передан баланс, можно посчитать
+        if (shareBalance && cached.reserves && cached.totalShares) {
+          updatePoolShareInfo(subtitleEl, poolId, cached.reserves, cached.totalShares, shareBalance);
+        }
+        return;
+      }
     }
+
     try {
       const res = await fetch(`${horizonBase}/liquidity_pools/${poolId}`);
       if (!res.ok) throw new Error('load failed');
       const data = await res.json();
+
       const reserves = data?.reserves || [];
+      const totalShares = data?.total_shares || '0';
+
       const labels = reserves.map(r => formatAssetLabel(r.asset).text).filter(Boolean);
       const label = labels.length ? labels.join(' / ') : shorten(poolId);
-      poolMetaCache.set(poolId, label);
+
+      // Кэшируем всё, что нужно
+      poolMetaCache.set(poolId, { label, reserves, totalShares });
+
       linkEl.textContent = `${t('pool-label')}: ${label}`;
+
       if (subtitleEl) {
-        subtitleEl.textContent = `${t('pool-id-label')}: ${shorten(poolId)}`;
+        subtitleEl.innerHTML = `${t('pool-id-label')}: ${shorten(poolId)}`;
+        if (shareBalance) {
+          updatePoolShareInfo(subtitleEl, poolId, reserves, totalShares, shareBalance);
+        }
       }
     } catch (e) {
-      poolMetaCache.set(poolId, null);
+      console.error(e);
+      // Если ошибка, кэшируем пустой объект или null, чтобы не долбить запросами
+      poolMetaCache.set(poolId, { label: null });
+    }
+  }
+
+  function updatePoolShareInfo(subtitleEl, poolId, reserves, totalSharesStr, userSharesStr) {
+    const totalShares = parseFloat(totalSharesStr);
+    const userShares = parseFloat(userSharesStr);
+
+    if (!isNaN(totalShares) && !isNaN(userShares) && totalShares > 0) {
+      const ratio = userShares / totalShares;
+      const parts = reserves.map(r => {
+        const amount = parseFloat(r.amount);
+        if (isNaN(amount)) return null;
+        const myAmount = amount * ratio;
+        // Форматирование: до 2 знаков, если число большое, или до 7, если маленькое
+        // Простая эвристика для читаемости
+        const valStr = myAmount < 0.01 ? myAmount.toFixed(7) : myAmount.toFixed(2);
+        // Убираем лишние нули в конце, если это дроби
+        const cleanVal = parseFloat(valStr).toString();
+        const symbol = formatAssetLabel(r.asset).text;
+        return `${cleanVal} ${symbol}`;
+      }).filter(Boolean);
+
+      if (parts.length) {
+        const info = parts.join(' + ');
+        // Добавляем новую строку к subtitle
+        subtitleEl.innerHTML += `<br><span class="has-text-grey-dark" style="font-size: 0.9em">~ ${info}</span>`;
+      }
     }
   }
 
@@ -372,6 +418,20 @@
           href: poolId !== '—' ? `/pool/${encodeURIComponent(poolId)}` : null
         });
         poolsEl.appendChild(card);
+
+        if (poolId !== '—') {
+          // Ищем элементы внутри карточки, чтобы обновить их через describePool
+          // Заголовок - это первый элемент внутри .level-left
+          // createBalanceCard: <div class="level-left"><div><p>TITLE</p>...
+          const titleContainer = card.querySelector('.level-left > div > p:first-child');
+          const titleEl = titleContainer ? (titleContainer.firstElementChild || titleContainer) : null;
+
+          const subtitleEl = card.querySelector('.level-left > div > p.has-text-grey');
+
+          if (titleEl && subtitleEl) {
+            describePool(poolId, titleEl, subtitleEl, b.balance);
+          }
+        }
       });
     } else {
       poolsEl.innerHTML = `<p class="is-size-7 has-text-grey">${t('pools-empty')}</p>`;

@@ -115,6 +115,13 @@ export async function init(params, i18n) {
         const btnIssuer = document.getElementById('btn-issuer');
         if(btnIssuer) btnIssuer.href = `/account/${encodeURIComponent(record.asset_issuer)}`;
 
+        if (record.contract_id) {
+            const contractEl = document.getElementById('asset-contract');
+            if (contractEl) {
+                contractEl.innerHTML = `<span class="has-text-grey">Contract:</span> <a href="/contract/${record.contract_id}">${shorten(record.contract_id)}</a>`;
+            }
+        }
+
         const tomlHref = record._links?.toml?.href;
         const tomlBtn = document.getElementById('btn-toml');
         if (tomlBtn) {

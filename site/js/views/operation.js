@@ -1,5 +1,5 @@
-import { shorten } from '/common.js?v=7';
-import { accountLink, renderOperationDetails, renderEffects } from '/operation-view.js?v=7'; // Ensure path is correct
+import { shorten } from '/js/common.js?v=7';
+import { accountLink, renderOperationDetails, renderEffects } from '/js/operation-view.js?v=7'; // Ensure path is correct
 
 const horizonBase = 'https://horizon.stellar.org';
 

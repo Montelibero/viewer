@@ -1,5 +1,5 @@
 
-import { initI18n } from '../i18n.js?v=8';
+import { initI18n } from './i18n.js?v=8';
 
 const routes = [
   { pattern: /^\/$/, view: 'home' },

@@ -1,5 +1,5 @@
 
-import { shorten } from '../../common.js?v=8';
+import { shorten } from '../common.js?v=8';
 
 export async function init(params, i18n) {
     const { t } = i18n;

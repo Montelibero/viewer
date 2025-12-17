@@ -1,23 +1,134 @@
-
-<div class="section">
+<section class="section">
   <div class="container">
-    <div class="mb-4">
-      <a class="button is-small is-light" href="/">Home</a>
+
+    <div class="mb-4 is-flex is-justify-content-space-between is-align-items-center">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+      <!-- Language switcher is in the navbar now -->
     </div>
 
+    <!-- HEADER -->
     <div class="box">
-       <p class="title is-4">Account</p>
-       <p class="subtitle is-7 is-mono" id="account-id">Loading...</p>
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Stellar Account</p>
+            <p class="subtitle is-7" id="network-label" data-i18n="network-mainnet">Mainnet</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono account-address" id="account-id-display">—</p>
+
+      <div class="mt-2 buttons">
+        <button class="button is-small is-light" id="copy-btn" data-i18n="copy-address">
+          Скопировать адрес
+        </button>
+        <a class="button is-small is-link is-light"
+           id="btn-bsn"
+           target="_blank"
+           rel="noreferrer">
+          BSN.expert
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-scopuly"
+           target="_blank"
+           rel="noreferrer">
+          Scopuly
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-stellarchain"
+           target="_blank"
+           rel="noreferrer">
+          StellarChain
+        </a>
+      </div>
+
+      <div class="mt-3">
+        <p class="is-size-7">
+          <span data-i18n="sequence-label">Sequence</span>: <span id="seq">—</span><br>
+          <span data-i18n="subentries-label">Subentries</span>: <span id="subentries">—</span>
+        </p>
+      </div>
     </div>
 
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- BALANCES -->
     <div class="box">
-      <p class="title is-6">Balances</p>
-      <div id="balances-list">Loading...</div>
+      <p class="title is-6" data-i18n="balances-title">Балансы</p>
+
+      <div id="balance-native" class="mb-3 balance-grid"></div>
+
+      <hr class="my-3">
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="assets-title">Ассеты</p>
+      <div id="balance-assets" class="mb-3 balance-grid">
+        <!-- карточки ассетов -->
+      </div>
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="pools-title">Пулы</p>
+      <div id="balance-pools" class="mb-3 balance-grid">
+        <!-- карточки пулов -->
+      </div>
+
+      <p class="subtitle is-7 has-text-weight-semibold mb-1" data-i18n="issued-title">Выпущенные ассеты</p>
+      <div id="balance-issued" class="balance-grid">
+        <!-- карточки выпущенных ассетов -->
+      </div>
     </div>
 
-    <div class="buttons">
-      <a class="button is-link" id="btn-ops" href="#">Operations</a>
-      <a class="button is-info" id="btn-offers" href="#">Offers</a>
+    <!-- SIGNERS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="signers-title">Подписанты и пороги</p>
+      <p class="is-size-7">
+        <span data-i18n="thresholds-label">Пороги</span>:
+        <span id="thresholds">—</span>
+      </p>
+      <ul id="signers" class="is-size-7 mt-2">
+        <!-- сюда пойдут подписанты -->
+      </ul>
     </div>
+
+    <!-- DATA -->
+    <div class="box">
+      <p class="title is-6" data-i18n="data-title">Data</p>
+      <ul id="data" class="is-size-7">
+        <!-- сюда пойдут data-поля -->
+      </ul>
+    </div>
+
+    <!-- BOTTOM ACTIONS -->
+    <div class="bottom-actions">
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-operations"
+           data-i18n="btn-operations">
+          Операции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-offers"
+           data-i18n="btn-offers">
+          Офферы
+        </a>
+      </div>
+    </div>
+
   </div>
-</div>
+</section>

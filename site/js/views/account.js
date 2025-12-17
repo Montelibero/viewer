@@ -330,13 +330,26 @@ export async function init(params, i18n) {
 
         records.forEach(asset => {
             const id = asset.asset_code || '—';
-            const subtitle = `${t('issued-holders')}: ${asset.num_accounts}`;
+            
+            const holders = asset.num_accounts !== undefined ? asset.num_accounts : (asset.accounts?.authorized || 0);
+            
+            let supply = asset.amount;
+            if (!supply) {
+                 const auth = parseFloat(asset.balances?.authorized || 0);
+                 const authM = parseFloat(asset.balances?.authorized_to_maintain_liabilities || 0);
+                 const claim = parseFloat(asset.claimable_balances_amount || 0);
+                 const pool = parseFloat(asset.liquidity_pools_amount || 0);
+                 const contracts = parseFloat(asset.contracts_amount || 0);
+                 supply = (auth + authM + claim + pool + contracts).toString();
+            }
+
+            const subtitle = `${t('issued-holders')}: ${holders}`;
             const meta = t('issued-supply');
 
             const card = createBalanceCard({
                 title: id,
                 subtitle: subtitle,
-                amount: asset.amount,
+                amount: supply,
                 meta: meta,
                 href: `/asset/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
             });

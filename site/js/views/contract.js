@@ -1,4 +1,4 @@
-import { shorten, strKeyToBytes } from '/js/common.js?v=7';
+import { shorten, strKeyToBytes, encodeAddress } from '/js/common.js?v=9';
 
 const rpcUrl = 'https://soroban-rpc.mainnet.stellar.gateway.fm/';
 
@@ -121,12 +121,59 @@ export async function init(params, i18n) {
     }
 
     function renderContractData(data, ledgerSeq) {
-        // data structure depends on XDR JSON format.
-        // It should contain 'contractData' -> 'val' -> 'instance' ...
-        // We can display the raw JSON for now, or try to extract info.
-        
         let html = `<div class="content"><p><strong>Last Modified Ledger:</strong> ${ledgerSeq}</p>`;
-        
+
+        const contractData = data?.contract_data;
+        const contractInstance = contractData?.val?.contract_instance;
+        const storage = contractInstance?.storage;
+
+        if (contractInstance) {
+            html += `<p><strong>Contract Type:</strong> ${contractInstance.executable}</p>`;
+        }
+
+        if (Array.isArray(storage)) {
+            let metadata = {};
+            let admin = '';
+            let assetInfo = {};
+
+            storage.forEach(entry => {
+                // METADATA
+                if (entry.key?.symbol === 'METADATA' && entry.val?.map) {
+                    entry.val.map.forEach(item => {
+                        if (item.key?.symbol && item.val) {
+                            metadata[item.key.symbol] = item.val.string || item.val.u32;
+                        }
+                    });
+                }
+                // Admin
+                if (entry.key?.vec?.[0]?.symbol === 'Admin' && entry.val?.address) {
+                    admin = entry.val.address;
+                }
+                // AssetInfo (for SAC)
+                if (entry.key?.vec?.[0]?.symbol === 'AssetInfo' && entry.val?.vec?.[1]?.map) {
+                    entry.val.vec[1].map.forEach(item => {
+                        if (item.key?.symbol && item.val) {
+                            let val = item.val.string || item.val.bytes;
+                            if (item.key.symbol === 'issuer' && item.val.bytes) {
+                                const encoded = encodeAddress(item.val.bytes);
+                                if (encoded) val = encoded;
+                            }
+                            assetInfo[item.key.symbol] = val;
+                        }
+                    });
+                }
+            });
+
+            if (metadata.name) html += `<p><strong>Name:</strong> ${metadata.name}</p>`;
+            if (metadata.symbol) html += `<p><strong>Symbol:</strong> ${metadata.symbol}</p>`;
+            if (metadata.decimal !== undefined) html += `<p><strong>Decimals:</strong> ${metadata.decimal}</p>`;
+            if (admin) html += `<p><strong>Admin:</strong> <a href="/account/${admin}">${shorten(admin)}</a></p>`;
+            if (assetInfo.asset_code && assetInfo.issuer) {
+                html += `<p><strong>Wrapped Asset:</strong> <a href="/asset/${encodeURIComponent(`${assetInfo.asset_code}-${assetInfo.issuer}`)}">${assetInfo.asset_code}</a> by <a href="/account/${assetInfo.issuer}">${shorten(assetInfo.issuer)}</a></p>`;
+            }
+        }
+
+        html += `<h4 class="title is-6 mt-5">Raw XDR JSON:</h4>`;
         html += `<pre class="is-size-7">${JSON.stringify(data, null, 2)}</pre></div>`;
         
         container.innerHTML = html;

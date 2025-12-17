@@ -10,7 +10,7 @@ export function isLocalLike() {
 }
 
 // Статическая версия приложения, показываем в интерфейсе
-export const appVersion = '1.0.8';
+export const appVersion = '1.0.9';
 
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32Lookup = {};
@@ -110,4 +110,39 @@ export function strKeyToBytes(strKey) {
     } catch (e) {
         return null;
     }
+}
+
+function crc16(buffer) {
+    let crc = 0x0000;
+    for (let i = 0; i < buffer.length; i++) {
+        let code = (crc >>> 8) & 0xFF;
+        code ^= buffer[i] & 0xFF;
+        code ^= code >>> 4;
+        crc = (crc << 8) & 0xFFFF;
+        crc ^= code;
+        code = (code << 5) & 0xFFFF;
+        crc ^= code;
+    }
+    return crc;
+}
+
+export function encodeAddress(hexOrBytes) {
+    let bytes;
+    if (typeof hexOrBytes === 'string') {
+        bytes = hexToBytes(hexOrBytes);
+    } else {
+        bytes = hexOrBytes;
+    }
+    
+    if (!bytes || bytes.length !== 32) return null;
+
+    const payload = new Uint8Array(35);
+    payload[0] = 6 << 3; // 48
+    payload.set(bytes, 1);
+    
+    const checksum = crc16(payload.slice(0, 33));
+    payload[33] = checksum & 0xFF;
+    payload[34] = (checksum >>> 8) & 0xFF;
+    
+    return encodeBase32(payload);
 }

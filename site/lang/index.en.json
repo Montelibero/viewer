@@ -13,6 +13,7 @@
   "asset-results-title": "Asset results",
   "history-empty": "History is empty.",
   "assets-empty": "Nothing found.",
+  "holders-label": "holders",
   "message-empty-input": "Enter an account address or transaction hash.",
   "message-unknown-format": "We do not support this format yet. Come back later 🙂",
   "message-loading-assets": "Searching assets…",

@@ -1,5 +1,5 @@
 
-import { shorten } from '../../common.js?v=7';
+import { shorten } from '../../common.js?v=8';
 
 export async function init(params, i18n) {
     const { t } = i18n;
@@ -89,12 +89,15 @@ export async function init(params, i18n) {
             if (!records.length) {
                  assetResultsEl.textContent = t('assets-empty');
             } else {
+                 records.sort((a, b) => (b.accounts?.authorized || 0) - (a.accounts?.authorized || 0));
+
                  records.forEach(asset => {
                     const li = document.createElement('li');
                     li.className = 'mb-1';
                     const link = document.createElement('a');
                     link.href = `/asset/${asset.asset_code}-${asset.asset_issuer}`;
-                    link.textContent = `${asset.asset_code} · ${shorten(asset.asset_issuer)}`;
+                    const holders = asset.accounts?.authorized || 0;
+                    link.textContent = `${asset.asset_code} · ${shorten(asset.asset_issuer)} (${holders} ${t('holders-label')})`;
                     link.className = 'is-mono';
                     li.appendChild(link);
                     assetResultsEl.appendChild(li);
@@ -116,12 +119,12 @@ export async function init(params, i18n) {
             saveHistory(val);
             // Router handles pushState, we just navigate
             history.pushState(null, '', '/account/' + val);
-            import('../router.js?v=7').then(m => m.router());
+            import('../router.js?v=8').then(m => m.router());
             return;
         }
         if (/^[0-9a-f]{64}$/i.test(val)) {
             history.pushState(null, '', '/tx/' + val.toLowerCase());
-            import('../router.js?v=7').then(m => m.router());
+            import('../router.js?v=8').then(m => m.router());
             return;
         }
         // Allow lowercase letters in asset code

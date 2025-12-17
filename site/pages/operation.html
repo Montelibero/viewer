@@ -1,13 +1,53 @@
-
-<div class="section">
+<section class="section">
   <div class="container">
+
     <div class="mb-4">
-      <a class="button is-small is-light" href="/" data-i18n="back-home">Home</a>
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
     </div>
-    <div class="box">
-        <p class="title is-5">Operation</p>
-        <p class="subtitle is-7 is-mono" id="op-id">...</p>
+
+    <!-- HEADER -->
+    <div class="box" id="op-header-box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Операция</p>
+            <p class="subtitle is-7" id="op-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono is-size-7" id="op-id">—</p>
+      <p class="is-size-7" id="op-created">—</p>
+      <p class="is-size-7"><span data-i18n="source-label">Источник:</span> <span id="op-source">—</span></p>
+      <p class="is-size-7"><span data-i18n="tx-label">Транзакция:</span> <span id="op-tx">—</span></p>
     </div>
-    <div class="box" id="op-details">Loading...</div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- DETAILS -->
+    <div class="box" id="op-details-box">
+      <p class="title is-6" data-i18n="details-title">Детали</p>
+      <div id="op-details" class="is-size-7"></div>
+    </div>
+
+    <!-- RAW JSON -->
+    <div class="box" id="op-json-box">
+      <p class="title is-6" data-i18n="json-title">JSON</p>
+      <pre id="op-json" class="is-size-7"></pre>
+    </div>
+
   </div>
-</div>
+</section>

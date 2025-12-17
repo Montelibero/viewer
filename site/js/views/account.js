@@ -330,15 +330,14 @@ export async function init(params, i18n) {
 
         records.forEach(asset => {
             const id = asset.asset_code || '—';
-            const extras = [];
-            if (typeof asset.num_accounts !== 'undefined') {
-                extras.push(`${t('issued-holders')}: ${asset.num_accounts}`);
-            }
+            const subtitle = `${t('issued-holders')}: ${asset.num_accounts}`;
+            const meta = t('issued-supply');
+
             const card = createBalanceCard({
                 title: id,
-                subtitle: t('issued-subtitle'),
+                subtitle: subtitle,
                 amount: asset.amount,
-                meta: extras.length ? extras.join(' · ') : '',
+                meta: meta,
                 href: `/asset/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`
             });
             issuedEl.appendChild(card);

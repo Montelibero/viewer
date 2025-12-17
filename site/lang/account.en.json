@@ -41,6 +41,7 @@
   "issued-error": "Failed to load issued assets.",
   "issued-subtitle": "issuer: this account",
   "issued-holders": "holders",
+  "issued-supply": "Total Supply",
   "btn-operations": "Operations",
   "btn-offers": "Offers",
   "error-no-account-id": "Could not detect accountId from URL.",

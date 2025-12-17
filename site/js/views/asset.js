@@ -88,7 +88,17 @@ export async function init(params, i18n) {
         };
 
         setTxt('asset-circulating', record.balances?.authorized);
-        setTxt('asset-supply', record.amount);
+        
+        let supply = record.amount;
+        if (!supply) {
+             const auth = parseFloat(record.balances?.authorized || 0);
+             const authM = parseFloat(record.balances?.authorized_to_maintain_liabilities || 0);
+             const claim = parseFloat(record.claimable_balances_amount || 0);
+             const pool = parseFloat(record.liquidity_pools_amount || 0);
+             const contracts = parseFloat(record.contracts_amount || 0);
+             supply = (auth + authM + claim + pool + contracts).toString();
+        }
+        setTxt('asset-supply', supply);
         setTxt('asset-pools', record.liquidity_pools_amount);
         setTxt('asset-claims', record.claimable_balances_amount);
         setTxt('asset-contracts', record.contracts_amount ?? record.num_contracts);

@@ -1,26 +1,31 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `site/` holds all static assets; each page is a standalone HTML file with inline ES modules and minimal CSS tweaks layered on top of Bulma 1.0.0 from CDN.
-- Current pages in `site/`: `index.html`, `account.html`, `transaction.html`, `operations.html`, `operation.html`, `asset.html`, and `pool.html`.
-- `Caddyfile` configures routing so `/account/<id>` rewrites to `account.html`, `/transaction/<hash>` to `transaction.html`, `/operations/<id>` to `operations.html`, `/operation/<id>` to `operation.html`, `/assets/<id>` to `asset.html`, and `/pool/<id>` to `pool.html`; adjust here when adding new pages.
-- `docker-compose.yml` runs Caddy with the `site/` directory mounted read-only; volumes `caddy_data` and `caddy_config` store Caddy state.
+- Single Page Application served from `site/index.html`; Bulma 1.0.4 is loaded from CDN with shared styles in `site/common.css`.
+- `site/pages/` stores HTML partials for each view (no `<html>/<body>` tags) that are injected by the client router; matching view logic lives in `site/js/views/` with `export async function init(params, i18n)` (and optional `cleanup`).
+- `site/js/router.js` defines the `routes` array and performs dynamic imports of templates and view modules; `site/js/operation-view.js` centralizes operation rendering; `site/js/i18n.js` handles translations; `site/lang/` holds per-view JSON locale files.
+- `Caddyfile` rewrites all requests to `index.html` (SPA routing) and serves static assets.
+- `docker-compose.yml` builds/runs the Caddy container (ports `8080:80` exposed) with `caddy_data` and `caddy_config` volumes; network `web` is external.
 
 ## Build, Test, and Development Commands
-- Run locally via `docker compose up viewer-caddy` after temporarily enabling the `ports: ["8080:80"]` block in `docker-compose.yml`; visit `http://localhost:8080`.
-- Tear down containers and volumes with `docker compose down` (use `--volumes` only when you intentionally want to drop cached Caddy data).
-- No build pipeline is used; edit files in `site/` directly and refresh the browser.
+- Run locally: `docker compose up viewer-caddy`, then open `http://localhost:8080`.
+- Rebuild to pick up changes under `site/`: `docker compose up --build viewer-caddy`.
+- Tear down containers with `docker compose down` (`--volumes` only when intentionally clearing cached Caddy data).
+- No build pipeline; edit files in `site/` directly and refresh/rebuild.
 
 ## Coding Style & Naming Conventions
-- Use 2-space indentation for HTML, CSS, and JS; prefer `const`/`let` and small helper functions (see `site/index.html`).
-- Keep scripts as `<script type="module">` blocks at the end of each page; use vanilla DOM APIs and avoid bundlers.
-- Prefer Bulma utility classes over custom CSS; if custom styles are needed, keep them in the page-level `<style>` blocks and scope narrowly.
-- IDs and file names use kebab-case (e.g., `search-input`, `transaction.html`); keep new routes consistent with existing rewrite rules.
+- Use 2-space indentation and ES modules with `const`/`let`.
+- Add new views by creating matching files in `site/pages/` and `site/js/views/` and wiring a route in `site/js/router.js`.
+- Keep custom CSS minimal (prefer Bulma utilities) and scoped in `site/common.css` or small per-view blocks.
+- Maintain kebab-case for IDs/file names and keep translations aligned across locales.
+
+## Cache Busting & Versioning
+- Static assets use a manual version query (currently `v=8`). When changing JS/CSS/translation files, bump the version in `site/index.html` imports/links and in `site/js/router.js` dynamic imports to avoid stale caches.
 
 ## Testing Guidelines
-- No automated tests yet; perform manual checks after changes: load the home page search flow, an account view, and a transaction view to verify routing and validation messages.
-- When altering regexes or navigation logic, test both valid and invalid inputs to ensure error messaging remains helpful and localized.
-- If adding scripts, test on mobile viewport sizes to confirm layout stability with Bulma defaults.
+- No automated tests; perform manual checks: home search flow, account view, transaction view, offers/operations lists (including pagination) and navigation without full reloads.
+- When changing regexes or routing logic, test valid/invalid inputs and ensure error messages stay localized.
+- Verify translations load after version bumps and spot-check mobile viewport layout.
 
 ## Commit & Pull Request Guidelines
 - Follow the existing history: short, imperative commit subjects (e.g., "update transaction view").

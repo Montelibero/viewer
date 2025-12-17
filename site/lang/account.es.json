@@ -41,6 +41,7 @@
   "issued-error": "No pudimos cargar los activos emitidos.",
   "issued-subtitle": "emisor: esta cuenta",
   "issued-holders": "tenedores",
+  "issued-supply": "Suministro Total",
   "btn-operations": "Operaciones",
   "btn-offers": "Ofertas",
   "error-no-account-id": "No se pudo obtener accountId de la URL.",

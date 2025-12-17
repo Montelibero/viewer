@@ -2,52 +2,8 @@
     root * /srv
     encode gzip
 
-    handle_errors {
-        rewrite * /404.html
-        file_server
-    }
+    # SPA Routing: Rewrite all requests that don't match a file to index.html
+    try_files {path} /index.html
 
-    handle_path /account/* {
-        rewrite * /account.html
-        file_server
-    }
-
-    handle_path /transaction/* {
-        rewrite * /transaction.html
-        file_server
-    }
-
-    handle_path /operations/* {
-        rewrite * /operations.html
-        file_server
-    }
-
-    handle_path /offers/* {
-        rewrite * /offers.html
-        file_server
-    }
-
-    handle_path /operation/* {
-        rewrite * /operation.html
-        file_server
-    }
-
-    handle_path /assets/* {
-        rewrite * /asset.html
-        file_server
-    }
-
-    handle_path /pool/* {
-        rewrite * /pool.html
-        file_server
-    }
-
-    handle_path /offer/* {
-        rewrite * /offer.html
-        file_server
-    }
-
-    handle {
-        file_server
-    }
+    file_server
 }

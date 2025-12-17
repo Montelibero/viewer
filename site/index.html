@@ -5,330 +5,73 @@
   <title>Stellar Viewer · eurmtl</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Bulma через CDN -->
-  <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?5">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+  <link id="common-css" rel="stylesheet" href="/common.css?v=6">
 </head>
 <body>
-<section class="hero is-fullheight">
-  <div class="hero-body">
-  <div class="container">
 
-    <!-- Заголовок -->
-    <div class="box">
-      <div class="is-flex is-justify-content-space-between is-align-items-center mb-3">
-        <p class="title is-4" data-i18n="title">Stellar Viewer</p>
-        <div class="buttons are-small" id="lang-switcher">
-          <button class="button is-light" data-lang="ru">RU</button>
-          <button class="button is-light" data-lang="en">EN</button>
-          <button class="button is-light" data-lang="es">ES</button>
+  <!-- HEADER -->
+  <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+    <div class="container">
+      <div class="navbar-brand">
+        <a class="navbar-item has-text-weight-bold" href="/">
+          Stellar Viewer
+        </a>
+      </div>
+      <div class="navbar-menu is-active"> <!-- simplified for mobile -->
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <div class="buttons are-small" id="lang-switcher">
+               <!-- Filled by JS or static? Let's use JS to be dynamic -->
+            </div>
+          </div>
         </div>
       </div>
-      <p class="subtitle is-7">
-        <span data-i18n="subtitle-prefix">Вставь адрес аккаунта </span>
-        <span class="is-mono">G...</span>,
-        <span data-i18n="subtitle-hash"> хэш транзакции </span>
-        <span class="is-mono">[0-9a-f]{64}</span>,
-        <span data-i18n="subtitle-op"> id операции </span>
-        <span class="is-mono" data-i18n="subtitle-op-format">число</span>
-        <span data-i18n="subtitle-or"> или код ассета </span>
-        <span class="is-mono">[A-Z0-9]{3,12}</span>
-        <span data-i18n="subtitle-suffix"> — отправим на нужную страницу.</span>
-      </p>
-
-      <!-- Форма поиска -->
-      <div class="field">
-        <label class="label is-size-7" data-i18n="input-label">Адрес или хэш</label>
-        <div class="control">
-          <input class="input is-medium"
-                 id="search-input"
-                 type="text"
-                 data-i18n-placeholder="input-placeholder"
-                 placeholder="GDLT… или 73e9ec35…">
-        </div>
-      </div>
-
-      <div class="field mt-3">
-        <div class="control">
-          <button class="button is-primary is-fullwidth"
-                  id="search-btn"
-                  data-i18n="search-button">
-            Искать
-          </button>
-        </div>
-      </div>
-
-      <!-- Сообщения -->
-      <p class="help is-danger is-hidden"
-         id="message"></p>
-
-      <!-- История -->
-      <div class="mt-4">
-        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="history-title">История запросов адресов</p>
-        <ul class="is-size-7" id="history"></ul>
-      </div>
-
-      <!-- Ассеты -->
-      <div class="mt-4">
-        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="asset-results-title">Результаты ассетов</p>
-        <ul class="is-size-7" id="asset-results"></ul>
-      </div>
-
     </div>
+  </nav>
 
-    <div class="has-text-centered mt-4">
-      <a href="https://github.com/Montelibero/viewer"
-         target="_blank"
-         rel="noreferrer"
-         data-i18n="github-link">
-        GitHub проекта
-      </a>
-      <p class="is-size-7 has-text-grey mt-2">
-        <span data-i18n="version-label">Версия</span>:
-        <span id="version-value">—</span>
+  <main id="app" style="min-height: 80vh;">
+    <!-- View content goes here -->
+  </main>
+
+  <footer class="footer">
+    <div class="content has-text-centered is-size-7">
+      <p>
+        <a href="https://github.com/Montelibero/viewer" target="_blank">GitHub</a> |
+        <span data-i18n="version-label">Version</span>: <span id="app-version">...</span>
       </p>
     </div>
-  </div>
-</section>
+  </footer>
 
-<script type="module">
-  const commonBase = (() => {
-    if (window.location.protocol === 'file:') return './common';
-    const m = window.location.pathname.match(/^(.*\/site)\//);
-    if (m) return `${m[1]}/common`;
-    return '/common';
-  })();
-  const i18nBase = commonBase.replace(/common$/, 'i18n');
-  document.getElementById('common-css').href = `${commonBase}.css?5`;
-  const { shorten, appVersion } = await import(`${commonBase}.js?5`);
-  const { initI18n } = await import(`${i18nBase}.js?5`);
+  <script type="module">
+    // Use absolute paths to ensure they work from deep routes (e.g. /account/...)
+    import { router } from '/js/router.js?v=6';
+    import { initI18n } from '/i18n.js?v=6';
+    import { appVersion } from '/common.js?v=6';
 
-  const inputEl = document.getElementById('search-input');
-  const buttonEl = document.getElementById('search-btn');
-  const messageEl = document.getElementById('message');
-  const historyEl = document.getElementById('history');
-  const assetResultsEl = document.getElementById('asset-results');
-  const langButtons = Array.from(document.querySelectorAll('#lang-switcher [data-lang]'));
-  const versionValueEl = document.getElementById('version-value');
-  const STORAGE_KEY = 'viewer_account_history';
-  const horizonBase = 'https://horizon.stellar.org';
-  let assetState = 'idle';
-  let lastMessageKey = '';
+    document.getElementById('app-version').textContent = appVersion;
 
-  const i18n = await initI18n({ baseName: 'index' });
-  const { t } = i18n;
+    // Lang switcher logic (global)
+    const i18n = await initI18n({ baseName: 'index' });
+    const langs = ['ru', 'en', 'es'];
+    const container = document.getElementById('lang-switcher');
 
-  function setActiveLangButton(lang) {
-    langButtons.forEach((btn) => {
-      const isActive = btn.dataset.lang === lang;
-      btn.classList.toggle('is-primary', isActive);
-      btn.classList.toggle('is-light', !isActive);
-    });
-  }
-
-  function showMessage(key) {
-    lastMessageKey = key;
-    if (!key) {
-      messageEl.textContent = '';
-      messageEl.classList.add('is-hidden');
-      return;
+    function renderLang() {
+        container.innerHTML = '';
+        langs.forEach(lang => {
+            const btn = document.createElement('button');
+            btn.className = `button ${i18n.lang() === lang ? 'is-primary' : 'is-light'}`;
+            btn.textContent = lang.toUpperCase();
+            btn.onclick = async () => {
+                await i18n.setLang(lang);
+                renderLang();
+                // Reload current view to apply lang
+                router();
+            };
+            container.appendChild(btn);
+        });
     }
-    messageEl.textContent = t(key);
-    messageEl.classList.remove('is-hidden');
-  }
-
-  function isAccount(value) {
-    const v = value.trim().toUpperCase();
-    const re = /^G[A-Z2-7]{55}$/;
-    return re.test(v);
-  }
-
-  function isTxHash(value) {
-    const v = value.trim().toLowerCase();
-    const re = /^[0-9a-f]{64}$/;
-    return re.test(v);
-  }
-
-  function isOperationId(value) {
-    const v = value.trim();
-    const re = /^\\d{12,20}$/; // длинный numeric id
-    return re.test(v);
-  }
-
-  function isAssetCode(value) {
-    const v = value.trim().toUpperCase();
-    const re = /^[A-Z0-9]{3,12}$/;
-    return re.test(v);
-  }
-
-  function loadHistory() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed;
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function saveHistory(accountId) {
-    const history = loadHistory();
-    const without = history.filter((x) => x !== accountId);
-    const next = [accountId, ...without].slice(0, 10);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    renderHistory(next);
-  }
-
-  function renderHistory(list = loadHistory()) {
-    historyEl.innerHTML = '';
-    if (!list.length) {
-      historyEl.textContent = t('history-empty');
-      return;
-    }
-    list.forEach((acc) => {
-      const li = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = '/account/' + encodeURIComponent(acc);
-      link.textContent = acc;
-      link.className = 'is-mono';
-      li.appendChild(link);
-      historyEl.appendChild(li);
-    });
-  }
-
-  function clearAssetResults() {
-    assetResultsEl.innerHTML = '';
-    assetState = 'idle';
-  }
-
-  function renderAssetResults(list) {
-    clearAssetResults();
-    if (!list.length) {
-      assetResultsEl.textContent = t('assets-empty');
-      assetState = 'empty';
-      return;
-    }
-    list.forEach((asset) => {
-      const li = document.createElement('li');
-      li.className = 'mb-1';
-      const issuerShort = shorten(asset.asset_issuer);
-      const link = document.createElement('a');
-      link.href = `/assets/${encodeURIComponent(`${asset.asset_code}-${asset.asset_issuer}`)}`;
-      link.textContent = `${asset.asset_code} · ${issuerShort}`;
-      link.className = 'is-mono';
-      li.appendChild(link);
-      if (asset._links?.toml?.href) {
-        try {
-          const host = new URL(asset._links.toml.href).hostname;
-          const domain = document.createElement('span');
-          domain.className = 'ml-1 has-text-grey';
-          domain.textContent = `(${host})`;
-          li.appendChild(domain);
-        } catch (_) {
-          // ignore parse errors
-        }
-      }
-      assetResultsEl.appendChild(li);
-    });
-    assetState = 'filled';
-  }
-
-  async function searchAssets(code) {
-    clearAssetResults();
-    showMessage('message-loading-assets');
-    try {
-      const url = new URL(`${horizonBase}/assets`);
-      url.searchParams.set('asset_code', code);
-      url.searchParams.set('limit', 100);
-      url.searchParams.set('order', 'desc');
-      const res = await fetch(url.toString());
-      if (!res.ok) throw new Error(`Horizon error ${res.status}`);
-      const data = await res.json();
-      const records = data?._embedded?.records || [];
-      renderAssetResults(records);
-      showMessage('');
-    } catch (e) {
-      console.error(e);
-      showMessage('message-asset-error');
-    }
-  }
-
-  function handleSearch() {
-    const raw = inputEl.value || '';
-    const trimmed = raw.trim();
-
-    showMessage('');
-
-    if (!trimmed) {
-      showMessage('message-empty-input');
-      return;
-    }
-
-    if (isAccount(trimmed)) {
-      const accountId = trimmed.toUpperCase();
-      saveHistory(accountId);
-      window.location.href = '/account/' + encodeURIComponent(accountId);
-      return;
-    }
-
-    if (isTxHash(trimmed)) {
-      const txHash = trimmed.toLowerCase();
-      window.location.href = '/transaction/' + encodeURIComponent(txHash);
-      return;
-    }
-
-    if (isOperationId(trimmed)) {
-      window.location.href = '/operation/' + encodeURIComponent(trimmed);
-      return;
-    }
-
-    if (isAssetCode(trimmed)) {
-      const code = trimmed.toUpperCase();
-      searchAssets(code);
-      return;
-    }
-
-    showMessage('message-unknown-format');
-  }
-
-  // Кнопка
-  buttonEl.addEventListener('click', (e) => {
-    e.preventDefault();
-    handleSearch();
-  });
-
-  // Enter в поле ввода
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
-    }
-  });
-
-  renderHistory();
-  versionValueEl.textContent = appVersion;
-  setActiveLangButton(i18n.lang());
-
-  langButtons.forEach((btn) => {
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const nextLang = btn.dataset.lang;
-      await i18n.setLang(nextLang);
-      renderHistory();
-      if (assetState === 'empty') {
-        assetResultsEl.textContent = t('assets-empty');
-      }
-      if (lastMessageKey) {
-        showMessage(lastMessageKey);
-      }
-      setActiveLangButton(i18n.lang());
-    });
-  });
-</script>
-
+    renderLang();
+  </script>
 </body>
 </html>

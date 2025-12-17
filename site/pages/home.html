@@ -1,0 +1,45 @@
+
+<section class="section">
+  <div class="container">
+    <div class="box">
+      <p class="title is-4" data-i18n="title">Stellar Viewer</p>
+
+      <!-- Subtitle/Help -->
+      <p class="subtitle is-7">
+        <span data-i18n="subtitle-prefix">Insert address </span>
+        <span class="is-mono">G...</span>,
+        <span data-i18n="subtitle-hash"> tx hash </span>
+        <span class="is-mono">[0-9a-f]{64}</span>,
+        <span data-i18n="subtitle-op"> op id </span>
+        <span class="is-mono" data-i18n="subtitle-op-format">number</span>
+        <span data-i18n="subtitle-or"> or asset code </span>
+        <span class="is-mono">[A-Z0-9]{3,12}</span>
+      </p>
+
+      <!-- Search Form -->
+      <div class="field">
+        <div class="control">
+          <input class="input is-medium" id="search-input" type="text" placeholder="GDLT... or hash...">
+        </div>
+      </div>
+      <div class="field">
+        <button class="button is-primary is-fullwidth" id="search-btn" data-i18n="search-button">Search</button>
+      </div>
+
+      <!-- Messages -->
+      <p class="help is-danger is-hidden" id="message"></p>
+
+      <!-- History -->
+      <div class="mt-4">
+        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="history-title">History</p>
+        <ul class="is-size-7" id="history"></ul>
+      </div>
+
+      <!-- Assets Results -->
+      <div class="mt-4">
+        <p class="is-size-7 has-text-weight-semibold mb-2" data-i18n="asset-results-title">Assets</p>
+        <ul class="is-size-7" id="asset-results"></ul>
+      </div>
+    </div>
+  </div>
+</section>

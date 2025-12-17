@@ -1,0 +1,47 @@
+<section class="section">
+  <div class="container">
+
+    <div class="mb-4">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Офферы аккаунта</p>
+            <p class="subtitle is-7" id="account-id">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- OFFERS LIST -->
+    <div id="offers-container">
+      <!-- cards go here -->
+    </div>
+
+    <div class="has-text-centered mt-4">
+      <button class="button is-link is-light" id="btn-load-more" data-i18n="load-more">
+        Загрузить ещё
+      </button>
+    </div>
+
+  </div>
+</section>

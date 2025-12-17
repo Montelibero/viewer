@@ -12,7 +12,7 @@ const routes = [
   { pattern: /^\/operation\/(\d+)$/, view: 'operation' },
   { pattern: /^\/offer\/(\d+)$/, view: 'offer' },
   { pattern: /^\/asset\/(.+)$/, view: 'asset' },
-  { pattern: /^\/offers\/([^/]+)$/, view: 'offers' }
+  { pattern: /^\/account\/([^/]+)\/offers$/, view: 'account-offers' }
 ];
 
 let currentView = null;

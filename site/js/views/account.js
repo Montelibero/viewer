@@ -392,7 +392,7 @@ export async function init(params, i18n) {
         if(btnScopuly) btnScopuly.href = `https://scopuly.com/account/${id}`;
         if(btnStellarchain) btnStellarchain.href = `https://stellarchain.io/accounts/${id}`;
         if(btnOperations) btnOperations.href = `/account/${encodeURIComponent(id)}/operations`;
-        if(btnOffers) btnOffers.href = `/offers/${encodeURIComponent(id)}`;
+        if(btnOffers) btnOffers.href = `/account/${encodeURIComponent(id)}/offers`;
 
         loadIssuedAssets(account.id);
     }

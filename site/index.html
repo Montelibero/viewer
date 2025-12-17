@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Stellar Viewer · eurmtl</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+  <link id="common-css" rel="stylesheet" href="/common.css?v=8">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+    <div class="container">
+      <div class="navbar-brand">
+        <a class="navbar-item has-text-weight-bold" href="/">
+          Stellar Viewer
+        </a>
+      </div>
+      <div class="navbar-menu is-active"> <!-- simplified for mobile -->
+        <div class="navbar-end">
+          <div class="navbar-item">
+            <div class="buttons are-small" id="lang-switcher">
+               <!-- Filled by JS or static? Let's use JS to be dynamic -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main id="app" style="min-height: 80vh;">
+    <!-- View content goes here -->
+  </main>
+
+  <footer class="footer">
+    <div class="content has-text-centered is-size-7">
+      <p>
+        <a href="https://github.com/Montelibero/viewer" target="_blank">GitHub</a> |
+        <span data-i18n="version-label">Version</span>: <span id="app-version">...</span>
+      </p>
+    </div>
+  </footer>
+
+  <script type="module">
+    // Use absolute paths to ensure they work from deep routes (e.g. /account/...)
+    import { router } from '/js/router.js?v=8';
+    import { initI18n } from '/i18n.js?v=8';
+    import { appVersion } from '/common.js?v=8';
+
+    document.getElementById('app-version').textContent = appVersion;
+
+    // Lang switcher logic (global)
+    const i18n = await initI18n({ baseName: 'index' });
+    const langs = ['ru', 'en', 'es'];
+    const container = document.getElementById('lang-switcher');
+
+    function renderLang() {
+        container.innerHTML = '';
+        langs.forEach(lang => {
+            const btn = document.createElement('button');
+            btn.className = `button ${i18n.lang() === lang ? 'is-primary' : 'is-light'}`;
+            btn.textContent = lang.toUpperCase();
+            btn.onclick = async () => {
+                await i18n.setLang(lang);
+                renderLang();
+                // Reload current view to apply lang
+                router();
+            };
+            container.appendChild(btn);
+        });
+    }
+    renderLang();
+  </script>
+</body>
+</html>

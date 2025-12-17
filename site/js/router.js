@@ -65,7 +65,7 @@ export async function router() {
     }
 
     // 404
-    document.getElementById('app').innerHTML = '<div class="section"><div class="notification is-warning">Page not found</div></div>';
+    await loadView('404');
 }
 
 window.addEventListener('popstate', router);

@@ -1,9 +1,12 @@
 # Contributing to Stellar Viewer
 
 ## Project Structure
-This project is a static website served by Caddy.
-- `site/`: Contains all static assets (HTML, JS, CSS, JSON). Each page is a standalone HTML file.
-- `Caddyfile`: Configures routing and URL rewrites.
+This project is a Single Page Application (SPA) served by Caddy.
+- `site/index.html`: The main entry point for the SPA.
+- `site/pages/`: Contains HTML template partials for each view (e.g., `account.html`, `asset.html`). These are loaded dynamically by the router.
+- `site/js/`: Contains all JavaScript modules, including the main router (`router.js`), view-specific logic (`views/`), and common utilities (`common.js`, `i18n.js`, `operation-view.js`).
+- `site/lang/`: Contains JSON files for internationalization (translations).
+- `Caddyfile`: Configures serving the static files and potentially rewrites all requests to `index.html` for client-side routing.
 - `Dockerfile` & `docker-compose.yml`: For containerized deployment.
 
 ## Development
@@ -20,29 +23,36 @@ The site will be available at `http://localhost:8080`.
 docker compose up --build viewer-caddy
 ```
 
-### Adding New Features
-1.  **Static Files**: Use standard HTML, CSS, and vanilla JavaScript (ES Modules). Avoid build tools/bundlers.
-2.  **Routing**: If you add a new HTML file (e.g., `newpage.html`) that handles a specific route (e.g., `/newpage/123`), you **must** add a rewrite rule in `Caddyfile`.
+### Adding New Features (Views)
+To add a new page or view:
+1.  **Create HTML Template**: Create a new file in `site/pages/` (e.g., `newpage.html`). This file should only contain the HTML structure for your view, without `<html>`, `<head>`, or `<body>` tags.
+2.  **Create JavaScript Logic**: Create a corresponding file in `site/js/views/` (e.g., `newpage.js`). This file must `export async function init(params, i18n)` which will be called by the router.
+3.  **Define Route**: Add a new entry to the `routes` array in `site/js/router.js`. For example:
+    ```javascript
+    { pattern: /^\/mynewpage\/([^/]+)$/, view: 'newpage' },
+    ```
+4.  **Add Translations**: Create `site/lang/newpage.en.json`, `site/lang/newpage.ru.json`, etc., for your new view's translation keys.
 
 ### Cache Busting & Versioning (Critical)
 The project relies on aggressive caching strategies. To ensure users receive the latest code and translations immediately, we use manual versioning via query parameters.
 
-**Whenever you modify any JS file, CSS file, or Translation (JSON) file, you must update the version number everywhere.**
+**Whenever you modify any JS file, CSS file, or Translation (JSON) file, you must update the version number in `site/index.html` and potentially in `site/js/router.js` dynamic imports (if you modify these files directly).**
 
 Current Version: `8`
 
 #### Checklist for Updates:
-1.  **CSS**: Update the link in `<head>` of **all** HTML files:
+1.  **CSS**: Update the version query parameter in `site/index.html`:
     ```html
-    <link id="common-css" rel="stylesheet" href="/common.css?2">
+    <link id="common-css" rel="stylesheet" href="/common.css?v=8">
     ```
-2.  **JavaScript Imports**: Update dynamic imports in **all** HTML files and JS files:
+2.  **JavaScript Imports**: Update the version query parameter for imports in `site/index.html`:
     ```javascript
-    import('./common.js?2')
-    import('./i18n.js?2')
-    import('./operation-view.js?2')
+    import { router } from '/js/router.js?v=8';
+    import { initI18n } from '/js/i18n.js?v=8';
+    import { appVersion } from '/js/common.js?v=8';
     ```
-3.  **Translations**: The file `site/i18n.js` appends the version to translation requests. Ensure `buildLangUrl` uses the correct version (e.g., `?v=2`).
+    And also check dynamic imports in `site/js/router.js` for view templates and view scripts (e.g. `tplRes = await fetch(/pages/${viewName}.html?v=8)` and `module = await import(./views/${viewName}.js?v=8)`).
+3.  **Translations**: The `site/js/i18n.js` module handles appending the version to translation requests based on the `router.js`'s configuration.
 
 ## Coding Style
 - Use 2-space indentation for HTML, CSS, and JS.

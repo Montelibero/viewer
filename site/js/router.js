@@ -1,15 +1,14 @@
-
 import { initI18n } from './i18n.js?v=8';
 
 const routes = [
   { pattern: /^\/$/, view: 'home' },
   { pattern: /^\/account\/([^/]+)$/, view: 'account' },
-  { pattern: /^\/account\/([^/]+)\/operations$/, view: 'account-operations' },
+  { pattern: /^\/account\/([^/]+)\/operations$/, view: 'account-operations', mixins: ['operation-types'] },
   { pattern: /^\/pool\/([^/]+)$/, view: 'pool' },
-  { pattern: /^\/pool\/([^/]+)\/operations$/, view: 'pool-operations' },
-  { pattern: /^\/transaction\/([0-9a-f]{64})$/, view: 'transaction' },
-  { pattern: /^\/tx\/([0-9a-f]{64})$/, view: 'transaction' },
-  { pattern: /^\/operation\/(\d+)$/, view: 'operation' },
+  { pattern: /^\/pool\/([^/]+)\/operations$/, view: 'pool-operations', mixins: ['operation-types'] },
+  { pattern: /^\/transaction\/([0-9a-f]{64})$/, view: 'transaction', mixins: ['operation-types'] },
+  { pattern: /^\/tx\/([0-9a-f]{64})$/, view: 'transaction', mixins: ['operation-types'] },
+  { pattern: /^\/operation\/(\d+)$/, view: 'operation', mixins: ['operation-types'] },
   { pattern: /^\/offer\/(\d+)$/, view: 'offer' },
   { pattern: /^\/asset\/(.+)$/, view: 'asset' },
   { pattern: /^\/account\/([^/]+)\/offers$/, view: 'account-offers' }
@@ -17,7 +16,9 @@ const routes = [
 
 let currentView = null;
 
-async function loadView(viewName, params) {
+async function loadView(route, params) {
+    const viewName = route.view;
+    const mixins = route.mixins || [];
     const app = document.getElementById('app');
 
     // Cleanup previous view
@@ -43,7 +44,7 @@ async function loadView(viewName, params) {
             // Get i18n instance from window or re-init
             // Ideally pass a localized helper
             const baseName = viewName === 'home' ? 'index' : viewName;
-            const i18n = await initI18n({ baseName });
+            const i18n = await initI18n({ baseName, mixins });
             await module.init(params, i18n);
         }
     } catch (err) {
@@ -59,13 +60,13 @@ export async function router() {
         const match = path.match(route.pattern);
         if (match) {
             const params = match.slice(1);
-            await loadView(route.view, params);
+            await loadView(route, params);
             return;
         }
     }
 
     // 404
-    await loadView('404');
+    await loadView({ view: '404' });
 }
 
 window.addEventListener('popstate', router);

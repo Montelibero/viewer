@@ -40,26 +40,29 @@ async function fetchTranslations(baseName, lang) {
   if (translationsCache.has(cacheKey)) return translationsCache.get(cacheKey);
 
   const url = buildLangUrl(baseName, lang);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to load translations ${lang}`);
-  const data = await res.json();
-  translationsCache.set(cacheKey, data);
-  return data;
-}
-
-async function loadWithFallback(baseName, lang, fallback) {
   try {
-    return await fetchTranslations(baseName, lang);
-  } catch (_) {
-    if (lang !== fallback) {
-      try {
-        return await fetchTranslations(baseName, fallback);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to load translations ${lang}`);
+    const data = await res.json();
+    translationsCache.set(cacheKey, data);
+    return data;
+  } catch (e) {
+    console.warn(`Translation load failed: ${baseName} ${lang}`, e);
     return {};
   }
+}
+
+async function loadAndMerge(baseNames, lang, fallback) {
+  let merged = {};
+  for (const name of baseNames) {
+    let dict = await fetchTranslations(name, lang);
+    // If empty (failed), try fallback for this specific file
+    if (Object.keys(dict).length === 0 && lang !== fallback) {
+      dict = await fetchTranslations(name, fallback);
+    }
+    Object.assign(merged, dict);
+  }
+  return merged;
 }
 
 function applyTranslations(dict) {
@@ -90,18 +93,20 @@ function setDocumentLang(lang) {
 
 export async function initI18n({
   baseName,
+  mixins = [],
   supported = DEFAULT_SUPPORTED,
   fallback = 'en',
 } = {}) {
   if (!baseName) throw new Error('baseName is required for i18n');
 
+  const names = [baseName, ...mixins];
   const currentSupported = supported.map((l) => l.toLowerCase());
   const initial = getStoredLang(currentSupported)
     || pickNavigatorLang(currentSupported, fallback)
     || fallback;
 
   let currentLang = normalizeLang(initial, currentSupported) || fallback;
-  let currentDict = await loadWithFallback(baseName, currentLang, fallback);
+  let currentDict = await loadAndMerge(names, currentLang, fallback);
   setStoredLang(currentLang);
 
   function t(key) {
@@ -116,7 +121,7 @@ export async function initI18n({
   async function setLang(next) {
     const normalized = normalizeLang(next, currentSupported) || fallback;
     if (normalized === currentLang) return { lang: currentLang, t };
-    currentDict = await loadWithFallback(baseName, normalized, fallback);
+    currentDict = await loadAndMerge(names, normalized, fallback);
     currentLang = normalized;
     setStoredLang(currentLang);
     apply();

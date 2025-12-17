@@ -5,6 +5,7 @@ This project is a Single Page Application (SPA) served by Caddy.
 - `site/index.html`: The main entry point for the SPA.
 - `site/pages/`: Contains HTML template partials for each view (e.g., `account.html`, `asset.html`). These are loaded dynamically by the router.
 - `site/js/`: Contains all JavaScript modules, including the main router (`router.js`), view-specific logic (`views/`), and common utilities (`common.js`, `i18n.js`, `operation-view.js`).
+  - Note: All common logic for rendering Stellar operations (details, formatting, etc.) is centralized in `site/js/operation-view.js`. When working with operations, start there.
 - `site/lang/`: Contains JSON files for internationalization (translations).
 - `Caddyfile`: Configures serving the static files and potentially rewrites all requests to `index.html` for client-side routing.
 - `Dockerfile` & `docker-compose.yml`: For containerized deployment.

@@ -1,5 +1,5 @@
 
-import { shorten } from '../../common.js?v=6';
+import { shorten } from '../../common.js?v=7';
 
 export async function init(params, i18n) {
     const { t } = i18n;
@@ -58,15 +58,33 @@ export async function init(params, i18n) {
     async function searchAssets(code) {
         assetResultsEl.innerHTML = '';
         showMessage('message-loading-assets');
-        try {
+
+        const doFetch = async (c) => {
             const url = new URL(`${horizonBase}/assets`);
-            url.searchParams.set('asset_code', code);
+            url.searchParams.set('asset_code', c);
             url.searchParams.set('limit', 100);
             url.searchParams.set('order', 'desc');
             const res = await fetch(url);
             if (!res.ok) throw new Error('Horizon error');
-            const data = await res.json();
-            const records = data?._embedded?.records || [];
+            return await res.json();
+        };
+
+        try {
+            let data = await doFetch(code);
+            let records = data?._embedded?.records || [];
+
+            // Fallback: if no results and code has lowercase, try uppercase
+            if (records.length === 0 && /[a-z]/.test(code)) {
+                const upper = code.toUpperCase();
+                // Avoid redundant request if logic somehow passed here with all caps (unlikely with regex check but safe)
+                if (upper !== code) {
+                    const dataUp = await doFetch(upper);
+                    const recordsUp = dataUp?._embedded?.records || [];
+                    if (recordsUp.length > 0) {
+                        records = recordsUp;
+                    }
+                }
+            }
 
             if (!records.length) {
                  assetResultsEl.textContent = t('assets-empty');
@@ -98,15 +116,16 @@ export async function init(params, i18n) {
             saveHistory(val);
             // Router handles pushState, we just navigate
             history.pushState(null, '', '/account/' + val);
-            import('../router.js?v=6').then(m => m.router());
+            import('../router.js?v=7').then(m => m.router());
             return;
         }
         if (/^[0-9a-f]{64}$/i.test(val)) {
             history.pushState(null, '', '/tx/' + val.toLowerCase());
-            import('../router.js?v=6').then(m => m.router());
+            import('../router.js?v=7').then(m => m.router());
             return;
         }
-        if (/^[A-Z0-9]{3,12}$/.test(val)) {
+        // Allow lowercase letters in asset code
+        if (/^[a-zA-Z0-9]{3,12}$/.test(val)) {
             searchAssets(val);
             return;
         }

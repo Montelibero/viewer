@@ -1,5 +1,5 @@
 
-import { initI18n } from '../i18n.js?v=6';
+import { initI18n } from '../i18n.js?v=7';
 
 const routes = [
   { pattern: /^\/$/, view: 'home' },
@@ -30,13 +30,13 @@ async function loadView(viewName, params) {
 
     try {
         // Load Template
-        const tplRes = await fetch(`/pages/${viewName}.html?v=6`);
+        const tplRes = await fetch(`/pages/${viewName}.html?v=7`);
         if (!tplRes.ok) throw new Error(`Template ${viewName} not found`);
         const html = await tplRes.text();
         app.innerHTML = html;
 
         // Load Script
-        const module = await import(`./views/${viewName}.js?v=6`);
+        const module = await import(`./views/${viewName}.js?v=7`);
         if (module && typeof module.init === 'function') {
             currentView = module;
             // Get i18n instance from window or re-init

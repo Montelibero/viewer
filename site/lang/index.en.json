@@ -4,6 +4,7 @@
   "subtitle-hash": " transaction hash ",
   "subtitle-op": " operation id ",
   "subtitle-op-format": "number",
+  "subtitle-contract": " contract id ",
   "subtitle-or": " or asset code ",
   "subtitle-suffix": " — we will send you to the right page.",
   "input-label": "Address or hash",

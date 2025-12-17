@@ -4,6 +4,7 @@
   "subtitle-hash": " хэш транзакции ",
   "subtitle-op": " id операции ",
   "subtitle-op-format": "число",
+  "subtitle-contract": " id контракта ",
   "subtitle-or": " или код ассета ",
   "subtitle-suffix": " — отправим на нужную страницу.",
   "input-label": "Адрес или хэш",

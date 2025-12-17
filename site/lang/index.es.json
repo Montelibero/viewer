@@ -4,6 +4,7 @@
   "subtitle-hash": " el hash de la transacción ",
   "subtitle-op": " id de la operación ",
   "subtitle-op-format": "número",
+  "subtitle-contract": " id de contrato ",
   "subtitle-or": " o el código del activo ",
   "subtitle-suffix": " — te enviaremos a la página correcta.",
   "input-label": "Dirección o hash",

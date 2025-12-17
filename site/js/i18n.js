@@ -32,7 +32,7 @@ function setStoredLang(lang) {
 }
 
 function buildLangUrl(baseName, lang) {
-  return new URL(`../lang/${baseName}.${lang}.json?v=9`, import.meta.url).toString();
+  return new URL(`../lang/${baseName}.${lang}.json?v=11`, import.meta.url).toString();
 }
 
 async function fetchTranslations(baseName, lang) {

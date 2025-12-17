@@ -94,12 +94,32 @@ export async function init(params, i18n) {
                  records.forEach(asset => {
                     const li = document.createElement('li');
                     li.className = 'mb-1';
-                    const link = document.createElement('a');
-                    link.href = `/asset/${asset.asset_code}-${asset.asset_issuer}`;
+                    
+                    const assetLink = document.createElement('a');
+                    assetLink.href = `/asset/${asset.asset_code}-${asset.asset_issuer}`;
+                    assetLink.textContent = `${asset.asset_code} · ${shorten(asset.asset_issuer)}`;
+                    assetLink.className = 'is-mono has-text-weight-semibold mr-2';
+                    li.appendChild(assetLink);
+
+                    const toml = asset._links?.toml?.href;
+                    if (toml) {
+                        try {
+                            const domain = new URL(toml).hostname;
+                            const domainLink = document.createElement('a');
+                            domainLink.href = `https://${domain}`;
+                            domainLink.target = '_blank';
+                            domainLink.textContent = domain;
+                            domainLink.className = 'is-size-7 mr-2';
+                            li.appendChild(domainLink);
+                        } catch (_) {}
+                    }
+
                     const holders = asset.accounts?.authorized || 0;
-                    link.textContent = `${asset.asset_code} · ${shorten(asset.asset_issuer)} (${holders} ${t('holders-label')})`;
-                    link.className = 'is-mono';
-                    li.appendChild(link);
+                    const holdersSpan = document.createElement('span');
+                    holdersSpan.className = 'is-size-7 has-text-grey';
+                    holdersSpan.textContent = `(${holders} ${t('holders-label')})`;
+                    li.appendChild(holdersSpan);
+
                     assetResultsEl.appendChild(li);
                  });
             }

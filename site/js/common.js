@@ -115,15 +115,15 @@ export function strKeyToBytes(strKey) {
 function crc16(buffer) {
     let crc = 0x0000;
     for (let i = 0; i < buffer.length; i++) {
-        let code = (crc >>> 8) & 0xFF;
-        code ^= buffer[i] & 0xFF;
-        code ^= code >>> 4;
-        crc = (crc << 8) & 0xFFFF;
-        crc ^= code;
-        code = (code << 5) & 0xFFFF;
-        crc ^= code;
+        let byte = buffer[i];
+        for (let j = 0; j < 8; j++) {
+            const bit = ((byte >> (7 - j)) & 1) === 1;
+            const c15 = ((crc >> 15) & 1) === 1;
+            crc <<= 1;
+            if (c15 ^ bit) crc ^= 0x1021;
+        }
     }
-    return crc;
+    return crc & 0xFFFF;
 }
 
 export function encodeAddress(hexOrBytes) {

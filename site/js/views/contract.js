@@ -120,6 +120,38 @@ export async function init(params, i18n) {
         }
     }
 
+    function formatSCVal(val) {
+        if (!val) return 'null';
+        if (val.string !== undefined) return `"${val.string}"`;
+        if (val.symbol !== undefined) return val.symbol;
+        if (val.u32 !== undefined) return val.u32;
+        if (val.i32 !== undefined) return val.i32;
+        if (val.u64 !== undefined) return val.u64;
+        if (val.i64 !== undefined) return val.i64;
+        if (val.u128 !== undefined) return JSON.stringify(val.u128); 
+        if (val.i128 !== undefined) return JSON.stringify(val.i128);
+        if (val.bool !== undefined) return val.bool.toString();
+        if (val.void !== undefined) return 'void';
+        if (val.bytes !== undefined) {
+            // Try to detect if it's an address (32 bytes = 64 hex chars)
+            if (val.bytes.length === 64 && /^[0-9a-fA-F]+$/.test(val.bytes)) {
+                 const addr = encodeAddress(val.bytes);
+                 if (addr) return `<a href="/account/${addr}">${shorten(addr)}</a>`;
+            }
+            return `bytes[${val.bytes.length/2}]`;
+        }
+        if (val.address !== undefined) {
+             return `<a href="/account/${val.address}">${shorten(val.address)}</a>`;
+        }
+        if (val.vec !== undefined) {
+            return '[' + val.vec.map(formatSCVal).join(', ') + ']';
+        }
+        if (val.map !== undefined) {
+            return '{ ' + val.map.map(e => `${formatSCVal(e.key)}: ${formatSCVal(e.val)}`).join(', ') + ' }';
+        }
+        return JSON.stringify(val);
+    }
+
     function renderContractData(data, ledgerSeq) {
         let html = `<div class="content"><p><strong>Last Modified Ledger:</strong> ${ledgerSeq}</p>`;
 
@@ -171,6 +203,17 @@ export async function init(params, i18n) {
             if (assetInfo.asset_code && assetInfo.issuer) {
                 html += `<p><strong>Wrapped Asset:</strong> <a href="/asset/${encodeURIComponent(`${assetInfo.asset_code}-${assetInfo.issuer}`)}">${assetInfo.asset_code}</a> by <a href="/account/${assetInfo.issuer}">${shorten(assetInfo.issuer)}</a></p>`;
             }
+
+            // Instance Storage Table
+            html += `<h4 class="title is-6 mt-5">Instance Storage</h4>`;
+            html += `<table class="table is-fullwidth is-striped is-size-7"><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody>`;
+            
+            storage.forEach(entry => {
+                const keyStr = formatSCVal(entry.key);
+                const valStr = formatSCVal(entry.val);
+                html += `<tr><td>${keyStr}</td><td style="word-break: break-all;">${valStr}</td></tr>`;
+            });
+            html += `</tbody></table>`;
         }
 
         html += `<h4 class="title is-6 mt-5">Raw XDR JSON:</h4>`;

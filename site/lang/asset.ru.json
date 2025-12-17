@@ -35,7 +35,7 @@
   "holders-empty": "Нет холдеров.",
   "holders-th-account": "Account ID",
   "holders-th-balance": "Balance",
-  "error-invalid-asset": "Неверный формат ассета: ожидается /assets/CODE-ISSUER",
+  "error-invalid-asset": "Неверный формат ассета: ожидается /asset/CODE-ISSUER",
   "error-asset-not-found": "Ассет не найден.",
   "error-load-asset": "Не удалось загрузить ассет",
   "error-load-holders": "Не удалось загрузить холдеров",

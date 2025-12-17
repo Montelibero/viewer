@@ -35,7 +35,7 @@
   "holders-empty": "No holders.",
   "holders-th-account": "Account ID",
   "holders-th-balance": "Balance",
-  "error-invalid-asset": "Invalid asset format: expected /assets/CODE-ISSUER",
+  "error-invalid-asset": "Invalid asset format: expected /asset/CODE-ISSUER",
   "error-asset-not-found": "Asset not found.",
   "error-load-asset": "Failed to load asset",
   "error-load-holders": "Failed to load holders",

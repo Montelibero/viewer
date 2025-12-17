@@ -35,7 +35,7 @@
   "holders-empty": "No hay holders.",
   "holders-th-account": "Account ID",
   "holders-th-balance": "Balance",
-  "error-invalid-asset": "Formato de activo inválido: se espera /assets/CODE-ISSUER",
+  "error-invalid-asset": "Formato de activo inválido: se espera /asset/CODE-ISSUER",
   "error-asset-not-found": "Activo no encontrado.",
   "error-load-asset": "No se pudo cargar el activo",
   "error-load-holders": "No se pudo cargar los holders",

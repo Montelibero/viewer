@@ -1,13 +1,126 @@
-
-<div class="section">
+<section class="section">
   <div class="container">
+
     <div class="mb-4">
-      <a class="button is-small is-light" href="/" data-i18n="back-home">Home</a>
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
     </div>
+
+    <!-- HEADER -->
     <div class="box">
-        <p class="title is-5">Asset</p>
-        <p class="subtitle is-7 is-mono" id="asset-id">...</p>
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Asset</p>
+            <p class="subtitle is-7" id="asset-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+
+      <p class="title is-6" id="asset-code">—</p>
+      <p class="is-size-7 is-mono">
+        <span data-i18n="issuer-label">Issuer:</span>
+        <a id="asset-issuer" href="#" class="is-mono">—</a>
+      </p>
     </div>
-    <div class="box" id="asset-details">Loading...</div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- STATS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="metrics-title">Показатели</p>
+      <ul class="is-size-7">
+        <li><span data-i18n="metric-circulating-label">В обращении (holders):</span> <span class="has-text-weight-semibold" id="asset-circulating">—</span></li>
+        <li><span data-i18n="metric-pools-amount-label">Доступно в пулах:</span> <span id="asset-pools">—</span></li>
+        <li><span data-i18n="metric-claims-amount-label">Доступно в claimable:</span> <span id="asset-claims">—</span></li>
+        <li><span data-i18n="metric-contracts-label">Контракты:</span> <span id="asset-contracts">—</span></li>
+        <li><span data-i18n="metric-num-pools-label">Количество пуллов:</span> <span id="asset-num-pools">—</span></li>
+        <li><span data-i18n="metric-num-claims-label">Claimable balances:</span> <span id="asset-num-claims">—</span></li>
+        <li><span data-i18n="metric-supply-label">Всего эмиссия:</span> <span id="asset-supply">—</span></li>
+      </ul>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="accounts-title">Аккаунты</p>
+      <ul class="is-size-7">
+        <li><span data-i18n="accounts-auth">Authorized:</span> <span class="has-text-weight-semibold" id="asset-auth">—</span></li>
+        <li><span data-i18n="accounts-auth-ml">Authorized to maintain liabilities:</span> <span id="asset-auth-ml">—</span></li>
+        <li><span data-i18n="accounts-unauth">Unauthorized:</span> <span id="asset-unauth">—</span></li>
+      </ul>
+    </div>
+
+    <!-- FLAGS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="flags-title">Флаги</p>
+      <ul class="is-size-7" id="asset-flags">
+        <!-- flags go here -->
+      </ul>
+    </div>
+
+    <!-- LINKS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="links-title">Ссылки</p>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-issuer"
+           data-i18n="link-issuer">
+          Эмитент
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-toml"
+           target="_blank"
+           rel="noreferrer">
+          <span data-i18n="link-toml">TOML</span>
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-holders"
+           data-i18n="link-holders">
+          Холдеры
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-pools"
+           data-i18n="link-pools">
+          Показать пулы
+        </a>
+      </div>
+    </div>
+
+    <!-- POOLS -->
+    <div class="box is-hidden" id="pools-box">
+      <p class="title is-6" data-i18n="pools-title">Пулы</p>
+      <progress class="progress is-small is-primary is-hidden"
+                max="100" id="pools-loader" data-i18n="loader-text">Загрузка</progress>
+      <div id="pools-list"></div>
+    </div>
+
+    <!-- HOLDERS -->
+    <div class="box is-hidden" id="holders-box">
+      <p class="title is-6" data-i18n="holders-title">Холдеры</p>
+      <progress class="progress is-small is-primary is-hidden"
+                max="100" id="holders-loader" data-i18n="loader-text">Загрузка</progress>
+      <div id="holders-list"></div>
+    </div>
+
   </div>
-</div>
+</section>

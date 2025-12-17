@@ -10,6 +10,7 @@ const routes = [
   { pattern: /^\/transaction\/([0-9a-f]{64})$/, view: 'transaction' },
   { pattern: /^\/tx\/([0-9a-f]{64})$/, view: 'transaction' },
   { pattern: /^\/operation\/(\d+)$/, view: 'operation' },
+  { pattern: /^\/offer\/(\d+)$/, view: 'offer' },
   { pattern: /^\/asset\/(.+)$/, view: 'asset' },
   { pattern: /^\/offers\/([^/]+)$/, view: 'offers' }
 ];

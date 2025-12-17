@@ -1,0 +1,61 @@
+<section class="section">
+  <div class="container">
+
+    <div class="mb-4">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Offer</p>
+            <p class="subtitle is-7" id="offer-id">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-size-7">
+        <span data-i18n="seller-label">Продавец:</span>
+        <span id="seller">—</span>
+      </p>
+      <p class="is-size-7">
+        <span data-i18n="updated-label">Последнее обновление:</span> <span id="updated-at">—</span>
+      </p>
+      <p class="is-size-7">
+        <span data-i18n="ledger-label">Ledger:</span> <span id="ledger">—</span>
+      </p>
+    </div>
+
+    <!-- ERROR -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- DETAILS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="details-title">Детали</p>
+      <div id="details" class="is-size-7">
+        —
+      </div>
+    </div>
+
+    <!-- RAW JSON -->
+    <div class="box">
+      <p class="title is-6" data-i18n="raw-json-title">Сырой JSON</p>
+      <pre id="raw-json" class="is-size-7 is-mono">—</pre>
+    </div>
+
+  </div>
+</section>

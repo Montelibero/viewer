@@ -1,16 +1,113 @@
-
-<div class="section">
+<section class="section">
   <div class="container">
+
     <div class="mb-4">
-      <a class="button is-small is-light" href="/" data-i18n="back-home">Home</a>
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
     </div>
+
+    <!-- HEADER -->
     <div class="box">
-        <p class="title is-5">Liquidity Pool</p>
-        <p class="subtitle is-7 is-mono" id="pool-id">...</p>
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Liquidity Pool</p>
+            <p class="subtitle is-7" id="pool-type">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+
+      <p class="is-mono is-size-7" id="pool-id">—</p>
+
+      <div class="mt-2 buttons">
+        <a class="button is-small is-link is-light"
+           id="btn-stellarx"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-stellarx">
+          StellarX
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-scopuly"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-scopuly">
+          Scopuly
+        </a>
+        <a class="button is-small is-link is-light"
+           id="btn-expert"
+           target="_blank"
+           rel="noreferrer"
+           data-i18n="link-expert">
+          Stellar Expert
+        </a>
+      </div>
+
+      <div class="mt-3 is-size-7">
+        <p><span data-i18n="fee-label">Fee</span>: <span id="pool-fee">—</span> bps</p>
+        <p><span data-i18n="shares-label">Shares</span>: <span class="has-text-weight-semibold" id="pool-shares">—</span></p>
+        <p><span data-i18n="trustlines-label">Trustlines</span>: <span id="pool-tl">—</span></p>
+        <p class="is-size-7" id="pool-updated">—</p>
+      </div>
     </div>
-    <div class="box" id="pool-details">Loading...</div>
-    <div class="buttons">
-        <a class="button is-link" id="btn-ops" href="#">Operations</a>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">
+        —
+      </div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- RESERVES -->
+    <div class="box">
+      <p class="title is-6" data-i18n="reserves-title">Резервы</p>
+      <ul id="reserves" class="is-size-7">
+        <!-- сюда пойдут резервы -->
+      </ul>
     </div>
+
+    <!-- LINKS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="links-title">Horizon</p>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-operations"
+           data-i18n="link-operations">
+          Операции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-transactions"
+           data-i18n="link-transactions">
+          Транзакции
+        </a>
+      </div>
+      <div class="buttons">
+        <a class="button is-link is-light is-fullwidth"
+           id="btn-holders"
+           data-i18n="link-holders">
+          Холдеры
+        </a>
+      </div>
+    </div>
+
+    <!-- HOLDERS -->
+    <div class="box is-hidden" id="holders-box">
+      <p class="title is-6" data-i18n="holders-title">Холдеры</p>
+      <progress class="progress is-small is-primary is-hidden"
+                max="100" id="holders-loader" data-i18n="loader-text">Загрузка</progress>
+      <div id="holders-list"></div>
+    </div>
+
   </div>
-</div>
+</section>

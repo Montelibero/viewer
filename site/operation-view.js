@@ -96,7 +96,7 @@ function decodeDataValue(raw) {
 
 function assetLink(code, issuer) {
   if (!code || !issuer) return null;
-  return `/assets/${encodeURIComponent(`${code}-${issuer}`)}`;
+  return `/asset/${encodeURIComponent(`${code}-${issuer}`)}`;
 }
 
 function formatPriceObj(price) {

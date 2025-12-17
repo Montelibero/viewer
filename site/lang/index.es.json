@@ -13,6 +13,7 @@
   "asset-results-title": "Resultados de activos",
   "history-empty": "El historial está vacío.",
   "assets-empty": "No se encontró nada.",
+  "holders-label": "holders",
   "message-empty-input": "Ingresa una dirección de cuenta o hash de transacción.",
   "message-unknown-format": "Aún no soportamos este formato. Vuelve más tarde 🙂",
   "message-loading-assets": "Buscando activos…",

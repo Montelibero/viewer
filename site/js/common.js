@@ -10,7 +10,7 @@ export function isLocalLike() {
 }
 
 // Статическая версия приложения, показываем в интерфейсе
-export const appVersion = '1.0.9';
+export const appVersion = '1.0.10';
 
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32Lookup = {};

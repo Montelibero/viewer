@@ -35,25 +35,24 @@ To add a new page or view:
 4.  **Add Translations**: Create `site/lang/newpage.en.json`, `site/lang/newpage.ru.json`, etc., for your new view's translation keys.
 
 ### Cache Busting & Versioning (Critical)
-The project relies on aggressive caching strategies. To ensure users receive the latest code and translations immediately, we use manual versioning via query parameters.
+The project relies on manual cache-busting via query parameters. Bump versions **only for assets you touched**; it is fine for different files to carry different version numbers.
 
-**Whenever you modify any JS file, CSS file, or Translation (JSON) file, you must update the version number in `site/index.html` and potentially in `site/js/router.js` dynamic imports (if you modify these files directly).**
-
-Current Version: `8`
+Current working version for updated assets: `10` (older untouched files may still use `7/8/9`).
 
 #### Checklist for Updates:
-1.  **CSS**: Update the version query parameter in `site/index.html`:
+1.  **If you change CSS** (e.g., `site/common.css`), bump its query in `site/index.html`:
     ```html
-    <link id="common-css" rel="stylesheet" href="/common.css?v=8">
+    <link id="common-css" rel="stylesheet" href="/common.css?v=10">
     ```
-2.  **JavaScript Imports**: Update the version query parameter for imports in `site/index.html`:
-    ```javascript
-    import { router } from '/js/router.js?v=8';
-    import { initI18n } from '/js/i18n.js?v=8';
-    import { appVersion } from '/js/common.js?v=8';
-    ```
-    And also check dynamic imports in `site/js/router.js` for view templates and view scripts (e.g. `tplRes = await fetch(/pages/${viewName}.html?v=8)` and `module = await import(./views/${viewName}.js?v=8)`).
-3.  **Translations**: The `site/js/i18n.js` module handles appending the version to translation requests based on the `router.js`'s configuration.
+2.  **If you change JS**:
+    - Bump the import in `site/index.html` for the entry files you modified (e.g., `router.js`, `common.js`, `i18n.js`).
+    - Update dynamic imports in `site/js/router.js` for view templates/scripts when you change view code, so the new versions are fetched:
+      ```javascript
+      const tplRes = await fetch(`/pages/${viewName}.html?v=10`);
+      const module = await import(`./views/${viewName}.js?v=10`);
+      ```
+3.  **If you change translations**, ensure the translation fetch in `site/js/i18n.js` points to the bumped version for those files.
+4.  Avoid blanket version bumps across untouched files; only update what you changed in the commit.
 
 ## Coding Style
 - Use 2-space indentation for HTML, CSS, and JS.

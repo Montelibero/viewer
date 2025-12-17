@@ -33,13 +33,13 @@ async function loadView(route, params) {
 
     try {
         // Load Template
-        const tplRes = await fetch(`/pages/${viewName}.html?v=9`);
+        const tplRes = await fetch(`/pages/${viewName}.html?v=10`);
         if (!tplRes.ok) throw new Error(`Template ${viewName} not found`);
         const html = await tplRes.text();
         app.innerHTML = html;
 
         // Load Script
-        const module = await import(`./views/${viewName}.js?v=9`);
+        const module = await import(`./views/${viewName}.js?v=10`);
         if (module && typeof module.init === 'function') {
             currentView = module;
             // Get i18n instance from window or re-init

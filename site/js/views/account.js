@@ -1,4 +1,4 @@
-import { shorten, isLocalLike } from '/js/common.js?v=9';
+import { shorten, isLocalLike } from '/js/common.js?v=10';
 
 const horizonBase = 'https://horizon.stellar.org';
 const poolMetaCache = new Map();
@@ -39,8 +39,10 @@ function createBalanceCard({ title, subtitle = '', amount = '—', meta = '', hr
         </div>
         <div class="level-right">
           <div class="has-text-right is-mono balance-amount">
-            <span class="has-text-weight-semibold">${amount}</span>
-            ${metaHtml}
+            <div class="balance-amount-main">
+              <span class="has-text-weight-semibold">${amount}</span>
+              ${metaHtml}
+            </div>
           </div>
         </div>
       </div>

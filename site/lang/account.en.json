@@ -46,5 +46,7 @@
   "btn-offers": "Offers",
   "error-no-account-id": "Could not detect accountId from URL.",
   "error-load-account": "Failed to load account",
-  "error-unknown": "Unknown error while loading account."
+  "error-unknown": "Unknown error while loading account.",
+  "btn-estimate": "Estimate Balances",
+  "total-label": "Total"
 }

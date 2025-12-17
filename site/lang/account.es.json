@@ -46,5 +46,7 @@
   "btn-offers": "Ofertas",
   "error-no-account-id": "No se pudo obtener accountId de la URL.",
   "error-load-account": "No se pudo cargar la cuenta",
-  "error-unknown": "Error desconocido al cargar la cuenta."
+  "error-unknown": "Error desconocido al cargar la cuenta.",
+  "btn-estimate": "Estimar saldos",
+  "total-label": "Total"
 }

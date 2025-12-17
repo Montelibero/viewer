@@ -46,5 +46,7 @@
   "btn-offers": "Офферы",
   "error-no-account-id": "Не удалось определить accountId из URL.",
   "error-load-account": "Не удалось загрузить аккаунт",
-  "error-unknown": "Неизвестная ошибка при загрузке аккаунта."
+  "error-unknown": "Неизвестная ошибка при загрузке аккаунта.",
+  "btn-estimate": "Оценить балансы",
+  "total-label": "Всего"
 }

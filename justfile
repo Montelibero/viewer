@@ -10,8 +10,10 @@ build tag="latest":
     docker build -t {{IMAGE_NAME}}:{{tag}} .
 
 run:
-    # Run Docker container
-    docker-compose up -d
+    # Build and Run Docker container
+    docker build -t stellar_viewer:local .
+    docker run --rm -p 8081:80 stellar_viewer:local
+
 
 stop:
     # Stop Docker container

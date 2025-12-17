@@ -1,4 +1,4 @@
-import { shorten, isLocalLike } from '/js/common.js?v=7';
+import { shorten, isLocalLike } from '/js/common.js?v=9';
 
 const horizonBase = 'https://horizon.stellar.org';
 const poolMetaCache = new Map();
@@ -53,14 +53,12 @@ export async function init(params, i18n) {
     const { t } = i18n;
     const [accountId] = params;
 
-    // UI elements
     const statusLabel = document.getElementById('status-label');
     const accountIdDisplay = document.getElementById('account-id-display');
     const errorBox = document.getElementById('error-box');
     const errorText = document.getElementById('error-text');
     const loader = document.getElementById('loader');
     
-    // Set initial ID
     if (accountIdDisplay) accountIdDisplay.textContent = accountId;
 
     let issuedRecords = null;
@@ -186,6 +184,8 @@ export async function init(params, i18n) {
                 amount: b.balance,
                 meta: metaParts.length ? metaParts.join(' · ') : ''
             });
+            card.dataset.asset = 'native';
+            card.dataset.amount = b.balance;
             nativeEl.appendChild(card);
         } else {
             nativeEl.innerHTML = `<p class="is-size-7 has-text-grey">${t('balance-no-xlm')}</p>`;
@@ -211,6 +211,8 @@ export async function init(params, i18n) {
                     meta,
                     href: assetId ? `/asset/${encodeURIComponent(assetId)}` : null
                 });
+                if (assetId) card.dataset.asset = `${b.asset_code}:${b.asset_issuer}`;
+                card.dataset.amount = b.balance;
                 assetsEl.appendChild(card);
             });
         } else {
@@ -226,6 +228,8 @@ export async function init(params, i18n) {
                     amount: b.balance,
                     href: poolId !== '—' ? `/pool/${encodeURIComponent(poolId)}` : null
                 });
+                if (poolId !== '—') card.dataset.pool = poolId;
+                card.dataset.amount = b.balance;
                 poolsEl.appendChild(card);
 
                 if (poolId !== '—') {
@@ -377,6 +381,110 @@ export async function init(params, i18n) {
         }
     }
 
+    async function estimateBalances() {
+        const btn = document.getElementById('btn-estimate');
+        const totalEl = document.getElementById('estimate-total');
+        if (btn) btn.classList.add('is-loading');
+        if (totalEl) totalEl.textContent = '...';
+
+        let totalEurmtl = 0;
+        const EURMTL = 'EURMTL:GACKTN5DAZGWXRWB2WLM6OPBDHAMT6SJNGLJZPQMEZBUR4JUGBX2UK7V';
+
+        const fetchEstimate = async (asset, amount) => {
+            if (parseFloat(amount) <= 0) return 0;
+            if (asset === EURMTL) return parseFloat(amount);
+
+            const [code, issuer] = asset === 'native' ? ['XLM', null] : asset.split(':');
+            const type = asset === 'native' ? 'native' : (code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
+            
+            const url = new URL(`${horizonBase}/paths/strict-send`);
+            url.searchParams.set('source_amount', amount);
+            url.searchParams.set('source_asset_type', type);
+            if (issuer) {
+                url.searchParams.set('source_asset_code', code);
+                url.searchParams.set('source_asset_issuer', issuer);
+            }
+            url.searchParams.set('destination_assets', EURMTL);
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) return 0;
+                const data = await res.json();
+                const path = data._embedded?.records?.[0];
+                return path ? parseFloat(path.destination_amount) : 0;
+            } catch (e) {
+                return 0;
+            }
+        };
+
+        const assetCards = document.querySelectorAll('.balance-grid .box[data-asset]');
+        for (const card of assetCards) {
+            const asset = card.dataset.asset;
+            const amount = card.dataset.amount;
+            const est = await fetchEstimate(asset, amount);
+            totalEurmtl += est;
+            
+            const amountDiv = card.querySelector('.balance-amount');
+            if (amountDiv && est > 0) {
+                let estSpan = amountDiv.querySelector('.est-value');
+                if (!estSpan) {
+                    estSpan = document.createElement('div');
+                    estSpan.className = 'is-size-7 has-text-grey est-value';
+                    amountDiv.appendChild(estSpan);
+                }
+                estSpan.textContent = `~ ${est.toFixed(2)} EURMTL`;
+            }
+        }
+
+        const poolCards = document.querySelectorAll('.balance-grid .box[data-pool]');
+        for (const card of poolCards) {
+            const poolId = card.dataset.pool;
+            const shares = parseFloat(card.dataset.amount);
+            
+            let pool = null;
+            if (poolMetaCache.has(poolId)) {
+                pool = poolMetaCache.get(poolId);
+            }
+            
+            if (!pool || !pool.reserves) {
+                 try {
+                     const res = await fetch(`${horizonBase}/liquidity_pools/${poolId}`);
+                     if (res.ok) {
+                         const data = await res.json();
+                         pool = { reserves: data.reserves, totalShares: data.total_shares };
+                         poolMetaCache.set(poolId, pool); // Cache it
+                     }
+                 } catch (_) {}
+            }
+
+            if (pool && pool.reserves && parseFloat(pool.totalShares) > 0) {
+                const ratio = shares / parseFloat(pool.totalShares);
+                let poolEst = 0;
+                for (const r of pool.reserves) {
+                    const rAmount = parseFloat(r.amount) * ratio;
+                    const rAsset = r.asset === 'native' ? 'native' : r.asset;
+                    const val = await fetchEstimate(rAsset, rAmount.toFixed(7));
+                    poolEst += val;
+                }
+                totalEurmtl += poolEst;
+
+                const amountDiv = card.querySelector('.balance-amount');
+                if (amountDiv && poolEst > 0) {
+                    let estSpan = amountDiv.querySelector('.est-value');
+                    if (!estSpan) {
+                        estSpan = document.createElement('div');
+                        estSpan.className = 'is-size-7 has-text-grey est-value';
+                        amountDiv.appendChild(estSpan);
+                    }
+                    estSpan.textContent = `~ ${poolEst.toFixed(2)} EURMTL`;
+                }
+            }
+        }
+
+        if (btn) btn.classList.remove('is-loading');
+        if (totalEl) totalEl.textContent = `${t('total-label', 'Total')} ${Math.round(totalEurmtl)} EURMTL`;
+    }
+
     function renderAccount(account) {
         const seq = document.getElementById('seq');
         const sub = document.getElementById('subentries');
@@ -454,6 +562,11 @@ export async function init(params, i18n) {
                 alert(t('copy-failed'));
             }
         });
+    }
+
+    const estimateBtn = document.getElementById('btn-estimate');
+    if (estimateBtn) {
+        estimateBtn.addEventListener('click', estimateBalances);
     }
 
     // Start

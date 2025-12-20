@@ -1,4 +1,4 @@
-import { accountLink, createXdrOperationBox, formatStroopAmount } from '/js/operation-view.js?v=7';
+import { accountLink, createXdrOperationBox, formatStroopAmount } from '/js/operation-view.js?v=12';
 
 const horizonBase = 'https://horizon.stellar.org';
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

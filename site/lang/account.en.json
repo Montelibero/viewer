@@ -48,5 +48,14 @@
   "error-load-account": "Failed to load account",
   "error-unknown": "Unknown error while loading account.",
   "btn-estimate": "Estimate Balances",
-  "total-label": "Total"
+  "total-label": "Total",
+  "label-offers": "Offers",
+  "label-trustlines": "Trustlines",
+  "label-signers": "Signers",
+  "label-sponsored": "Sponsored",
+  "label-sponsoring": "Sponsoring",
+  "label-data": "Data",
+  "label-selling": "Selling",
+  "label-locked": "Total Locked",
+  "label-available": "Available"
 }

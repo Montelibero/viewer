@@ -37,12 +37,12 @@ To add a new page or view:
 ### Cache Busting & Versioning (Critical)
 The project relies on manual cache-busting via query parameters. Bump versions **only for assets you touched**; it is fine for different files to carry different version numbers.
 
-Current working version for updated assets: `10` (older untouched files may still use `7/8/9`).
+Current working version for updated assets: `11` (older untouched files may still use `7/8/9`).
 
 #### Checklist for Updates:
 1.  **If you change CSS** (e.g., `site/common.css`), bump its query in `site/index.html`:
     ```html
-    <link id="common-css" rel="stylesheet" href="/common.css?v=10">
+    <link id="common-css" rel="stylesheet" href="/common.css?v=11">
     ```
 2.  **If you change JS**:
     - Bump the import in `site/index.html` for the entry files you modified (e.g., `router.js`, `common.js`, `i18n.js`).

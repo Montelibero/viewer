@@ -48,5 +48,14 @@
   "error-load-account": "Не удалось загрузить аккаунт",
   "error-unknown": "Неизвестная ошибка при загрузке аккаунта.",
   "btn-estimate": "Оценить балансы",
-  "total-label": "Всего"
+  "total-label": "Всего",
+  "label-offers": "Offers",
+  "label-trustlines": "Trustlines",
+  "label-signers": "Signers",
+  "label-sponsored": "Sponsored",
+  "label-sponsoring": "Sponsoring",
+  "label-data": "Data",
+  "label-selling": "Selling",
+  "label-locked": "Всего залочено",
+  "label-available": "Доступно к использованию"
 }

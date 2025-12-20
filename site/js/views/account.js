@@ -19,15 +19,38 @@ function accountLink(acc) {
     return acc ? `/account/${encodeURIComponent(acc)}` : null;
 }
 
-function createBalanceCard({ title, subtitle = '', amount = '—', meta = '', href = null }) {
+function createPopover(triggerHtml, contentHtml) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'popover-wrapper';
+
+    // Stop propagation on click to prevent immediate closing
+    wrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Toggle this popover
+        const wasActive = wrapper.classList.contains('is-active');
+        // Close all others
+        document.querySelectorAll('.popover-wrapper.is-active').forEach(el => {
+            if (el !== wrapper) el.classList.remove('is-active');
+        });
+        wrapper.classList.toggle('is-active', !wasActive);
+    });
+
+    wrapper.innerHTML = `
+        ${triggerHtml}
+        <div class="popover-content cursor-default" onclick="event.stopPropagation()">
+            ${contentHtml}
+        </div>
+    `;
+    return wrapper;
+}
+
+function createBalanceCard({ title, subtitle = '', amount = '—', meta = null, href = null }) {
     const card = document.createElement('div');
     card.className = 'box is-size-7';
 
     const titleHtml = href
         ? `<a class="has-text-weight-semibold" href="${href}">${title}</a>`
         : `<span class="has-text-weight-semibold">${title}</span>`;
-
-    const metaHtml = meta ? `<span class="balance-meta">${meta}</span>` : '';
 
     card.innerHTML = `
       <div class="level is-mobile">
@@ -41,12 +64,29 @@ function createBalanceCard({ title, subtitle = '', amount = '—', meta = '', hr
           <div class="has-text-right is-mono balance-amount">
             <div class="balance-amount-main">
               <span class="has-text-weight-semibold">${amount}</span>
-              ${metaHtml}
             </div>
           </div>
         </div>
       </div>
     `;
+
+    if (meta) {
+        const metaContainer = card.querySelector('.balance-amount-main');
+        if (metaContainer) {
+            // meta can be an HTMLElement (popover) or string
+            if (typeof meta === 'string') {
+                 const span = document.createElement('span');
+                 span.className = 'balance-meta';
+                 span.innerHTML = meta;
+                 metaContainer.appendChild(span);
+            } else if (meta instanceof HTMLElement) {
+                 const span = document.createElement('span');
+                 span.className = 'balance-meta';
+                 span.appendChild(meta);
+                 metaContainer.appendChild(span);
+            }
+        }
+    }
 
     return card;
 }
@@ -54,6 +94,12 @@ function createBalanceCard({ title, subtitle = '', amount = '—', meta = '', hr
 export async function init(params, i18n) {
     const { t } = i18n;
     const [accountId] = params;
+
+    // Global click handler to close popovers
+    function closePopovers() {
+        document.querySelectorAll('.popover-wrapper.is-active').forEach(el => el.classList.remove('is-active'));
+    }
+    document.addEventListener('click', closePopovers);
 
     const statusLabel = document.getElementById('status-label');
     const accountIdDisplay = document.getElementById('account-id-display');
@@ -178,13 +224,95 @@ export async function init(params, i18n) {
 
         if (native.length) {
             const b = native[0];
-            const metaParts = [];
-            if (b.limit) metaParts.push(`${t('balance-limit')}: ${b.limit}`);
+
+            // Calculate detailed stats
+            const subentryCount = account.subentry_count || 0;
+            const numSponsoring = account.num_sponsoring || 0;
+            const numSponsored = account.num_sponsored || 0;
+
+            // Deduce counts
+            // Trustlines = Balances count - 1 (native)
+            const trustlinesCount = Math.max(0, balances.length - 1);
+            // Signers = Signers array length - 1 (master key) ? Actually subentry includes additional signers.
+            const signers = account.signers || [];
+            // Additional signers = signers.length - 1? Or signers.length if master is removed?
+            // Usually master key is always present unless removed, but let's assume num signers > 0.
+            // Let's rely on standard logic: Signers count in list.
+            const signersCount = signers.length;
+            const dataCount = Object.keys(account.data || {}).length;
+
+            // Offers = subentryCount - trustlines - data - (signers - master?)
+            // Note: Reserve covers: account entry (master key), trustlines, offers, data, additional signers.
+            // subentry_count = trustlines + offers + data + (signers - ??)
+            // Usually "Signers" in breakdown means total signers.
+            // But for subentry calc: each additional signer costs reserve.
+            // Let's assume standard account with master key. additional = signers.length - 1.
+            // But safe to calculate Offers = subentryCount - trustlines - data - (signers.length - 1)
+            // What if master key weight is 0? Still counts as entry? Yes.
+            // What if account has 0 signers? Impossible.
+            const offersCount = Math.max(0, subentryCount - trustlinesCount - dataCount - Math.max(0, signersCount - 1));
+
+            // Reserve/Locked calc
+            // Min Balance = (2 + subentryCount + numSponsoring - numSponsored?)
+            // Official: (2 + subentry_count + num_sponsoring) * 0.5. Sponsored entries don't count towards subentry_count of the sponsored account?
+            // Actually, if I am sponsored, my subentry_count includes it, but I don't pay for it?
+            // "Sponsored entries (trustlines, offers, data) are included in subentry_count" - Yes.
+            // "But the sponsor pays the reserve."
+            // So my required reserve = (2 + subentry_count - num_sponsored + num_sponsoring) * 0.5 ??
+            // No, Stellar docs say: "The minimum balance is calculated as: (2 + subentry_count + num_sponsoring - num_sponsored) * 0.5 XLM".
+            // Wait, let's verify.
+            // User example: "Sponsoring: 14". "Sponsored: 0".
+            // Reserve = (2 + 87 + 14 - 0) * 0.5 = 103 * 0.5 = 51.5 XLM.
+            // Selling Liabilities: 0 (from my check on account).
+            // Total Locked = 51.5.
+            // Balance: 765.9650307.
+            // Available: 765.965 - 51.5 = 714.465.
+
+            // Let's implement the formula: (2 + subentry + sponsoring - sponsored) * 0.5
+            const reserve = (2 + subentryCount + numSponsoring - numSponsored) * 0.5;
+            const sellingLiabilities = parseFloat(b.selling_liabilities || '0');
+            // Buying liabilities do NOT lock XLM (unless buying XLM? No).
+            const locked = reserve + sellingLiabilities;
+            const balance = parseFloat(b.balance);
+            const available = Math.max(0, balance - locked);
+
+            const detailsRows = [
+                { label: t('label-offers', 'Offers'), value: offersCount },
+                { label: t('label-trustlines', 'Trustlines'), value: trustlinesCount },
+                { label: t('label-signers', 'Signers'), value: signersCount }, // Showing total signers
+                { label: t('label-sponsored', 'Sponsored'), value: numSponsored },
+                { label: t('label-sponsoring', 'Sponsoring'), value: numSponsoring },
+                { label: t('label-data', 'Data'), value: dataCount },
+                { label: t('label-selling', 'Selling'), value: `${sellingLiabilities.toFixed(2)} XLM` }
+            ];
+
+            const detailsHtml = detailsRows.map(row => `
+                <div class="popover-row">
+                    <span>${row.label}:</span>
+                    <span class="has-text-weight-semibold">${row.value}</span>
+                </div>
+            `).join('') + `
+                <div class="popover-divider"></div>
+                <div class="popover-row">
+                    <span>${t('label-locked', 'Total Locked')}:</span>
+                    <span class="has-text-weight-semibold">${locked.toFixed(2)}</span>
+                </div>
+                <div class="popover-row">
+                    <span>${t('label-available', 'Available')}:</span>
+                    <span class="has-text-weight-semibold has-text-success">${available.toFixed(2)}</span>
+                </div>
+            `;
+
+            const popover = createPopover(
+                `<span class="tag is-light is-size-7">★ ${t('balance-details')}</span>`,
+                detailsHtml
+            );
+
             const card = createBalanceCard({
                 title: 'XLM',
                 subtitle: t('balance-native-subtitle'),
                 amount: b.balance,
-                meta: metaParts.length ? metaParts.join(' · ') : ''
+                meta: popover
             });
             card.dataset.asset = 'native';
             card.dataset.amount = b.balance;
@@ -202,15 +330,29 @@ export async function init(params, i18n) {
                 if (b.is_authorized === false) extras.push(t('balance-not-authorized'));
                 if (b.is_authorized_to_maintain_liabilities === false) extras.push(t('balance-no-maintain'));
                 if (b.is_clawback_enabled) extras.push(t('balance-clawback-enabled'));
-                const meta = extras.length
-                    ? `<span class="tag is-light is-size-7" title="${extras.join(' • ')}">★ ${t('balance-details')}</span>`
-                    : '';
+
+                // Add Selling Liabilities
+                const selling = parseFloat(b.selling_liabilities || '0');
+                if (selling > 0) {
+                     extras.push(`${t('label-selling', 'Selling')}: ${selling}`);
+                }
+
+                let meta = '';
+                if (extras.length > 0) {
+                    const rows = extras.map(e => `
+                        <div class="popover-row"><span>${e}</span></div>
+                    `).join('');
+                     meta = createPopover(
+                        `<span class="tag is-light is-size-7">★ ${t('balance-details')}</span>`,
+                        rows
+                    );
+                }
 
                 const card = createBalanceCard({
                     title: b.asset_code || '—',
                     subtitle: issuer ? `${t('balance-issuer')}: ${shorten(issuer)}` : '',
                     amount: b.balance,
-                    meta,
+                    meta: meta,
                     href: assetId ? `/asset/${encodeURIComponent(assetId)}` : null
                 });
                 if (assetId) card.dataset.asset = `${b.asset_code}:${b.asset_issuer}`;

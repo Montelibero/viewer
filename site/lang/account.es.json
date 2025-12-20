@@ -48,5 +48,14 @@
   "error-load-account": "No se pudo cargar la cuenta",
   "error-unknown": "Error desconocido al cargar la cuenta.",
   "btn-estimate": "Estimar saldos",
-  "total-label": "Total"
+  "total-label": "Total",
+  "label-offers": "Ofertas",
+  "label-trustlines": "Trustlines",
+  "label-signers": "Firmantes",
+  "label-sponsored": "Patrocinado",
+  "label-sponsoring": "Patrocinando",
+  "label-data": "Datos",
+  "label-selling": "Venta",
+  "label-locked": "Total Bloqueado",
+  "label-available": "Disponible"
 }

@@ -1,4 +1,4 @@
-import { shorten, isLocalLike } from '/js/common.js?v=12';
+import { shorten, isLocalLike } from '/js/common.js?v=13';
 
 const horizonBase = 'https://horizon.stellar.org';
 const poolMetaCache = new Map();
@@ -279,7 +279,7 @@ export async function init(params, i18n) {
             const detailsRows = [
                 { label: t('label-offers', 'Offers'), value: offersCount },
                 { label: t('label-trustlines', 'Trustlines'), value: trustlinesCount },
-                { label: t('label-signers', 'Signers'), value: signersCount }, // Showing total signers
+                { label: t('label-signers', 'Signers'), value: Math.max(0, signersCount - 1) },
                 { label: t('label-sponsored', 'Sponsored'), value: numSponsored },
                 { label: t('label-sponsoring', 'Sponsoring'), value: numSponsoring },
                 { label: t('label-data', 'Data'), value: dataCount },

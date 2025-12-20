@@ -1,4 +1,4 @@
-import { shorten, isLocalLike } from '/js/common.js?v=12';
+import { shorten, isLocalLike } from '/js/common.js?v=13';
 
 const horizonBase = 'https://horizon.stellar.org';
 const poolMetaCache = new Map();
@@ -397,20 +397,22 @@ export async function init(params, i18n) {
         signersEl.innerHTML = '';
         const signers = account?.signers || [];
         signers.forEach(s => {
-            const li = document.createElement('li');
-            li.className = 'mb-1';
+            const item = document.createElement('div');
+            item.className = 'signer-item';
 
             const link = accountLink(s.key);
             const keyLabel = shorten(s.key);
 
-            li.innerHTML = `
-                <span>${s.type}</span><br>
-                ${link
-                    ? `<a class="is-mono is-size-7" href="${link}" title="${s.key}">${keyLabel}</a>`
-                    : `<code class="is-mono is-size-7">${s.key}</code>`}<br>
-                <span>${t('weight-label')}: ${s.weight}</span>
+            item.innerHTML = `
+                <div class="signer-details">
+                    <p class="is-size-7 has-text-weight-semibold is-mono text-truncate" title="${s.key}">
+                        ${link ? `<a href="${link}">${keyLabel}</a>` : keyLabel}
+                    </p>
+                    <p class="is-size-7 has-text-grey-light text-truncate">${s.type}</p>
+                </div>
+                <span class="tag is-info is-light has-text-weight-bold">W: ${s.weight}</span>
             `;
-            signersEl.appendChild(li);
+            signersEl.appendChild(item);
         });
         if (!signers.length) {
             signersEl.textContent = t('signers-empty');
@@ -427,13 +429,8 @@ export async function init(params, i18n) {
             dataEl.textContent = t('data-empty');
         } else {
             entries.forEach(([key, value]) => {
-                const li = document.createElement('li');
-                li.className = 'mb-1';
-
-                const title = document.createElement('strong');
-                title.textContent = key;
-                li.appendChild(title);
-                li.appendChild(document.createElement('br'));
+                const item = document.createElement('div');
+                item.className = 'data-item';
 
                 let decoded = '';
                 try {
@@ -443,25 +440,26 @@ export async function init(params, i18n) {
                 }
 
                 const isAccountId = /^G[A-Z2-7]{55}$/.test(decoded);
-                let displayText = decoded;
-                if (!isAccountId && decoded.length > 120) {
-                    displayText = decoded.slice(0, 120) + '…';
-                }
+                // displayText is not truncated here for the box because CSS handles break-word,
+                // but if it's super long, maybe we still want to truncate?
+                // User said "is-mono break-word" in HTML, so we rely on CSS.
+                // However, I'll keep the logic simple as requested.
+
+                let valueHtml = '';
 
                 if (isAccountId) {
-                    const link = document.createElement('a');
-                    link.href = `/account/${encodeURIComponent(decoded)}`;
-                    link.textContent = decoded;
-                    link.className = 'is-size-7 is-mono';
-                    li.appendChild(link);
+                    valueHtml = `<a href="/account/${encodeURIComponent(decoded)}" class="is-mono">${decoded}</a>`;
                 } else {
-                    const codeEl = document.createElement('code');
-                    codeEl.className = 'is-mono is-size-7';
-                    codeEl.textContent = displayText;
-                    li.appendChild(codeEl);
+                    valueHtml = decoded;
                 }
 
-                dataEl.appendChild(li);
+                item.innerHTML = `
+                    <span class="data-key text-truncate" title="${key}">${key}</span>
+                    <div class="data-value-box is-mono break-word">
+                        ${valueHtml}
+                    </div>
+                `;
+                dataEl.appendChild(item);
             });
         }
     }
@@ -632,14 +630,19 @@ export async function init(params, i18n) {
     function renderAccount(account) {
         const seq = document.getElementById('seq');
         const sub = document.getElementById('subentries');
-        const thEl = document.getElementById('thresholds');
         
         if(seq) seq.textContent = account.sequence;
         if(sub) sub.textContent = account.subentry_count;
         setStatus('ok');
 
         const th = account.thresholds || {};
-        if(thEl) thEl.textContent = `low=${th.low_threshold}, med=${th.med_threshold}, high=${th.high_threshold}`;
+        const tLow = document.getElementById('threshold-low');
+        const tMed = document.getElementById('threshold-med');
+        const tHigh = document.getElementById('threshold-high');
+
+        if(tLow) tLow.textContent = th.low_threshold;
+        if(tMed) tMed.textContent = th.med_threshold;
+        if(tHigh) tHigh.textContent = th.high_threshold;
 
         renderBalances(account);
         renderSignersSection(account);

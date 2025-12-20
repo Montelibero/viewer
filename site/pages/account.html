@@ -96,41 +96,64 @@
       </div>
     </div>
 
-    <!-- SIGNERS -->
-    <div class="box">
-      <p class="title is-6" data-i18n="signers-title">Подписанты и пороги</p>
-      <p class="is-size-7">
-        <span data-i18n="thresholds-label">Пороги</span>:
-        <span id="thresholds">—</span>
-      </p>
-      <ul id="signers" class="is-size-7 mt-2">
-        <!-- сюда пойдут подписанты -->
-      </ul>
-    </div>
+    <div class="columns">
+        <!-- SIGNERS SECTION -->
+        <div class="column is-6">
+            <div class="box h-100">
+              <p class="title is-6 mb-4" data-i18n="signers-title">Signers</p>
 
-    <!-- DATA -->
-    <div class="box">
-      <p class="title is-6" data-i18n="data-title">Data</p>
-      <ul id="data" class="is-size-7">
-        <!-- сюда пойдут data-поля -->
-      </ul>
+              <!-- Thresholds Stats -->
+              <div class="threshold-container">
+                  <div class="threshold-item">
+                      <p class="threshold-label">Low</p>
+                      <p class="threshold-value" id="threshold-low">0</p>
+                  </div>
+                  <div class="threshold-item">
+                      <p class="threshold-label">Med</p>
+                      <p class="threshold-value" id="threshold-med">0</p>
+                  </div>
+                  <div class="threshold-item">
+                      <p class="threshold-label">High</p>
+                      <p class="threshold-value" id="threshold-high">0</p>
+                  </div>
+              </div>
+
+              <!-- Signers List -->
+              <div id="signers" class="mt-4">
+                  <!-- Signer Items -->
+              </div>
+            </div>
+        </div>
+
+        <!-- DATA SECTION -->
+        <div class="column is-6">
+            <div class="box h-100">
+              <p class="title is-6 mb-4" data-i18n="data-title">Data Entries</p>
+
+              <div id="data">
+                  <!-- Data Items -->
+              </div>
+            </div>
+        </div>
     </div>
 
     <!-- BOTTOM ACTIONS -->
-    <div class="bottom-actions">
-      <div class="buttons">
-        <a class="button is-link is-light is-fullwidth"
-           id="btn-operations"
-           data-i18n="btn-operations">
-          Операции
-        </a>
-      </div>
-      <div class="buttons">
-        <a class="button is-link is-light is-fullwidth"
-           id="btn-offers"
-           data-i18n="btn-offers">
-          Офферы
-        </a>
+    <div class="bottom-actions mt-4">
+      <div class="columns is-mobile">
+          <div class="column">
+            <a class="button is-link is-light is-fullwidth"
+               id="btn-operations"
+               data-i18n="btn-operations">
+              Операции
+            </a>
+          </div>
+          <div class="column">
+            <a class="button is-link is-light is-fullwidth"
+               id="btn-offers"
+               data-i18n="btn-offers">
+              Офферы
+            </a>
+          </div>
       </div>
     </div>
 

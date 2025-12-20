@@ -29,7 +29,7 @@
   "balance-clawback-enabled": "clawback включен",
   "balance-details": "детали",
   "balance-issuer": "эмитент",
-  "signers-title": "Подписанты и пороги",
+  "signers-title": "Подписанты",
   "thresholds-label": "Пороги",
   "signers-empty": "Нет подписантов.",
   "weight-label": "вес",

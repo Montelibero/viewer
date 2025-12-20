@@ -29,7 +29,7 @@
   "balance-clawback-enabled": "clawback enabled",
   "balance-details": "details",
   "balance-issuer": "issuer",
-  "signers-title": "Signers and thresholds",
+  "signers-title": "Signers",
   "thresholds-label": "Thresholds",
   "signers-empty": "No signers.",
   "weight-label": "weight",

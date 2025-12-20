@@ -1,5 +1,5 @@
 
-import { shorten } from '../common.js?v=11';
+import { shorten } from '../common.js?v=12';
 
 export async function init(params, i18n) {
     const { t } = i18n;
@@ -140,17 +140,17 @@ export async function init(params, i18n) {
             saveHistory(upperVal);
             // Router handles pushState, we just navigate
             history.pushState(null, '', '/account/' + upperVal);
-            import('../router.js?v=11').then(m => m.router());
+            import('../router.js?v=12').then(m => m.router());
             return;
         }
         if (/^C[A-Z2-7]{55}$/.test(upperVal)) {
             history.pushState(null, '', '/contract/' + upperVal);
-            import('../router.js?v=11').then(m => m.router());
+            import('../router.js?v=12').then(m => m.router());
             return;
         }
         if (/^[0-9a-f]{64}$/i.test(val)) {
             history.pushState(null, '', '/tx/' + val.toLowerCase());
-            import('../router.js?v=11').then(m => m.router());
+            import('../router.js?v=12').then(m => m.router());
             return;
         }
         // Allow lowercase letters in asset code

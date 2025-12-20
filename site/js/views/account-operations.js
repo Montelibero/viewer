@@ -1,4 +1,4 @@
-import { assetLabelFull, createOperationCard } from '/js/operation-view.js?v=12';
+import { assetLabelFull, createOperationCard } from '/js/operation-view.js?v=13';
 
 const horizonBase = 'https://horizon.stellar.org';
 

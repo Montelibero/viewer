@@ -1,4 +1,4 @@
-import { shorten, strKeyToBytes, encodeAddress } from '/js/common.js?v=13';
+import { shorten, strKeyToBytes, encodeAddress } from '../common.js';
 
 const rpcUrl = 'https://soroban-rpc.mainnet.stellar.gateway.fm/';
 

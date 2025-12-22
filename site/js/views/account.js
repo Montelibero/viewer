@@ -1,4 +1,4 @@
-import { shorten, isLocalLike } from '/js/common.js?v=13';
+import { shorten, isLocalLike } from '../common.js';
 
 const horizonBase = 'https://horizon.stellar.org';
 const poolMetaCache = new Map();

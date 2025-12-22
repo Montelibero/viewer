@@ -10,7 +10,8 @@ export function isLocalLike() {
 }
 
 // Статическая версия приложения, показываем в интерфейсе
-export const appVersion = '1.0.14';
+// Injected by index.html template from Caddy
+export const appVersion = window.APP_VERSION || 'DEV';
 
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32Lookup = {};

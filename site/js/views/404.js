@@ -9,7 +9,7 @@ export async function init(params, i18n) {
     // Let's check router.js again.
     /*
         app.innerHTML = html;
-        const module = await import(`./views/${viewName}.js?v=13`);
+        const module = await import(`./views/${viewName}.js`);
         if (module && typeof module.init === 'function') {
             currentView = module;
             const i18n = await initI18n({ baseName: viewName }); // This calls apply() inside!

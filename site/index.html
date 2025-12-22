@@ -6,7 +6,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
-  <link id="common-css" rel="stylesheet" href="/common.css?v=14">
+  <link id="common-css" rel="stylesheet" href="/v{{include "VERSION"}}/common.css">
 </head>
 <body>
 
@@ -43,11 +43,18 @@
     </div>
   </footer>
 
+  <script>
+    // Global version injected by Caddy
+    window.APP_VERSION = '{{include "VERSION"}}';
+  </script>
+
   <script type="module">
-    // Use absolute paths to ensure they work from deep routes (e.g. /account/...)
-    import { router } from '/js/router.js?v=14';
-    import { initI18n } from '/js/i18n.js?v=14';
-    import { appVersion } from '/js/common.js?v=14';
+    // Load main modules using the versioned path
+    // Note: We use absolute paths prefixed with /v{{VERSION}} so Caddy rewrites them.
+    // Subsequent imports inside these files will be relative, thus inheriting the version.
+    import { router } from '/v{{include "VERSION"}}/js/router.js';
+    import { initI18n } from '/v{{include "VERSION"}}/js/i18n.js';
+    import { appVersion } from '/v{{include "VERSION"}}/js/common.js';
 
     document.getElementById('app-version').textContent = appVersion;
 

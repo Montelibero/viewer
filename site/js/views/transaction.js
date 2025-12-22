@@ -1,5 +1,5 @@
 import { shorten, getHorizonURL } from '../common.js';
-import { createXdrOperationBox, accountLink } from '../operation-view.js';
+import { createXdrOperationBox, accountLink, formatStroopAmount } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

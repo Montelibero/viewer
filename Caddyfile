@@ -2,6 +2,16 @@
     root * /srv
     encode gzip
 
+    # Rewrite versioned paths (e.g. /v15/js/...) to actual paths (/js/...)
+    @versioned {
+        path_regexp v ^/v\d+/(.*)$
+    }
+    rewrite @versioned /{re.v.1}
+
+    # Enable templates (Caddy will apply them if the file being served is supported, e.g. .html)
+    # We remove the matcher so it applies to index.html even when served as the index file.
+    templates
+
     # SPA Routing: Rewrite all requests that don't match a file to index.html
     try_files {path} /index.html
 

@@ -1,4 +1,4 @@
-import { initI18n } from './i18n.js?v=14';
+import { initI18n } from './i18n.js';
 
 const routes = [
   { pattern: /^\/$/, view: 'home' },
@@ -33,13 +33,15 @@ async function loadView(route, params) {
 
     try {
         // Load Template
-        const tplRes = await fetch(`/pages/${viewName}.html?v=14`);
+        // Use relative path to inherit the version prefix (e.g. /v15/js/../pages/ -> /v15/pages/)
+        const tplRes = await fetch(`../pages/${viewName}.html`);
         if (!tplRes.ok) throw new Error(`Template ${viewName} not found`);
         const html = await tplRes.text();
         app.innerHTML = html;
 
         // Load Script
-        const module = await import(`./views/${viewName}.js?v=14`);
+        // Relative import works automatically with the versioned base
+        const module = await import(`./views/${viewName}.js`);
         if (module && typeof module.init === 'function') {
             currentView = module;
             // Get i18n instance from window or re-init

@@ -1,4 +1,4 @@
-import { shorten } from '/js/common.js?v=13';
+import { shorten } from '../common.js';
 
 const horizonBase = 'https://horizon.stellar.org';
 

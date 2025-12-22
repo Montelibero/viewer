@@ -37,10 +37,14 @@ To add a new page or view:
 ### Cache Busting & Versioning (Critical)
 The project relies on manual cache-busting via query parameters. Bump versions **only for assets you touched**; it is fine for different files to carry different version numbers.
 
-Current working version for updated assets: `13` (older untouched files may still use `7/8/9`).
+Current working version for updated assets: `14` (older untouched files may still use `7/8/9`).
 
 #### Checklist for Updates:
-1.  **If you change CSS** (e.g., `site/common.css`), bump its query in `site/index.html`:
+1.  **Run JSON Validation**: Before committing, ensure all JSON files are valid by running:
+    ```bash
+    node scripts/validate-json.js
+    ```
+2.  **If you change CSS** (e.g., `site/common.css`), bump its query in `site/index.html`:
     ```html
     <link id="common-css" rel="stylesheet" href="/common.css?v=13">
     ```

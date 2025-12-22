@@ -33,7 +33,7 @@
   "xdr-title": "XDR crudo (envelope_xdr)",
   "xdr-desc": "En caso de que quieras verificar la decodificación manualmente.",
   "memo-none": "ninguno",
-  "memo-text": "TEXTO: \"{text}"",
+  "memo-text": "TEXTO: \"{text}\"",
   "memo-id": "ID: {id}",
   "memo-hash": "HASH (base64): {hash}",
   "memo-return": "HASH RETORNO (base64): {hash}",

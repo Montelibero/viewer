@@ -2,9 +2,9 @@
     root * /srv
     encode gzip
 
-    # Rewrite versioned paths (e.g. /v15/js/...) to actual paths (/js/...)
+    # Rewrite versioned paths (e.g. /v15/js/... or /v1.0.14/js/...) to actual paths (/js/...)
     @versioned {
-        path_regexp v ^/v\d+/(.*)$
+        path_regexp v ^/v[^/]+/(.*)$
     }
     rewrite @versioned /{re.v.1}
 

@@ -33,8 +33,10 @@ async function loadView(route, params) {
 
     try {
         // Load Template
-        // Use relative path to inherit the version prefix (e.g. /v15/js/../pages/ -> /v15/pages/)
-        const tplRes = await fetch(`../pages/${viewName}.html`);
+        // Use import.meta.url to resolve the path relative to THIS file (router.js),
+        // preserving the version prefix (e.g. /v15/js/router.js -> /v15/pages/view.html).
+        const tplUrl = new URL(`../pages/${viewName}.html`, import.meta.url).href;
+        const tplRes = await fetch(tplUrl);
         if (!tplRes.ok) throw new Error(`Template ${viewName} not found`);
         const html = await tplRes.text();
         app.innerHTML = html;

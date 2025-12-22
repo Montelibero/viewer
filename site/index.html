@@ -50,7 +50,7 @@
 
   <script type="module">
     // Load main modules using the versioned path
-    // Note: We use absolute paths prefixed with /v{{VERSION}} so Caddy rewrites them.
+    // Note: We use absolute paths prefixed with /v{VERSION} so Caddy rewrites them.
     // Subsequent imports inside these files will be relative, thus inheriting the version.
     import { router } from '/v{{readFile "VERSION" | trim}}/js/router.js';
     import { initI18n } from '/v{{readFile "VERSION" | trim}}/js/i18n.js';

@@ -1,5 +1,5 @@
 import { shorten, getHorizonURL } from '../common.js';
-import { renderOperation } from '../operation-view.js';
+import { createXdrOperationBox } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

@@ -1,5 +1,5 @@
 import { shorten, getHorizonURL } from '../common.js';
-import { renderOperation } from '../operation-view.js';
+import { renderOperationDetails, renderEffects, accountLink } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 

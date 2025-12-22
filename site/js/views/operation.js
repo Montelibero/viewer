@@ -1,7 +1,7 @@
-import { shorten } from '../common.js';
-import { accountLink, renderOperationDetails, renderEffects } from '../operation-view.js'; // Ensure path is correct
+import { shorten, getHorizonURL } from '../common.js';
+import { renderOperation } from '../operation-view.js';
 
-const horizonBase = 'https://horizon.stellar.org';
+const horizonBase = getHorizonURL();
 
 export async function init(params, i18n) {
     const { t } = i18n;

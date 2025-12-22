@@ -20,5 +20,11 @@
   "message-loading-assets": "Ищем ассеты…",
   "message-asset-error": "Не удалось получить ассеты.",
   "version-label": "Версия",
-  "github-link": "GitHub проекта"
+  "github-link": "GitHub проекта",
+  "settings-title": "Настройки",
+  "horizon-url-label": "Horizon URL",
+  "horizon-url-help": "Введите валидный URL Horizon API.",
+  "save-button": "Сохранить",
+  "reset-button": "Сбросить",
+  "cancel-button": "Отмена"
 }

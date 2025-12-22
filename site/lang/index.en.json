@@ -20,5 +20,11 @@
   "message-loading-assets": "Searching assets…",
   "message-asset-error": "Could not fetch assets.",
   "version-label": "Version",
-  "github-link": "Project GitHub"
+  "github-link": "Project GitHub",
+  "settings-title": "Settings",
+  "horizon-url-label": "Horizon URL",
+  "horizon-url-help": "Enter a valid Horizon API URL.",
+  "save-button": "Save",
+  "reset-button": "Reset to Default",
+  "cancel-button": "Cancel"
 }

@@ -501,7 +501,7 @@ export function createXdrOperationBox(op, index, txSource, { txSuccessful = null
       btn.classList.add('is-loading');
 
       try {
-        const horizonBase = 'https://horizon.stellar.org';
+        const horizonBase = getHorizonURL();
         const res = await fetch(`${horizonBase}/operations/${opId}/effects`);
         if (!res.ok) throw new Error(`Effects load error ${res.status}`);
         const json = await res.json();

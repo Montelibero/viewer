@@ -1,6 +1,6 @@
-import { shorten } from '../common.js';
+import { shorten, getHorizonURL } from '../common.js';
 
-const horizonBase = 'https://horizon.stellar.org';
+const horizonBase = getHorizonURL();
 
 function accountLink(acc, { short = true } = {}) {
     if (!acc) return '—';

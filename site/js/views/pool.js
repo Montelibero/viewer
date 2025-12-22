@@ -1,12 +1,6 @@
-import { shorten } from '../common.js';
+import { shorten, getHorizonURL } from '../common.js';
 
-const horizonBase = 'https://horizon.stellar.org';
-
-function formatAssetLabel(asset) {
-    if (!asset || asset === 'native') return 'XLM';
-    const [code, issuer] = asset.split(':');
-    return `${code || '—'} · ${issuer ? shorten(issuer) : '—'}`;
-}
+const horizonBase = getHorizonURL();
 
 export async function init(params, i18n) {
     const { t } = i18n;

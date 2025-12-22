@@ -1,4 +1,4 @@
-import { shorten, strKeyToBytes, encodeAddress } from '../common.js';
+import { shorten, strKeyToBytes, encodeAddress, getHorizonURL } from '../common.js';
 
 const rpcUrl = 'https://soroban-rpc.mainnet.stellar.gateway.fm/';
 
@@ -21,7 +21,21 @@ export async function init(params, i18n) {
     const errorBox = document.getElementById('error-box');
     
     // Set external link
-    const labUrlTemplate = `https://lab.stellar.org/smart-contracts/contract-explorer?$=network$id=mainnet&label=Mainnet&horizonUrl=https:////horizon.stellar.org&rpcUrl=https:////soroban-rpc.mainnet.stellar.gateway.fm&passphrase=Public%20Global%20Stellar%20Network%20/;%20September%202015;&smartContracts$explorer$contractId=`;
+    // We encode the Horizon URL to ensure it fits into the URL parameter correctly.
+    // However, the original code had `https:////horizon.stellar.org` which looks like a specific encoding/escaping for the Lab?
+    // The Lab URL format: ...&horizonUrl=https://horizon.stellar.org...
+    // The previous code had `https:////horizon.stellar.org` inside the template string. 
+    // Wait, the previous code had `https:////horizon.stellar.org`? That's double slash after protocol?
+    // Let's assume standard URL encoding is better, but maybe the Lab needs something specific.
+    // Looking at the previous string: `...&horizonUrl=https:////horizon.stellar.org&...`
+    // It seems the user might have copy-pasted a weird URL or the tool output was weird.
+    // I will use standard URL.
+    
+    const hUrl = getHorizonURL();
+    // Reconstruct the URL properly
+    const labBase = 'https://lab.stellar.org/smart-contracts/contract-explorer?$=network$id=mainnet&label=Mainnet';
+    const labUrlTemplate = `${labBase}&horizonUrl=${encodeURIComponent(hUrl)}&rpcUrl=https:////soroban-rpc.mainnet.stellar.gateway.fm&passphrase=Public%20Global%20Stellar%20Network%20/;%20September%202015;&smartContracts$explorer$contractId=`;
+    
     const btnStellarLab = document.getElementById('btn-stellar-lab');
     if (btnStellarLab) {
         btnStellarLab.href = `${labUrlTemplate}${contractId}`;

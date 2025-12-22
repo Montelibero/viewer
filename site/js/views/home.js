@@ -1,5 +1,5 @@
 
-import { shorten } from '../common.js';
+import { shorten, getHorizonURL } from '../common.js';
 
 export async function init(params, i18n) {
     const { t } = i18n;
@@ -10,7 +10,7 @@ export async function init(params, i18n) {
     const assetResultsEl = document.getElementById('asset-results');
 
     const STORAGE_KEY = 'viewer_account_history';
-    const horizonBase = 'https://horizon.stellar.org';
+    const horizonBase = getHorizonURL();
 
     // Helper functions (copied from old index logic)
     function showMessage(key) {

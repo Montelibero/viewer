@@ -1,10 +1,6 @@
-import { shorten } from '../common.js';
+import { shorten, getHorizonURL } from '../common.js';
 
-const horizonBase = 'https://horizon.stellar.org';
-
-function buildAssetId(asset) {
-    return `${asset.code}:${asset.issuer}`;
-}
+const horizonBase = getHorizonURL();
 
 export async function init(params, i18n) {
     const { t } = i18n;

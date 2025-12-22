@@ -1,3 +1,4 @@
+import { getHorizonURL } from '../common.js';
 
 export async function init(params, i18n) {
     const [poolId] = params;
@@ -7,7 +8,7 @@ export async function init(params, i18n) {
     container.textContent = 'Loading...';
 
     try {
-        const res = await fetch(`https://horizon.stellar.org/liquidity_pools/${poolId}/operations?order=desc&limit=20`);
+        const res = await fetch(`${getHorizonURL()}/liquidity_pools/${poolId}/operations?order=desc&limit=20`);
         if (res.status === 404) {
              container.textContent = 'Pool not found.';
              return;

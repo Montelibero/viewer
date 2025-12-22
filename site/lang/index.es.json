@@ -20,5 +20,11 @@
   "message-loading-assets": "Buscando activos…",
   "message-asset-error": "No pudimos obtener los activos.",
   "version-label": "Versión",
-  "github-link": "GitHub del proyecto"
+  "github-link": "GitHub del proyecto",
+  "settings-title": "Configuración",
+  "horizon-url-label": "URL de Horizon",
+  "horizon-url-help": "Ingrese una URL válida de la API de Horizon.",
+  "save-button": "Guardar",
+  "reset-button": "Restablecer",
+  "cancel-button": "Cancelar"
 }

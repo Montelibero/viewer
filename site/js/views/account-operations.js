@@ -1,6 +1,7 @@
 import { assetLabelFull, createOperationCard } from '../operation-view.js';
+import { getHorizonURL } from '../common.js';
 
-const horizonBase = 'https://horizon.stellar.org';
+const horizonBase = getHorizonURL();
 
 function parseAmountFilter(value, t) {
     if (!value.trim()) return null;

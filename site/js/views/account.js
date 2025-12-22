@@ -1,6 +1,6 @@
-import { shorten, isLocalLike } from '../common.js';
+import { shorten, isLocalLike, getHorizonURL } from '../common.js';
 
-const horizonBase = 'https://horizon.stellar.org';
+const horizonBase = getHorizonURL();
 const poolMetaCache = new Map();
 
 function formatAssetLabel(asset) {

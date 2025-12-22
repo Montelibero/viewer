@@ -1,6 +1,7 @@
-import { accountLink, createXdrOperationBox, formatStroopAmount } from '../operation-view.js';
+import { shorten, getHorizonURL } from '../common.js';
+import { renderOperation } from '../operation-view.js';
 
-const horizonBase = 'https://horizon.stellar.org';
+const horizonBase = getHorizonURL();
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const base32Lookup = {};
 for(let i=0; i<base32Alphabet.length; i++) {

@@ -1,3 +1,58 @@
+export const defaultHorizonURL = 'https://horizon.stellar.org';
+
+export function getHorizonURL() {
+    return localStorage.getItem('horizonURL') || defaultHorizonURL;
+}
+
+export function setHorizonURL(url) {
+    if (!url) return;
+    localStorage.setItem('horizonURL', url);
+}
+
+export function resetHorizonURL() {
+    localStorage.removeItem('horizonURL');
+}
+
+export function initSettings() {
+    const btn = document.getElementById('settings-btn');
+    const modal = document.getElementById('settings-modal');
+    const closeBtn = modal.querySelector('.delete');
+    const cancelBtn = document.getElementById('cancel-settings-btn');
+    const saveBtn = document.getElementById('save-settings-btn');
+    const resetBtn = document.getElementById('reset-settings-btn');
+    const input = document.getElementById('horizon-url-input');
+
+    function openModal() {
+        input.value = getHorizonURL();
+        modal.classList.add('is-active');
+    }
+
+    function closeModal() {
+        modal.classList.remove('is-active');
+    }
+
+    btn.onclick = openModal;
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    modal.querySelector('.modal-background').onclick = closeModal;
+
+    saveBtn.onclick = () => {
+        const url = input.value.trim();
+        if (url) {
+            setHorizonURL(url);
+            closeModal();
+            location.reload(); // Reload to apply changes
+        }
+    };
+
+    resetBtn.onclick = () => {
+        resetHorizonURL();
+        input.value = defaultHorizonURL;
+        closeModal();
+        location.reload();
+    };
+}
+
 export function shorten(value) {
   if (value === undefined || value === null) return '';
   const str = String(value);

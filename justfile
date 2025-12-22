@@ -9,7 +9,7 @@ build tag="latest":
     # Build Docker image
     docker build -t {{IMAGE_NAME}}:{{tag}} .
 
-run:
+run: test
     # Build and Run Docker container
     docker build -t stellar_viewer:local .
     docker run --rm -p 8081:80 stellar_viewer:local

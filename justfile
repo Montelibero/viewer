@@ -44,3 +44,7 @@ push-gitdocker tag="latest":
     docker build -t {{IMAGE_NAME}}:{{tag}} .
     docker tag {{IMAGE_NAME}} ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
     docker push ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
+
+test:
+    node scripts/validate-json.js
+    node scripts/check-imports.js

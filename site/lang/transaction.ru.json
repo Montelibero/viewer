@@ -33,7 +33,7 @@
   "xdr-title": "Сырой XDR (envelope_xdr)",
   "xdr-desc": "На случай, если захочется проверить декодирование вручную.",
   "memo-none": "нет",
-  "memo-text": "TEXT: \"{text}"",
+  "memo-text": "TEXT: \"{text}\"",
   "memo-id": "ID: {id}",
   "memo-hash": "HASH (base64): {hash}",
   "memo-return": "RETURN HASH (base64): {hash}",

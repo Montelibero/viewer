@@ -1,5 +1,6 @@
 
 const HORIZON_URL = window.HORIZON_URL || 'https://horizon.stellar.org';
+import { assetLabelFull } from '../operation-view.js';
 
 let loadingInterval = null;
 let stopFetching = false;
@@ -17,7 +18,6 @@ export async function init(params, i18n) {
   if (backLink) backLink.href = `/account/${accountId}`;
 
   if (year !== '2025') {
-    // Should be handled by router regex, but just in case
     alert(t('error-year'));
     return;
   }
@@ -28,7 +28,16 @@ export async function init(params, i18n) {
     orders: 0,
     swaps: 0,
     payments: 0,
-    trustlines: 0
+    trustlines: 0,
+    data: 0,
+    failed: 0,
+    fees: 0, // Estimated
+
+    // Aggregation maps
+    months: {},
+    counterparties: {}, // Address -> Count
+    paymentAssets: {}, // Asset -> { count, amount }
+    swapPairs: {} // Source->Dest -> { count, amount }
   };
 
   const loadingMsgEl = document.getElementById('loading-message');
@@ -45,11 +54,6 @@ export async function init(params, i18n) {
     const elapsed = Date.now() - startLoadingTime;
     const count = stats.total;
 
-    // Logic for messages:
-    // > 5s or > 200 ops -> "Oh so many"
-    // > 15s or > 1000 ops -> "Meaning not so quick"
-    // > 30s or > 5000 ops -> "Giant"
-
     let msgKey = 'loading-start';
     if (elapsed > 30000 || count > 5000) msgKey = 'loading-giant';
     else if (elapsed > 15000 || count > 1000) msgKey = 'loading-slow';
@@ -62,30 +66,17 @@ export async function init(params, i18n) {
 
   try {
     await fetchOperations(accountId, stats, (count) => {
-        // Callback update if needed, currently handled by interval
-        // But we can force update here if we want smoother counter
         if (loadingStatusEl) loadingStatusEl.textContent = t('loading-status').replace('{{count}}', count);
     });
 
     // Finish
-    renderStats(stats);
+    renderStats(stats, t);
   } catch (err) {
     console.error(err);
     if (loadingMsgEl) loadingMsgEl.textContent = t('error-fetch');
     if (loadingStatusEl) loadingStatusEl.textContent = err.message;
   } finally {
     clearInterval(loadingInterval);
-  }
-
-  function renderStats(finalStats) {
-      if (loadingContainer) loadingContainer.classList.add('is-hidden');
-      if (statsContainer) statsContainer.classList.remove('is-hidden');
-
-      document.getElementById('stat-total-ops').textContent = finalStats.total.toLocaleString();
-      document.getElementById('stat-orders').textContent = finalStats.orders.toLocaleString();
-      document.getElementById('stat-swaps').textContent = finalStats.swaps.toLocaleString();
-      document.getElementById('stat-payments').textContent = finalStats.payments.toLocaleString();
-      document.getElementById('stat-trustlines').textContent = finalStats.trustlines.toLocaleString();
   }
 }
 
@@ -94,38 +85,32 @@ export function cleanup() {
   if (loadingInterval) clearInterval(loadingInterval);
 }
 
-async function fetchOperations(accountId, stats, onProgress) {
-  // ISO dates
-  // Start: 2025-01-01T00:00:00Z
-  // End: 2026-01-01T00:00:00Z (Exclusive)
-  // We scan ASCENDING from Start. If created_at >= End, we stop.
+// Helpers for keys
+function getAssetKey(code, issuer, type) {
+    if (type === 'native') return 'XLM';
+    return `${code || '?'}-${issuer || '?'}`;
+}
 
+function getAssetLabel(key) {
+    if (key === 'XLM') return 'XLM';
+    const [code, issuer] = key.split('-');
+    return code; // Simplified for "Top 3" list
+}
+
+function getMonthName(dateStr) {
+    // 2025-01-01 -> "2025-01"
+    return dateStr.substring(0, 7);
+}
+
+async function fetchOperations(accountId, stats, onProgress) {
   const startTime = '2025-01-01T00:00:00Z';
   const endTime = '2026-01-01T00:00:00Z';
 
-  let cursor = '';
-  // Initial url: operations?order=asc&limit=200&include_failed=true&start_time=...
-  // Note: start_time parameter is not standard in all Horizon versions for /operations,
-  // usually it works on /effects or /ledgers.
-  // But standard Horizon /accounts/{id}/operations does NOT support start_time directly to filter by time, only cursor.
-  // Wait, I need to check if /accounts/{id}/operations supports valid filters.
-  // Horizon docs: /accounts/{account_id}/operations supports cursor, order, limit, include_failed.
-  // It does NOT support start_time.
-
-  // So we must fetch DESCENDING (default) from NOW (or top) until we hit 2025.
-  // OR fetch ASCENDING from cursor 0? No, that's from beginning of time.
-  // If the account is old, ASC from 0 is bad.
-  // If the account is new, ASC is fine.
-
-  // If we assume "most users look at recent stats", DESCENDING is better if 2025 is "current year".
-  // Since 2025 is current year (in the prompt context), DESCENDING is safer.
-  // We fetch DESC.
-  // Stop when date < 2025-01-01.
-  // Skip (don't count) if date >= 2026-01-01 (future proofing).
-
-  let url = `${HORIZON_URL}/accounts/${accountId}/operations?limit=200&order=desc&include_failed=false`;
+  // include_failed=true per requirements
+  let url = `${HORIZON_URL}/accounts/${accountId}/operations?limit=200&order=desc&include_failed=true`;
 
   stopFetching = false;
+  let cursor = '';
 
   while (!stopFetching) {
     const fetchUrl = cursor ? `${url}&cursor=${cursor}` : url;
@@ -137,37 +122,101 @@ async function fetchOperations(accountId, stats, onProgress) {
     if (!records || records.length === 0) break;
 
     for (const op of records) {
-      const date = op.created_at; // ISO string
+      const date = op.created_at;
 
-      if (date >= endTime) continue; // Skip 2026+ (if any)
+      if (date >= endTime) continue;
       if (date < startTime) {
         stopFetching = true;
-        break; // Reached 2024
+        break;
       }
 
-      // Aggregate
       stats.total++;
+
+      // Fees Estimate: 100 stroops (0.00001 XLM) per op
+      stats.fees += 0.00001;
+
+      // Month
+      const month = getMonthName(date);
+      stats.months[month] = (stats.months[month] || 0) + 1;
+
+      // Failed
+      if (op.transaction_successful === false) {
+          stats.failed++;
+          // Even if failed, we count it in total, but maybe not in specific logic?
+          // Usually failed ops don't result in transfers.
+          // We will SKIP specific logic (swaps, payments) if failed.
+          continue;
+      }
 
       const type = op.type;
 
       // Orders
-      if (type === 'manage_buy_offer' || type === 'manage_sell_offer' || type === 'create_passive_sell_offer') {
+      if (['manage_buy_offer', 'manage_sell_offer', 'create_passive_sell_offer'].includes(type)) {
           stats.orders++;
       }
 
       // Swaps
       else if (type === 'path_payment_strict_send' || type === 'path_payment_strict_receive') {
           stats.swaps++;
+
+          // Source and Dest
+          // strict_send: sends strict amount of source_asset, receives dest_min of dest_asset
+          // strict_receive: sends max source, receives strict dest
+
+          let srcKey, destKey, destAmount = 0;
+
+          if (type === 'path_payment_strict_send') {
+              srcKey = getAssetKey(op.source_asset_code, op.source_asset_issuer, op.source_asset_type);
+              destKey = getAssetKey(op.asset_code, op.asset_issuer, op.asset_type); // dest asset
+              // amount is source amount? "dest_min"?
+              // Horizon response: amount (source sent), dest_min (min dest received).
+              // Wait, in strict_send, `amount` is amount sent. `dest_amount` is not in op body?
+              // The `amount` field in op is the source amount.
+              // We usually care about Volume. Let's sum source volume?
+              // User asked for "Sum".
+              // Let's rely on what's available.
+              // We will just sum `amount` (the primary amount field).
+              // For strict_send, it's source. For strict_receive, it's dest.
+              // To be consistent, let's track the PAIR count mostly.
+
+              // Key: SRC -> DST
+          } else {
+              srcKey = getAssetKey(op.source_asset_code, op.source_asset_issuer, op.source_asset_type);
+              destKey = getAssetKey(op.asset_code, op.asset_issuer, op.asset_type);
+              // amount is dest amount received.
+          }
+
+          const pairKey = `${srcKey} -> ${destKey}`;
+          if (!stats.swapPairs[pairKey]) stats.swapPairs[pairKey] = { count: 0 };
+          stats.swapPairs[pairKey].count++;
       }
 
       // Payments
       else if (type === 'payment') {
           stats.payments++;
+          const assetKey = getAssetKey(op.asset_code, op.asset_issuer, op.asset_type);
+          if (!stats.paymentAssets[assetKey]) stats.paymentAssets[assetKey] = { count: 0, amount: 0 };
+          stats.paymentAssets[assetKey].count++;
+          stats.paymentAssets[assetKey].amount += parseFloat(op.amount || 0);
+
+          // Counterparty (Outgoing: to)
+          // "делал пеймент" = outgoing.
+          // Horizon op "from" is usually source. "to" is dest.
+          // But if we are viewing the sender's account, op.source_account == accountId.
+          if (op.source_account === accountId) {
+             const buddy = op.to;
+             stats.counterparties[buddy] = (stats.counterparties[buddy] || 0) + 1;
+          }
       }
 
       // Trustlines
       else if (type === 'change_trust') {
           stats.trustlines++;
+      }
+
+      // Manage Data
+      else if (type === 'manage_data') {
+          stats.data++;
       }
     }
 
@@ -178,12 +227,99 @@ async function fetchOperations(accountId, stats, onProgress) {
     const nextLink = data._links?.next?.href;
     if (!nextLink) break;
 
-    // Extract cursor from next link
     const nextUrlObj = new URL(nextLink);
     cursor = nextUrlObj.searchParams.get('cursor');
-
-    // Safety break for extremely large accounts to avoid browser crash/infinite loop in testing?
-    // User asked "load until victory". I will respect that.
-    // But I should check stopFetching flag from cleanup()
   }
+}
+
+function renderStats(stats, t) {
+    const loadingContainer = document.getElementById('loading-container');
+    const statsContainer = document.getElementById('stats-container');
+
+    if (loadingContainer) loadingContainer.classList.add('is-hidden');
+    if (statsContainer) statsContainer.classList.remove('is-hidden');
+
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    setText('stat-total-ops', stats.total.toLocaleString());
+    setText('stat-orders', stats.orders.toLocaleString());
+    setText('stat-swaps', stats.swaps.toLocaleString());
+    setText('stat-payments', stats.payments.toLocaleString());
+    setText('stat-trustlines', stats.trustlines.toLocaleString());
+    setText('stat-data', stats.data.toLocaleString());
+    setText('stat-failed', stats.failed.toLocaleString());
+    setText('stat-fees', stats.fees.toFixed(5));
+
+    // Busiest Month
+    let maxMonth = '-', maxCount = 0;
+    for (const [m, c] of Object.entries(stats.months)) {
+        if (c > maxCount) {
+            maxCount = c;
+            maxMonth = m;
+        }
+    }
+    setText('stat-month', maxMonth);
+
+    // Top Payments
+    const topPayments = Object.entries(stats.paymentAssets)
+        .sort((a, b) => b[1].count - a[1].count) // Sort by Count
+        .slice(0, 3);
+
+    const paymentListEl = document.getElementById('top-payments-list');
+    if (paymentListEl) {
+        if (topPayments.length === 0) {
+            paymentListEl.innerHTML = '<p class="has-text-grey has-text-centered">-</p>';
+        } else {
+            paymentListEl.innerHTML = topPayments.map(([key, data]) => `
+                <div class="level is-mobile mb-2">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <span class="tag is-info is-light mr-2">${getAssetLabel(key)}</span>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item has-text-right">
+                            <div>
+                                <p class="heading mb-0">${data.count} txs</p>
+                                <p class="is-size-7">${data.amount.toLocaleString()} sum</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Top Swaps
+    const topSwaps = Object.entries(stats.swapPairs)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 1); // Only Top 1 per prompt? "самый популярный" = singular.
+
+    const swapListEl = document.getElementById('top-swaps-list');
+    if (swapListEl) {
+        if (topSwaps.length === 0) {
+            swapListEl.innerHTML = '<p class="has-text-grey has-text-centered">-</p>';
+        } else {
+            const [pair, data] = topSwaps[0];
+            swapListEl.innerHTML = `
+                <div class="has-text-centered">
+                    <p class="title is-6 mb-1">${pair}</p>
+                    <p class="subtitle is-6">${data.count} times</p>
+                </div>
+            `;
+        }
+    }
+
+    // Top Counterparty
+    const topBuddy = Object.entries(stats.counterparties)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 1);
+
+    if (topBuddy.length > 0) {
+        const [addr, count] = topBuddy[0];
+        setText('stat-counterparty', `${addr.substring(0,4)}...${addr.substring(addr.length-4)} (${count})`);
+    }
 }

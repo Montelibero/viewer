@@ -10,6 +10,13 @@
   "stat-swaps": "Swaps",
   "stat-payments": "Pagos",
   "stat-trustlines": "Líneas de confianza",
+  "stat-data": "Entradas de Datos",
+  "stat-fees": "Comisiones (XLM)",
+  "stat-month": "Mes activo",
+  "stat-failed": "Fallidos",
+  "header-top-payments": "Top 3 Tokens (Pagos)",
+  "header-top-swaps": "Intercambio Top",
+  "header-counterparty": "Amigo Favorito",
   "back-to-account": "Volver a la cuenta",
   "error-year": "Solo están disponibles las estadísticas de 2025.",
   "error-fetch": "Error al cargar las operaciones."

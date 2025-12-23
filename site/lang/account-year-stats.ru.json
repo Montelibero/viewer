@@ -10,6 +10,13 @@
   "stat-swaps": "Свапов",
   "stat-payments": "Платежей",
   "stat-trustlines": "Трастлайнов",
+  "stat-data": "Data Entries",
+  "stat-fees": "Сожжено комиссий (XLM)",
+  "stat-month": "Активный месяц",
+  "stat-failed": "Неудач",
+  "header-top-payments": "Топ 3 токена (Платежи)",
+  "header-top-swaps": "Популярный обмен",
+  "header-counterparty": "Любимый получатель",
   "back-to-account": "Назад к аккаунту",
   "error-year": "Доступна статистика только за 2025 год.",
   "error-fetch": "Ошибка загрузки операций."

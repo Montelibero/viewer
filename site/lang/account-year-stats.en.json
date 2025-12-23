@@ -10,6 +10,13 @@
   "stat-swaps": "Swaps",
   "stat-payments": "Payments",
   "stat-trustlines": "Trustlines Changed",
+  "stat-data": "Data Entries Set",
+  "stat-fees": "Est. Fees Burned (XLM)",
+  "stat-month": "Busiest Month",
+  "stat-failed": "Failed Ops",
+  "header-top-payments": "Top 3 Payment Tokens",
+  "header-top-swaps": "Top Swap Pair",
+  "header-counterparty": "Favorite Buddy",
   "back-to-account": "Back to Account",
   "error-year": "Only 2025 statistics are available.",
   "error-fetch": "Failed to fetch operations."

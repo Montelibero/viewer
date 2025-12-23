@@ -48,6 +48,7 @@
   "error-load-account": "Failed to load account",
   "error-unknown": "Unknown error while loading account.",
   "btn-estimate": "Estimate Balances",
+  "btn-2025-rewind": "❄️ 2025: Rewind ❄️",
   "total-label": "Total",
   "label-offers": "Offers",
   "label-trustlines": "Trustlines",

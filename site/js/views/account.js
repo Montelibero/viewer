@@ -654,12 +654,14 @@ export async function init(params, i18n) {
         const btnStellarchain = document.getElementById('btn-stellarchain');
         const btnOperations = document.getElementById('btn-operations');
         const btnOffers = document.getElementById('btn-offers');
+        const btn2025 = document.getElementById('btn-2025-stats');
 
         if(btnBsn) btnBsn.href = `https://bsn.expert/accounts/${id}`;
         if(btnScopuly) btnScopuly.href = `https://scopuly.com/account/${id}`;
         if(btnStellarchain) btnStellarchain.href = `https://stellarchain.io/accounts/${id}`;
         if(btnOperations) btnOperations.href = `/account/${encodeURIComponent(id)}/operations`;
         if(btnOffers) btnOffers.href = `/account/${encodeURIComponent(id)}/offers`;
+        if(btn2025) btn2025.href = `/account/${encodeURIComponent(id)}/2025`;
 
         loadIssuedAssets(account.id);
     }

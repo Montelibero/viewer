@@ -48,6 +48,7 @@
   "error-load-account": "Не удалось загрузить аккаунт",
   "error-unknown": "Неизвестная ошибка при загрузке аккаунта.",
   "btn-estimate": "Оценить балансы",
+  "btn-2025-rewind": "❄️ 2025: Rewind ❄️",
   "total-label": "Всего",
   "label-offers": "Offers",
   "label-trustlines": "Trustlines",

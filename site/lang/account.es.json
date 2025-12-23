@@ -48,6 +48,7 @@
   "error-load-account": "No se pudo cargar la cuenta",
   "error-unknown": "Error desconocido al cargar la cuenta.",
   "btn-estimate": "Estimar saldos",
+  "btn-2025-rewind": "❄️ 2025: Rewind ❄️",
   "total-label": "Total",
   "label-offers": "Ofertas",
   "label-trustlines": "Trustlines",

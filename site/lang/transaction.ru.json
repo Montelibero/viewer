@@ -68,6 +68,7 @@
   "op-clear-flags": "Сбросить флаги",
   "op-signer": "Сигнер",
   "op-trust-asset": "Траст к активу",
+  "op-trust-pool": "Траст к пулу ликвидности",
   "op-limit": "Лимит",
   "op-trustor": "Трастор",
   "op-asset": "Актив",

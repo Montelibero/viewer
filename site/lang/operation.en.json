@@ -39,6 +39,7 @@
   "op-clear-flags": "Clear flags",
   "op-signer": "Signer",
   "op-trust-asset": "Trust asset",
+  "op-trust-pool": "Trust Liquidity Pool",
   "op-limit": "Limit",
   "op-trustor": "Trustor",
   "op-asset": "Asset",

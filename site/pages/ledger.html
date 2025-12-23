@@ -1,0 +1,76 @@
+<section class="section">
+  <div class="container">
+    <div class="columns">
+      <div class="column is-12">
+        <div class="box">
+          <h1 class="title is-4">
+            <span data-i18n="title">Ledger</span> <span id="ledger-seq" class="is-mono has-text-grey"></span>
+          </h1>
+
+          <!-- Error -->
+          <div class="notification is-danger is-hidden" id="error-box">
+             <span id="error-text"></span>
+          </div>
+
+          <!-- Details -->
+          <div id="ledger-details" class="content">
+            <div class="columns is-multiline is-mobile">
+               <!-- Row 1 -->
+               <div class="column is-6">
+                 <p class="heading" data-i18n="closed_at">Closed At</p>
+                 <p id="ledger-time" class="subtitle is-6">-</p>
+               </div>
+               <div class="column is-6">
+                 <p class="heading" data-i18n="protocol_version">Protocol Version</p>
+                 <p id="ledger-protocol" class="subtitle is-6">-</p>
+               </div>
+
+               <!-- Row 2 -->
+               <div class="column is-6">
+                 <p class="heading" data-i18n="operation_count">Operation Count</p>
+                 <p id="ledger-ops" class="subtitle is-6">-</p>
+               </div>
+               <div class="column is-6">
+                 <p class="heading" data-i18n="fee_base">Base Fee</p>
+                 <p id="ledger-fee" class="subtitle is-6">-</p>
+               </div>
+
+               <!-- Row 3 -->
+               <div class="column is-12">
+                 <p class="heading" data-i18n="hash">Hash</p>
+                 <p class="subtitle is-6 text-truncate">
+                   <span id="ledger-hash" class="is-mono is-size-7"></span>
+                 </p>
+               </div>
+               <div class="column is-12">
+                 <p class="heading" data-i18n="prev_hash">Previous Hash</p>
+                 <p class="subtitle is-6 text-truncate">
+                   <a id="ledger-prev" href="#" class="is-mono is-size-7"></a>
+                 </p>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions -->
+        <div class="box mt-5">
+           <h2 class="title is-5" data-i18n="transactions_title">Transactions</h2>
+           <div class="table-container">
+             <table class="table is-fullwidth is-striped is-hoverable">
+               <thead>
+                 <tr>
+                   <th data-i18n="tx_hash">Tx Hash</th>
+                   <th data-i18n="tx_source">Source</th>
+                   <th data-i18n="tx_ops">Ops</th>
+                   <th data-i18n="tx_status">Status</th>
+                 </tr>
+               </thead>
+               <tbody id="tx-list"></tbody>
+             </table>
+           </div>
+           <p id="no-tx-msg" class="has-text-grey is-hidden" data-i18n="no_transactions"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

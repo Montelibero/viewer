@@ -8,9 +8,28 @@ export async function init(params, i18n) {
     const messageEl = document.getElementById('message');
     const historyEl = document.getElementById('history');
     const assetResultsEl = document.getElementById('asset-results');
+    const ledgerEl = document.getElementById('latest-ledger');
 
     const STORAGE_KEY = 'viewer_account_history';
     const horizonBase = getHorizonURL();
+
+    // Fetch and display latest ledger
+    fetch(horizonBase)
+        .then(res => res.json())
+        .then(data => {
+            const seq = data.history_latest_ledger || data.core_latest_ledger;
+            const closed = data.history_latest_ledger_closed_at;
+
+            if (seq) {
+                const dateStr = closed ? new Date(closed).toLocaleString() : '';
+                ledgerEl.innerHTML = `
+                    <span class="has-text-weight-bold mr-1">${t('latest-ledger-label')}</span>
+                    <a href="/ledger/${seq}" class="is-mono">${seq}</a>
+                    <span class="ml-2 is-size-7">${dateStr}</span>
+                `;
+            }
+        })
+        .catch(err => console.error('Failed to load root info', err));
 
     // Helper functions (copied from old index logic)
     function showMessage(key) {

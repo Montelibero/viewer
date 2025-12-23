@@ -17,9 +17,9 @@ function assetLabel(asset) {
 }
 
 function getAssetCode(asset) {
-    if (!asset) return '';
+    if (!asset) return '—';
     if (asset.asset_type === 'native') return 'XLM';
-    return asset.asset_code || '';
+    return asset.asset_code || '—';
 }
 
 function formatDate(isoStr) {
@@ -135,14 +135,18 @@ export async function init(params, i18n) {
         switch (column) {
             case 'id':
                 return parseInt(offer.id, 10);
-            case 'selling':
-                // Sort by amount roughly
+            case 'sell_amount':
+                // Sort by amount
                 return parseFloat(offer.amount);
-            case 'buying':
+            case 'sell_asset':
+                return getAssetCode(offer.selling).toUpperCase();
+            case 'buy_amount':
                 // Sort by buying amount
                 const p = parseFloat(offer.price);
                 const amt = parseFloat(offer.amount);
                 return p * amt;
+            case 'buy_asset':
+                 return getAssetCode(offer.buying).toUpperCase();
             case 'price':
                 return parseFloat(offer.price);
             case 'price_inv':
@@ -191,14 +195,15 @@ export async function init(params, i18n) {
             const buyingAssetLabel = assetLabel(offer.buying);
             const sellingAssetLabel = assetLabel(offer.selling);
 
-            // Using toLocaleString for pretty numbers if possible,
-            // but usually raw or 7 decimal places is safer for crypto.
-            // Let's stick to simple formatting to avoid precision issues hiding.
-
             tr.innerHTML = `
                 <td><a href="/offer/${offer.id}">${offer.id}</a></td>
-                <td><span class="has-text-weight-medium">${offer.amount}</span> <small>${sellingAssetLabel}</small></td>
-                <td><span class="has-text-weight-medium">${amountBuying.toFixed(7).replace(/\.?0+$/, '')}</span> <small>${buyingAssetLabel}</small></td>
+
+                <td><span class="has-text-weight-medium">${offer.amount}</span></td>
+                <td><small>${sellingAssetLabel}</small></td>
+
+                <td><span class="has-text-weight-medium">${amountBuying.toFixed(7).replace(/\.?0+$/, '')}</span></td>
+                <td><small>${buyingAssetLabel}</small></td>
+
                 <td>${price}</td>
                 <td>${invPrice.toFixed(7).replace(/\.?0+$/, '')}</td>
                 <td class="is-size-7">${formatDate(offer.last_modified_time)}</td>

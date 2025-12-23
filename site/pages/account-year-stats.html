@@ -1,0 +1,66 @@
+<section class="section">
+  <div class="container">
+    <div class="columns is-mobile is-vcentered mb-5">
+      <div class="column">
+        <h1 class="title is-4" data-i18n="title">2025 Stats</h1>
+        <h2 class="subtitle is-6 text-truncate" id="account-id"></h2>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading-container" class="has-text-centered my-6">
+      <progress class="progress is-large is-primary mb-4" max="100"></progress>
+      <h3 class="title is-5" id="loading-message" data-i18n="loading-start">Loading quickly...</h3>
+      <p class="subtitle is-6 has-text-grey" id="loading-status">0 operations loaded</p>
+    </div>
+
+    <!-- Stats Grid (Hidden initially) -->
+    <div id="stats-container" class="is-hidden">
+      <div class="columns is-multiline is-mobile">
+        <!-- Total Operations -->
+        <div class="column is-6-mobile is-3-tablet">
+          <div class="box h-100 has-text-centered">
+            <p class="heading" data-i18n="stat-total-ops">Total Ops</p>
+            <p class="title is-2" id="stat-total-ops">0</p>
+          </div>
+        </div>
+
+        <!-- Orders -->
+        <div class="column is-6-mobile is-3-tablet">
+          <div class="box h-100 has-text-centered">
+            <p class="heading" data-i18n="stat-orders">Orders</p>
+            <p class="title is-2" id="stat-orders">0</p>
+          </div>
+        </div>
+
+        <!-- Swaps -->
+        <div class="column is-6-mobile is-3-tablet">
+          <div class="box h-100 has-text-centered">
+            <p class="heading" data-i18n="stat-swaps">Swaps</p>
+            <p class="title is-2" id="stat-swaps">0</p>
+          </div>
+        </div>
+
+        <!-- Payments -->
+        <div class="column is-6-mobile is-3-tablet">
+          <div class="box h-100 has-text-centered">
+            <p class="heading" data-i18n="stat-payments">Payments</p>
+            <p class="title is-2" id="stat-payments">0</p>
+          </div>
+        </div>
+
+        <!-- Trustlines -->
+        <div class="column is-6-mobile is-3-tablet">
+          <div class="box h-100 has-text-centered">
+            <p class="heading" data-i18n="stat-trustlines">Trustlines</p>
+            <p class="title is-2" id="stat-trustlines">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="has-text-centered mt-6">
+          <a class="button is-text" href="#" id="back-link" data-i18n="back-to-account">Back to Account</a>
+      </div>
+    </div>
+  </div>
+</section>

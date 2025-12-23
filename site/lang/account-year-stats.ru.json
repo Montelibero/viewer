@@ -1,0 +1,16 @@
+{
+  "title": "Статистика за 2025 год",
+  "loading-start": "Сейчас быстренько загрузим...",
+  "loading-many": "Ой как много...",
+  "loading-slow": "Значит не быстренько...",
+  "loading-giant": "Да вы гигант!",
+  "loading-status": "Загружено операций: {{count}}",
+  "stat-total-ops": "Всего операций",
+  "stat-orders": "Ордеров",
+  "stat-swaps": "Свапов",
+  "stat-payments": "Платежей",
+  "stat-trustlines": "Трастлайнов",
+  "back-to-account": "Назад к аккаунту",
+  "error-year": "Доступна статистика только за 2025 год.",
+  "error-fetch": "Ошибка загрузки операций."
+}

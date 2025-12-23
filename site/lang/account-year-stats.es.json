@@ -1,0 +1,16 @@
+{
+  "title": "Estadísticas 2025",
+  "loading-start": "Cargando rápidamente...",
+  "loading-many": "¡Oh, tantos...",
+  "loading-slow": "Significa no tan rápido...",
+  "loading-giant": "¡Eres un gigante!",
+  "loading-status": "{{count}} operaciones cargadas",
+  "stat-total-ops": "Operaciones Totales",
+  "stat-orders": "Órdenes",
+  "stat-swaps": "Swaps",
+  "stat-payments": "Pagos",
+  "stat-trustlines": "Líneas de confianza",
+  "back-to-account": "Volver a la cuenta",
+  "error-year": "Solo están disponibles las estadísticas de 2025.",
+  "error-fetch": "Error al cargar las operaciones."
+}

@@ -1,0 +1,16 @@
+{
+  "title": "2025 Statistics",
+  "loading-start": "Loading quickly...",
+  "loading-many": "Oh, so many...",
+  "loading-slow": "Meaning not so quickly...",
+  "loading-giant": "You are a giant!",
+  "loading-status": "{{count}} operations loaded",
+  "stat-total-ops": "Total Operations",
+  "stat-orders": "Orders Placed",
+  "stat-swaps": "Swaps",
+  "stat-payments": "Payments",
+  "stat-trustlines": "Trustlines Changed",
+  "back-to-account": "Back to Account",
+  "error-year": "Only 2025 statistics are available.",
+  "error-fetch": "Failed to fetch operations."
+}

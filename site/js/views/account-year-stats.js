@@ -379,13 +379,25 @@ function renderStats(stats, t) {
         }
     }
 
-    // Top Counterparty
-    const topBuddy = Object.entries(stats.counterparties)
+    // Top Counterparties (Top 5)
+    const topBuddies = Object.entries(stats.counterparties)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 1);
+        .slice(0, 5);
 
-    if (topBuddy.length > 0) {
-        const [addr, count] = topBuddy[0];
-        setText('stat-counterparty', `${addr.substring(0,4)}...${addr.substring(addr.length-4)} (${count})`);
+    const buddyListEl = document.getElementById('top-counterparties-list');
+    if (buddyListEl) {
+        if (topBuddies.length === 0) {
+            buddyListEl.innerHTML = '<p>-</p>';
+        } else {
+            buddyListEl.innerHTML = topBuddies.map(([addr, count]) => {
+                const shortAddr = `${addr.substring(0,4)}...${addr.substring(addr.length-4)}`;
+                return `
+                    <div class="mb-1">
+                        <a href="/account/${addr}">${shortAddr}</a>
+                        <span class="is-size-7 has-text-grey">(${count})</span>
+                    </div>
+                `;
+            }).join('');
+        }
     }
 }

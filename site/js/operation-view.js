@@ -1,4 +1,4 @@
-import { shorten } from './common.js';
+import { shorten, getHorizonURL } from './common.js';
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -466,6 +466,24 @@ export function renderEffects(effects, t) {
       const boughtAmt = formatAmount(e.bought_amount);
       const boughtAsset = renderAsset(getAsset('bought_'));
       content = `<strong>${t('effect-trade')}:</strong> ${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
+    } else if (e.type === 'liquidity_pool_trade') {
+      const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
+      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+
+      const parseAsset = (str) => {
+        if (!str || str === 'native') return 'native';
+        const parts = str.split(':');
+        if (parts.length === 2) return { asset_code: parts[0], asset_issuer: parts[1] };
+        return str;
+      };
+
+      const soldAmt = formatAmount(e.sold ? e.sold.amount : '0');
+      const soldAsset = renderAsset(parseAsset(e.sold ? e.sold.asset : null));
+      const boughtAmt = formatAmount(e.bought ? e.bought.amount : '0');
+      const boughtAsset = renderAsset(parseAsset(e.bought ? e.bought.asset : null));
+
+      content = `<strong>${t('effect-lp-trade', 'Liquidity Pool Trade')}</strong> (${poolLink})` +
+                `<br>${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
     } else {
       content = `<strong>${e.type}</strong> <span class="is-italic has-text-grey-light">${e.id}</span>`;
     }

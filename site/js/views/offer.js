@@ -30,6 +30,9 @@ export async function init(params, i18n) {
     
     if (offerIdEl) offerIdEl.textContent = offerId;
 
+    const btnTrades = document.getElementById('btn-trades');
+    if (btnTrades) btnTrades.href = `/offer/${offerId}/trades`;
+
     function setStatus(state) {
         if (!statusEl) return;
         statusEl.classList.remove('is-danger', 'is-success', 'is-info');

@@ -1,0 +1,81 @@
+<section class="section">
+  <div class="container">
+
+    <div class="mb-4">
+      <a class="button is-small is-light" href="/" data-i18n="back-home">На главную</a>
+    </div>
+
+    <!-- HEADER -->
+    <div class="box">
+      <div class="level is-mobile">
+        <div class="level-left">
+          <div>
+            <p class="title is-5" data-i18n="header-title">Offer Trades</p>
+            <p class="subtitle is-7" id="offer-id">—</p>
+          </div>
+        </div>
+        <div class="level-right">
+          <span class="tag is-info is-light" id="status-label" data-i18n="status-loading">Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="box">
+      <p class="title is-6" data-i18n="filters-title">Фильтры</p>
+      <div class="columns is-multiline is-mobile">
+        <div class="column is-12-mobile is-6-tablet">
+          <label class="label is-size-7" data-i18n="filter-amount-label">Сумма (25, >25, <1000)</label>
+          <input class="input is-small"
+                 type="text"
+                 id="filter-amount"
+                 data-i18n-placeholder="filter-amount-placeholder"
+                 placeholder="например >25">
+        </div>
+        <div class="column is-12-mobile is-6-tablet">
+          <label class="label is-size-7" data-i18n="filter-asset-label">Актив (код)</label>
+          <input class="input is-small"
+                 type="text"
+                 id="filter-asset"
+                 data-i18n-placeholder="filter-asset-placeholder"
+                 placeholder="USDM">
+        </div>
+      </div>
+      <p class="help is-danger is-hidden" id="filter-error"></p>
+      <div class="buttons mt-2">
+        <button class="button is-primary is-small" id="btn-apply-filter" data-i18n="btn-apply-filter">
+          Фильтр (загрузить 200)
+        </button>
+        <button class="button is-light is-small" id="btn-clear-filter" data-i18n="btn-clear-filter">
+          Сбросить
+        </button>
+      </div>
+    </div>
+
+    <!-- ERROR MESSAGE -->
+    <article class="message is-danger is-hidden" id="error-box">
+      <div class="message-header">
+        <p data-i18n="error-title">Ошибка</p>
+      </div>
+      <div class="message-body" id="error-text">—</div>
+    </article>
+
+    <!-- LOADER -->
+    <progress class="progress is-small is-primary is-hidden"
+              max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
+
+    <!-- TRADES LIST -->
+    <div id="trades-container">
+      <!-- cards -->
+    </div>
+
+    <div class="has-text-centered mt-4">
+      <div class="buttons is-centered">
+        <button class="button is-link is-light" id="btn-load-more" data-i18n="load-more">
+          Загрузить ещё
+        </button>
+      </div>
+    </div>
+
+  </div>
+</section>

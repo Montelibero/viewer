@@ -1,0 +1,22 @@
+{
+  "title": "Ledger",
+  "hash": "Hash",
+  "prev_hash": "Previous Hash",
+  "closed_at": "Closed At",
+  "protocol_version": "Protocol Version",
+  "fee_base": "Base Fee",
+  "max_tx_set_size": "Max Tx Set Size",
+  "operation_count": "Operation Count",
+  "total_coins": "Total Coins",
+  "transactions_title": "Transactions",
+  "tx_hash": "Tx Hash",
+  "tx_time": "Time",
+  "tx_status": "Status",
+  "tx_source": "Source Account",
+  "tx_ops": "Ops",
+  "tx_fee": "Fee (stroops)",
+  "not_found": "Ledger not found",
+  "status_success": "Success",
+  "status_failed": "Failed",
+  "no_transactions": "No transactions in this ledger."
+}

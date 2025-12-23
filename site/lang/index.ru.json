@@ -6,6 +6,7 @@
   "subtitle-op-format": "число",
   "subtitle-contract": " id контракта ",
   "subtitle-or": " или код ассета ",
+  "latest-ledger-label": "Последний леджер:",
   "subtitle-suffix": " — отправим на нужную страницу.",
   "input-label": "Адрес или хэш",
   "input-placeholder": "GDLT… или 73e9ec35…",

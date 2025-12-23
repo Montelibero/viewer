@@ -6,6 +6,7 @@
   "subtitle-op-format": "number",
   "subtitle-contract": " contract id ",
   "subtitle-or": " or asset code ",
+  "latest-ledger-label": "Latest Ledger:",
   "subtitle-suffix": " — we will send you to the right page.",
   "input-label": "Address or hash",
   "input-placeholder": "GDLT… or 73e9ec35…",

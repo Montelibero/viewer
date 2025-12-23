@@ -1,0 +1,22 @@
+{
+  "title": "Леджер",
+  "hash": "Хэш",
+  "prev_hash": "Пред. Хэш",
+  "closed_at": "Закрыт",
+  "protocol_version": "Версия протокола",
+  "fee_base": "Базовая комиссия",
+  "max_tx_set_size": "Макс. размер сета транзакций",
+  "operation_count": "Количество операций",
+  "total_coins": "Всего монет",
+  "transactions_title": "Транзакции",
+  "tx_hash": "Хэш транзакции",
+  "tx_time": "Время",
+  "tx_status": "Статус",
+  "tx_source": "Аккаунт отправителя",
+  "tx_ops": "Опер.",
+  "tx_fee": "Комиссия (stroops)",
+  "not_found": "Леджер не найден",
+  "status_success": "Успех",
+  "status_failed": "Ошибка",
+  "no_transactions": "В этом леджере нет транзакций."
+}

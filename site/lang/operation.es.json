@@ -39,6 +39,7 @@
   "op-clear-flags": "Limpiar flags",
   "op-signer": "Firmante",
   "op-trust-asset": "Activo de confianza",
+  "op-trust-pool": "Trust Liquidity Pool",
   "op-limit": "Límite",
   "op-trustor": "Fiduciante",
   "op-asset": "Activo",

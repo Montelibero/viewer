@@ -250,10 +250,24 @@ export function renderOperationDetails(op, t) {
       addLine(T('op-signer', 'Signer'), `${key || '—'} (weight ${signer.weight ?? signer.signer_weight ?? '—'})`);
     }
   } else if (type === 'change_trust') {
-    const asset = xdrInner ? renderAsset(xdrInner.line) : assetLabel(op.asset_code, op.asset_issuer);
-    const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
-    addLine(T('op-trust-asset', 'Trust asset'), asset);
-    addLine(T('op-limit', 'Limit'), limit);
+    const isPool = op.asset_type === 'liquidity_pool_shares' ||
+                   op.liquidity_pool_id ||
+                   (xdrInner && (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id));
+
+    if (isPool) {
+      const poolId = xdrInner
+        ? (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id)
+        : op.liquidity_pool_id;
+      const label = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
+      addLine(T('op-trust-pool', 'Trust Liquidity Pool'), label);
+      addLine(T('op-limit', 'Limit'), limit);
+    } else {
+      const asset = xdrInner ? renderAsset(xdrInner.line) : assetLabel(op.asset_code, op.asset_issuer);
+      const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
+      addLine(T('op-trust-asset', 'Trust asset'), asset);
+      addLine(T('op-limit', 'Limit'), limit);
+    }
   } else if (type === 'allow_trust') {
     const trustor = xdrInner ? xdrInner.trustor : op.trustor;
     const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);

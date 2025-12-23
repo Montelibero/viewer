@@ -120,9 +120,7 @@ export async function init(params, i18n) {
         renderReserves(pool.reserves);
 
         const btnOps = document.getElementById('btn-operations');
-        const btnTx = document.getElementById('btn-transactions');
-        if(btnOps) btnOps.href = `${horizonBase}/liquidity_pools/${pool.id}/operations?limit=20&order=desc`;
-        if(btnTx) btnTx.href = `${horizonBase}/liquidity_pools/${pool.id}/transactions?limit=20&order=desc`;
+        if(btnOps) btnOps.href = `/pool/${pool.id}/operations`;
 
         // External links
         const stellarXBtn = document.getElementById('btn-stellarx');

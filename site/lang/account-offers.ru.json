@@ -13,8 +13,11 @@
   "buying-label": "Покупаем",
   "amount-label": "Количество",
   "price-label": "Цена",
-  "ledger-label": "Ledger",
-  "offer-label": "Offer #",
+  "price-inv-label": "Обрат. цена",
+  "date-label": "Дата",
+  "ledger-label": "Леджер",
+  "offer-id": "ID",
+  "offer-label": "Оффер №",
   "error-no-account-id": "Не удалось определить accountId из URL.",
   "error-load-offers": "Не удалось загрузить офферы",
   "error-unknown": "Неизвестная ошибка"

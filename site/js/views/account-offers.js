@@ -11,9 +11,25 @@ function assetLabel(asset) {
     if (asset.asset_type === 'native') return 'XLM';
     const code = asset.asset_code || '—';
     const issuer = asset.asset_issuer || '';
-    const text = `${code} · ${issuer ? shorten(issuer) : '—'}`;
+    const text = `${code}`;
     const href = issuer ? `/asset/${encodeURIComponent(`${code}-${issuer}`)}` : null;
     return href ? `<a href="${href}">${text}</a>` : text;
+}
+
+function getAssetCode(asset) {
+    if (!asset) return '';
+    if (asset.asset_type === 'native') return 'XLM';
+    return asset.asset_code || '';
+}
+
+function formatDate(isoStr) {
+    if (!isoStr) return '—';
+    try {
+        const d = new Date(isoStr);
+        return d.toLocaleString();
+    } catch (e) {
+        return isoStr;
+    }
 }
 
 export async function init(params, i18n) {
@@ -26,13 +42,16 @@ export async function init(params, i18n) {
     const errorBox = document.getElementById('error-box');
     const errorText = document.getElementById('error-text');
     const loader = document.getElementById('loader');
-    const container = document.getElementById('offers-container');
+    const tbody = document.getElementById('offers-tbody');
+    const emptyMsg = document.getElementById('offers-empty-msg');
     const loadMoreBtn = document.getElementById('btn-load-more');
+    const table = document.getElementById('offers-table');
 
     if (accountIdEl) accountIdEl.textContent = accountId;
 
     let offers = [];
     let nextCursor = null;
+    let currentSort = { column: null, direction: 'asc' }; // 'asc' or 'desc'
 
     function setStatus(state) {
         if (!statusLabel) return;
@@ -84,42 +103,107 @@ export async function init(params, i18n) {
         return data?._embedded?.records || [];
     }
 
-    function renderOffers(list) {
-        if (!container) return;
-        
-        // Append to existing if cursor was used (handled by logic below), 
-        // but here we might just re-render everything or append. 
-        // The original logic was: offers = offers.concat(batch); renderOffers(offers);
-        // So we clear and re-render all.
-        container.innerHTML = '';
+    // Sorting Logic
+    function handleSort(column) {
+        if (currentSort.column === column) {
+            // Toggle direction
+            currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.column = column;
+            currentSort.direction = 'asc'; // Default new sort to asc
+        }
+        updateSortIcons();
+        renderOffers();
+    }
 
-        if (!list.length) {
-            container.innerHTML = `<p class="has-text-grey">${t('offers-empty')}</p>`;
+    function updateSortIcons() {
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(th => {
+            const iconSpan = th.querySelector('.icon');
+            const icon = th.querySelector('i');
+            if (th.dataset.sort === currentSort.column) {
+                iconSpan.classList.remove('is-hidden');
+                icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+            } else {
+                iconSpan.classList.add('is-hidden');
+                icon.className = 'fas fa-sort';
+            }
+        });
+    }
+
+    function getSortValue(offer, column) {
+        switch (column) {
+            case 'id':
+                return parseInt(offer.id, 10);
+            case 'selling':
+                // Sort by amount roughly
+                return parseFloat(offer.amount);
+            case 'buying':
+                // Sort by buying amount
+                const p = parseFloat(offer.price);
+                const amt = parseFloat(offer.amount);
+                return p * amt;
+            case 'price':
+                return parseFloat(offer.price);
+            case 'price_inv':
+                return 1.0 / parseFloat(offer.price);
+            case 'date':
+                return new Date(offer.last_modified_time || 0).getTime();
+            default:
+                return 0;
+        }
+    }
+
+    function renderOffers() {
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (!offers.length) {
+            table.classList.add('is-hidden');
+            if (emptyMsg) emptyMsg.classList.remove('is-hidden');
             return;
         }
 
-        list.forEach(offer => {
-            const box = document.createElement('div');
-            box.className = 'box is-size-7 offer-card';
+        table.classList.remove('is-hidden');
+        if (emptyMsg) emptyMsg.classList.add('is-hidden');
 
-            const price = offer.price || (offer.price_r ? `${offer.price_r.n}/${offer.price_r.d}` : '—');
+        // Apply Sort
+        let displayList = [...offers];
+        if (currentSort.column) {
+            displayList.sort((a, b) => {
+                const valA = getSortValue(a, currentSort.column);
+                const valB = getSortValue(b, currentSort.column);
+                if (valA < valB) return currentSort.direction === 'asc' ? -1 : 1;
+                if (valA > valB) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
 
-            box.innerHTML = `
-                <p class="mb-1">
-                  <strong><a href="/offer/${offer.id}">${t('offer-label')}${offer.id}</a></strong>
-                  · ${offer.last_modified_time || ''}
-                </p>
-                <p class="is-size-7">
-                  ${t('seller-label')}: ${accountLink(offer.seller) ? `<a class="is-mono" href="${accountLink(offer.seller)}">${shorten(offer.seller)}</a>` : '—'}
-                </p>
-                <p class="mt-2">${t('selling-label')}: ${assetLabel(offer.selling)}</p>
-                <p>${t('buying-label')}: ${assetLabel(offer.buying)}</p>
-                <p>${t('amount-label')}: <span class="has-text-weight-semibold">${offer.amount || '—'}</span></p>
-                <p>${t('price-label')}: ${price}</p>
-                <p class="is-size-7 has-text-grey">${t('ledger-label')}: ${offer.last_modified_ledger || '—'}</p>
+        displayList.forEach(offer => {
+            const tr = document.createElement('tr');
+
+            // Calculations
+            const amountSelling = parseFloat(offer.amount);
+            const price = parseFloat(offer.price);
+            const amountBuying = amountSelling * price;
+            const invPrice = 1 / price;
+
+            const buyingAssetLabel = assetLabel(offer.buying);
+            const sellingAssetLabel = assetLabel(offer.selling);
+
+            // Using toLocaleString for pretty numbers if possible,
+            // but usually raw or 7 decimal places is safer for crypto.
+            // Let's stick to simple formatting to avoid precision issues hiding.
+
+            tr.innerHTML = `
+                <td><a href="/offer/${offer.id}">${offer.id}</a></td>
+                <td><span class="has-text-weight-medium">${offer.amount}</span> <small>${sellingAssetLabel}</small></td>
+                <td><span class="has-text-weight-medium">${amountBuying.toFixed(7).replace(/\.?0+$/, '')}</span> <small>${buyingAssetLabel}</small></td>
+                <td>${price}</td>
+                <td>${invPrice.toFixed(7).replace(/\.?0+$/, '')}</td>
+                <td class="is-size-7">${formatDate(offer.last_modified_time)}</td>
             `;
-
-            container.appendChild(box);
+            tbody.appendChild(tr);
         });
     }
 
@@ -135,7 +219,7 @@ export async function init(params, i18n) {
             }
             nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
             
-            renderOffers(offers);
+            renderOffers();
             
             if (loadMoreBtn) {
                 loadMoreBtn.disabled = !nextCursor;
@@ -156,6 +240,17 @@ export async function init(params, i18n) {
                 return;
             }
             await loadBatch({ cursor: nextCursor, limit: 50 });
+        });
+    }
+
+    // Init Sort Listeners
+    if (table) {
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(th => {
+            th.addEventListener('click', () => {
+                const col = th.dataset.sort;
+                handleSort(col);
+            });
         });
     }
 

@@ -32,9 +32,45 @@
     <progress class="progress is-small is-primary is-hidden"
               max="100" id="loader" data-i18n="loader-text">Загрузка</progress>
 
-    <!-- OFFERS LIST -->
-    <div id="offers-container">
-      <!-- cards go here -->
+    <!-- OFFERS TABLE -->
+    <div class="table-container">
+      <table class="table is-fullwidth is-striped is-hoverable" id="offers-table">
+        <thead>
+          <tr>
+            <th class="is-clickable" data-sort="id">
+              <span data-i18n="offer-id">ID</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+            <th class="is-clickable" data-sort="selling">
+              <span data-i18n="selling-label">Selling</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+            <th class="is-clickable" data-sort="buying">
+              <span data-i18n="buying-label">Buying</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+            <th class="is-clickable" data-sort="price">
+              <span data-i18n="price-label">Price</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+            <th class="is-clickable" data-sort="price_inv">
+              <span data-i18n="price-inv-label">Inv. Price</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+            <th class="is-clickable" data-sort="date">
+              <span data-i18n="date-label">Date</span>
+              <span class="icon is-small is-hidden"><i class="fas fa-sort"></i></span>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="offers-tbody">
+          <!-- rows go here -->
+        </tbody>
+      </table>
+    </div>
+
+    <div id="offers-empty-msg" class="has-text-centered has-text-grey is-hidden">
+      <p data-i18n="offers-empty">No offers found</p>
     </div>
 
     <div class="has-text-centered mt-4">

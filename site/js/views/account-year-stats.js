@@ -37,7 +37,9 @@ export async function init(params, i18n) {
     months: {},
     counterparties: {}, // Address -> Count
     paymentAssets: {}, // Asset -> { count, amount }
-    swapPairs: {} // Source->Dest -> { count, amount }
+    swapPairs: {}, // Source->Dest -> { count, amount }
+    daysOfWeek: {}, // 0-6 -> Count
+    activeDates: new Set() // YYYY-MM-DD
   };
 
   const loadingMsgEl = document.getElementById('loading-message');
@@ -97,6 +99,24 @@ function getAssetLabel(key) {
     return code; // Simplified for "Top 3" list
 }
 
+function formatPair(pairKey) {
+    // pairKey: "SRC_KEY -> DST_KEY"
+    const [src, dst] = pairKey.split(' -> ');
+
+    const fmt = (key) => {
+        if (key === 'XLM') return 'XLM';
+        const [code, issuer] = key.split('-');
+        if (!issuer) return code;
+
+        // Shorten issuer: First 4 ... Last 4. Uppercase. Wrapped in small.
+        const shortIssuer = `${issuer.substring(0,4)}...${issuer.substring(issuer.length-4)}`;
+        // Use inline style for font-size: 0.8em or just <small>
+        return `${code}-<small>${shortIssuer.toUpperCase()}</small>`;
+    };
+
+    return `${fmt(src)} -> ${fmt(dst)}`;
+}
+
 function getMonthName(dateStr) {
     // 2025-01-01 -> "2025-01"
     return dateStr.substring(0, 7);
@@ -138,6 +158,14 @@ async function fetchOperations(accountId, stats, onProgress) {
       // Month
       const month = getMonthName(date);
       stats.months[month] = (stats.months[month] || 0) + 1;
+
+      // Day of Week and Date
+      const d = new Date(date);
+      const dayIndex = d.getDay(); // 0 (Sun) - 6 (Sat)
+      stats.daysOfWeek[dayIndex] = (stats.daysOfWeek[dayIndex] || 0) + 1;
+
+      const dateStr = date.substring(0, 10); // YYYY-MM-DD
+      stats.activeDates.add(dateStr);
 
       // Failed
       if (op.transaction_successful === false) {
@@ -263,6 +291,43 @@ function renderStats(stats, t) {
     }
     setText('stat-month', maxMonth);
 
+    // Favorite Day
+    let maxDay = 0, maxDayCount = 0;
+    for (const [d, c] of Object.entries(stats.daysOfWeek)) {
+        if (c > maxDayCount) {
+            maxDayCount = c;
+            maxDay = d;
+        }
+    }
+    // Days keys: day-0 (Sun) ... day-6 (Sat)
+    setText('stat-day', maxDayCount > 0 ? t(`day-${maxDay}`) : '-');
+
+    // Longest Streak
+    const dates = Array.from(stats.activeDates).sort();
+    let maxStreak = 0;
+    let currentStreak = 0;
+    let prevDate = null;
+
+    for (const dateStr of dates) {
+        if (!prevDate) {
+            currentStreak = 1;
+        } else {
+            const d1 = new Date(prevDate);
+            const d2 = new Date(dateStr);
+            const diffTime = Math.abs(d2 - d1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+                currentStreak++;
+            } else {
+                currentStreak = 1;
+            }
+        }
+        if (currentStreak > maxStreak) maxStreak = currentStreak;
+        prevDate = dateStr;
+    }
+    setText('stat-streak', maxStreak > 0 ? `${maxStreak} ${t('unit-days')}` : '-');
+
     // Top Payments
     const topPayments = Object.entries(stats.paymentAssets)
         .sort((a, b) => b[1].count - a[1].count) // Sort by Count
@@ -304,9 +369,10 @@ function renderStats(stats, t) {
             swapListEl.innerHTML = '<p class="has-text-grey has-text-centered">-</p>';
         } else {
             const [pair, data] = topSwaps[0];
+            const formattedPair = formatPair(pair);
             swapListEl.innerHTML = `
                 <div class="has-text-centered">
-                    <p class="title is-6 mb-1">${pair}</p>
+                    <p class="title is-6 mb-1">${formattedPair}</p>
                     <p class="subtitle is-6">${data.count} times</p>
                 </div>
             `;

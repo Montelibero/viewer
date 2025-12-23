@@ -105,6 +105,7 @@
   "op-source": "Источник операции",
   "load-effects": "Загрузить доп. инфо",
   "effect-trade": "Торговля",
+  "effect-lp-trade": "Торговля в пуле",
   "effect-credited": "Зачислено",
   "effect-debited": "Списано",
   "effect-bought": "Куплено",

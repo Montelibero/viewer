@@ -105,6 +105,7 @@
   "op-source": "Operation Source",
   "load-effects": "Load additional info",
   "effect-trade": "Trade",
+  "effect-lp-trade": "Liquidity Pool Trade",
   "effect-credited": "Credited",
   "effect-debited": "Debited",
   "effect-bought": "Bought",

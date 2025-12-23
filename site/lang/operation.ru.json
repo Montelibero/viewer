@@ -16,6 +16,7 @@
   "error-unknown": "Неизвестная ошибка",
   "load-effects": "Загрузить доп. инфо",
   "effect-trade": "Торговля",
+  "effect-lp-trade": "Торговля в пуле",
   "effect-credited": "Зачислено",
   "effect-debited": "Списано",
   "effect-bought": "Куплено",

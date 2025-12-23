@@ -105,6 +105,7 @@
   "op-source": "Fuente de operación",
   "load-effects": "Cargar información adicional",
   "effect-trade": "Intercambio",
+  "effect-lp-trade": "Intercambio en pool",
   "effect-credited": "Acreditado",
   "effect-debited": "Debitado",
   "effect-bought": "Comprado",

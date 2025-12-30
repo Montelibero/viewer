@@ -193,24 +193,24 @@ export function renderOperationDetails(op, t) {
   if (type === 'payment') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
     addLine(T('op-dest', 'Destination'), renderAccount(dest));
   } else if (type === 'path_payment_strict_receive') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
     const destAmount = xdrInner ? formatStroopAmount(xdrInner.destAmount ?? xdrInner.dest_amount) : formatAmount(op.amount);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     const sourceAmount = xdrInner ? formatStroopAmount(xdrInner.sendMax ?? xdrInner.send_max) : formatAmount(op.source_amount);
-    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : renderAsset({ asset_code: op.source_asset_code, asset_issuer: op.source_asset_issuer, native: op.source_asset_type === 'native' });
     addLine(T('op-dest', 'Destination'), renderAccount(dest));
     addLine(T('op-receives', 'Receives'), `${destAmount} ${destAsset}`);
     addLine(T('op-spend-max', 'Send max'), `${sourceAmount} ${sourceAsset}`);
   } else if (type === 'path_payment_strict_send') {
     const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
     const sendAmount = xdrInner ? formatStroopAmount(xdrInner.sendAmount ?? xdrInner.send_amount) : formatAmount(op.source_amount);
-    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : assetLabel(op.source_asset_code, op.source_asset_issuer);
+    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : renderAsset({ asset_code: op.source_asset_code, asset_issuer: op.source_asset_issuer, native: op.source_asset_type === 'native' });
     const destMin = xdrInner ? formatStroopAmount(xdrInner.destMin ?? xdrInner.dest_min) : formatAmount(op.destination_min);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     addLine(T('op-dest', 'Destination'), renderAccount(dest));
     addLine(T('op-sending', 'Sending'), `${sendAmount} ${sendAsset}`);
     addLine(T('op-expect-min', 'Expect min'), `${destMin} ${destAsset}`);
@@ -221,8 +221,8 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-new-acc', 'New account'), renderAccount(account));
   } else if (type === 'manage_sell_offer' || type === 'manage_buy_offer' || type === 'create_passive_sell_offer') {
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const selling = xdrInner ? renderAsset(xdrInner.selling) : assetLabel(op.selling_asset_code, op.selling_asset_issuer);
-    const buying = xdrInner ? renderAsset(xdrInner.buying) : assetLabel(op.buying_asset_code, op.buying_asset_issuer);
+    const selling = xdrInner ? renderAsset(xdrInner.selling) : renderAsset({ asset_code: op.selling_asset_code, asset_issuer: op.selling_asset_issuer, native: op.selling_asset_type === 'native' });
+    const buying = xdrInner ? renderAsset(xdrInner.buying) : renderAsset({ asset_code: op.buying_asset_code, asset_issuer: op.buying_asset_issuer, native: op.buying_asset_type === 'native' });
     const price = xdrInner && xdrInner.price ? `${xdrInner.price.n}/${xdrInner.price.d}` : (op.price || '—');
     addLine(T('op-selling', 'Selling'), `${amount} ${selling}`);
     addLine(T('op-buying', 'Buying'), buying);
@@ -263,14 +263,14 @@ export function renderOperationDetails(op, t) {
       addLine(T('op-trust-pool', 'Trust Liquidity Pool'), label);
       addLine(T('op-limit', 'Limit'), limit);
     } else {
-      const asset = xdrInner ? renderAsset(xdrInner.line) : assetLabel(op.asset_code, op.asset_issuer);
+      const asset = xdrInner ? renderAsset(xdrInner.line) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
       const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
       addLine(T('op-trust-asset', 'Trust asset'), asset);
       addLine(T('op-limit', 'Limit'), limit);
     }
   } else if (type === 'allow_trust') {
     const trustor = xdrInner ? xdrInner.trustor : op.trustor;
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     const auth = op.authorize !== undefined ? op.authorize : xdrInner?.authorize;
     addLine(T('op-trustor', 'Trustor'), renderAccount(trustor));
     addLine(T('op-asset', 'Asset'), asset);
@@ -297,7 +297,7 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-bump-seq', 'Bump to'), bump || '—');
   } else if (type === 'create_claimable_balance') {
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     const claimants = xdrInner ? xdrInner.claimants : op.claimants;
     addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
     addLine(T('op-claimants', 'Claimants'), renderClaimants(claimants));
@@ -336,7 +336,7 @@ export function renderOperationDetails(op, t) {
   } else if (type === 'clawback') {
     const from = xdrInner ? xdrInner.from : op.from;
     const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code || op.asset, op.asset_issuer);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     addLine(T('op-clawback-from', 'Clawback from'), renderAccount(from));
     addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
   } else if (type === 'clawback_claimable_balance') {
@@ -344,7 +344,7 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-balance-id', 'Balance ID'), id || '—');
   } else if (type === 'set_trust_line_flags') {
     const trustor = xdrInner ? xdrInner.trustor : op.trustor;
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : assetLabel(op.asset_code, op.asset_issuer);
+    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
     addLine(T('op-trustor', 'Trustor'), renderAccount(trustor));
     addLine(T('op-asset', 'Asset'), asset);
     const authorize = op.authorize ?? xdrInner?.authorize ?? xdrInner?.setFlags;

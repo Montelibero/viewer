@@ -143,7 +143,13 @@ export async function init(params, i18n) {
     const loader = document.getElementById('loader');
     const container = document.getElementById('operations-container');
 
-    if (accountEl) accountEl.textContent = accountId;
+    if (accountEl) {
+        accountEl.innerHTML = '';
+        const a = document.createElement('a');
+        a.href = `/account/${encodeURIComponent(accountId)}`;
+        a.textContent = accountId;
+        accountEl.appendChild(a);
+    }
 
     let operations = [];
     let nextCursor = null;

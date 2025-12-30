@@ -47,7 +47,13 @@ export async function init(params, i18n) {
     const loadMoreBtn = document.getElementById('btn-load-more');
     const table = document.getElementById('offers-table');
 
-    if (accountIdEl) accountIdEl.textContent = accountId;
+    if (accountIdEl) {
+        accountIdEl.innerHTML = '';
+        const a = document.createElement('a');
+        a.href = `/account/${encodeURIComponent(accountId)}`;
+        a.textContent = accountId;
+        accountIdEl.appendChild(a);
+    }
 
     let offers = [];
     let nextCursor = null;

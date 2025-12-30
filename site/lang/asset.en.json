@@ -10,6 +10,8 @@
   "metrics-title": "Metrics",
   "metric-circulating-label": "Circulating (holders):",
   "metric-pools-amount-label": "Available in pools:",
+  "metric-issuer-orders-label": "Issuer orders:",
+  "metric-issuer-pools-label": "Issuer pools:",
   "metric-claims-amount-label": "Available in claimable:",
   "metric-contracts-label": "Contracts:",
   "metric-num-pools-label": "Number of pools:",

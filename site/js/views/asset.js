@@ -360,6 +360,106 @@ export async function init(params, i18n) {
         }
     }
 
+    async function fetchIssuerOrders(code, issuer) {
+        let total = 0;
+        let nextUrl = `${horizonBase}/offers?seller=${encodeURIComponent(issuer)}&limit=200&order=asc`;
+        let lastCursor = null;
+
+        while (nextUrl) {
+            const res = await fetch(nextUrl);
+            if (!res.ok) {
+                // Ignore errors for optional metrics
+                console.warn('Failed to fetch issuer offers');
+                break;
+            }
+
+            const data = await res.json();
+            const records = data?._embedded?.records || [];
+
+            records.forEach(r => {
+                if (r.selling.asset_code === code && r.selling.asset_issuer === issuer) {
+                    total += parseFloat(r.amount);
+                }
+            });
+
+            if (!records.length) break;
+            const nextHref = data?._links?.next?.href;
+            if (!nextHref) break;
+            const parsed = new URL(nextHref);
+            const cursor = parsed.searchParams.get('cursor');
+            if (!cursor || cursor === lastCursor) break;
+            lastCursor = cursor;
+            nextUrl = `${horizonBase}/offers?seller=${encodeURIComponent(issuer)}&limit=200&order=asc&cursor=${encodeURIComponent(cursor)}`;
+        }
+        return total;
+    }
+
+    async function fetchIssuerPools(code, issuer) {
+        let total = 0;
+        // Fetch issuer account to see pool shares
+        const accUrl = `${horizonBase}/accounts/${encodeURIComponent(issuer)}`;
+        const res = await fetch(accUrl);
+        if (!res.ok) {
+             // If account not found or other error, return 0
+             return 0;
+        }
+        const accData = await res.json();
+        const balances = accData.balances || [];
+        const poolShares = balances.filter(b => b.asset_type === 'liquidity_pool_shares');
+
+        if (!poolShares.length) return 0;
+
+        // For each pool share, fetch pool details
+        await Promise.all(poolShares.map(async (share) => {
+            try {
+                const poolUrl = `${horizonBase}/liquidity_pools/${share.liquidity_pool_id}`;
+                const poolRes = await fetch(poolUrl);
+                if (!poolRes.ok) return;
+                const poolData = await poolRes.json();
+
+                // Check if this pool contains our asset
+                const reserve = poolData.reserves.find(r => r.asset === `${code}:${issuer}`);
+                if (reserve) {
+                    const poolTotalShares = parseFloat(poolData.total_shares);
+                    const userShares = parseFloat(share.balance);
+                    const assetReserve = parseFloat(reserve.amount);
+
+                    if (poolTotalShares > 0) {
+                        const amount = (userShares / poolTotalShares) * assetReserve;
+                        total += amount;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }));
+
+        return total;
+    }
+
+    async function loadExtraMetrics(code, issuer) {
+        const ordersEl = document.getElementById('asset-issuer-orders');
+        const poolsEl = document.getElementById('asset-issuer-pools');
+
+        if (ordersEl) ordersEl.textContent = '...';
+        if (poolsEl) poolsEl.textContent = '...';
+
+        try {
+            const [ordersAmount, poolsAmount] = await Promise.all([
+                fetchIssuerOrders(code, issuer),
+                fetchIssuerPools(code, issuer)
+            ]);
+
+            if (ordersEl) ordersEl.textContent = ordersAmount.toFixed(7);
+            if (poolsEl) poolsEl.textContent = poolsAmount.toFixed(7);
+
+        } catch (e) {
+            console.error('Error loading extra metrics:', e);
+            if (ordersEl) ordersEl.textContent = '?';
+            if (poolsEl) poolsEl.textContent = '?';
+        }
+    }
+
     // Parsing
     let code = '', issuer = '';
     // Expected params: assetParam = "CODE-ISSUER"
@@ -400,5 +500,8 @@ export async function init(params, i18n) {
     }
 
     // Init
-    loadAsset(code, issuer);
+    loadAsset(code, issuer).then(() => {
+        // Load extra metrics after main asset data to ensure non-blocking
+        loadExtraMetrics(code, issuer);
+    });
 }

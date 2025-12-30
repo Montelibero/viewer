@@ -10,6 +10,8 @@
   "metrics-title": "Показатели",
   "metric-circulating-label": "В обращении (holders):",
   "metric-pools-amount-label": "Доступно в пулах:",
+  "metric-issuer-orders-label": "В ордерах от эмитента:",
+  "metric-issuer-pools-label": "В пулах от эмитента:",
   "metric-claims-amount-label": "Доступно в claimable:",
   "metric-contracts-label": "Контракты:",
   "metric-num-pools-label": "Количество пуллов:",

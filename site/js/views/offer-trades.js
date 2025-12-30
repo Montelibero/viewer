@@ -1,4 +1,5 @@
 import { shorten, getHorizonURL } from '../common.js';
+import { renderAsset } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 
@@ -49,12 +50,6 @@ function applyFilters(list, filters) {
     );
 }
 
-function assetLabel(code, issuer) {
-    if (!code && !issuer) return 'XLM'; // Native
-    if (!issuer) return code || 'XLM';
-    return `${code} <span class="is-size-7 has-text-grey is-mono">(${shorten(issuer)})</span>`;
-}
-
 function createTradeCard(trade, t) {
     const box = document.createElement('div');
     box.className = 'box mb-2 p-3';
@@ -62,8 +57,8 @@ function createTradeCard(trade, t) {
     const dateStr = trade.ledger_close_time ? new Date(trade.ledger_close_time).toLocaleString() : '—';
     const baseAmount = trade.base_amount;
     const counterAmount = trade.counter_amount;
-    const baseAsset = assetLabel(trade.base_asset_code, trade.base_asset_issuer);
-    const counterAsset = assetLabel(trade.counter_asset_code, trade.counter_asset_issuer);
+    const baseAsset = renderAsset({ asset_code: trade.base_asset_code, asset_issuer: trade.base_asset_issuer, native: trade.base_asset_type === 'native' });
+    const counterAsset = renderAsset({ asset_code: trade.counter_asset_code, asset_issuer: trade.counter_asset_issuer, native: trade.counter_asset_type === 'native' });
 
     const priceN = trade.price?.n || trade.price;
     const priceD = trade.price?.d || 1;

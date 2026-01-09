@@ -65,6 +65,8 @@
   "effect-debited": "Списано",
   "effect-bought": "Куплено",
   "effect-sold": "Продано",
+  "effect-counterparty": "Контрагент",
+  "effect-offer-id": "ID предложения",
   "status-success": "Успешно",
   "status-failed": "Неуспешно"
 }

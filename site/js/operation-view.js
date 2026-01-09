@@ -564,6 +564,17 @@ export function renderEffects(effects, t) {
       const boughtAmt = formatAmount(e.bought_amount);
       const boughtAsset = renderAsset(getAsset('bought_'));
       content = `<strong>${t('effect-trade')}:</strong> ${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
+
+      if (e.seller || e.offer_id) {
+        content += `<br><span class="is-size-7 has-text-grey">`;
+        if (e.seller) {
+            content += `${t('effect-counterparty', 'Counterparty')}: ${renderAccount(e.seller)} `;
+        }
+        if (e.offer_id) {
+            content += `(${t('effect-offer-id', 'Offer ID')} ${e.offer_id})`;
+        }
+        content += `</span>`;
+      }
     } else if (e.type === 'liquidity_pool_trade') {
       const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
       const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';

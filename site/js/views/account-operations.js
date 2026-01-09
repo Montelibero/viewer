@@ -1,4 +1,4 @@
-import { assetLabelFull, createOperationCard } from '../operation-view.js';
+import { assetLabelFull, renderOperationComponent } from '../operation-view.js';
 import { getHorizonURL } from '../common.js';
 
 const horizonBase = getHorizonURL();
@@ -215,7 +215,11 @@ export async function init(params, i18n) {
         }
 
         list.forEach(op => {
-            const box = createOperationCard(op, t);
+            const box = renderOperationComponent(op, t, {
+                showTransactionLink: true,
+                showSource: true,
+                allowLoadEffects: true
+            });
             container.appendChild(box);
         });
     }

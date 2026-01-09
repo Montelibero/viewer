@@ -1,5 +1,5 @@
 import { shorten, getHorizonURL } from '../common.js';
-import { createXdrOperationBox, accountLink, formatStroopAmount } from '../operation-view.js';
+import { renderOperationComponent, accountLink, formatStroopAmount } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -231,10 +231,17 @@ export async function init(params, i18n) {
                 opId = horizonOps[index].id;
             }
 
-            const box = createXdrOperationBox(op, index, tx.source_account, {
-                txSuccessful: tx.successful,
-                t,
-                opId
+            // Horizon ops usually have IDs, but XDR decoded ops don't.
+            // We pass opId via the op object itself if possible, or reliance on index match.
+            // But renderOperationComponent expects op.id for effects loading.
+            if (opId) op.id = opId;
+
+            const box = renderOperationComponent(op, t, {
+                index,
+                forceSuccessStatus: tx.successful,
+                contextSource: tx.source_account,
+                showTransactionLink: false, // redundant on tx page
+                allowLoadEffects: true
             });
             operationsList.appendChild(box);
         });

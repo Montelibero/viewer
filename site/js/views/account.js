@@ -1,4 +1,4 @@
-import { shorten, isLocalLike, getHorizonURL } from '../common.js';
+import { shorten, isLocalLike, getHorizonURL, decodeTextValue } from '../common.js';
 
 const horizonBase = getHorizonURL();
 const poolMetaCache = new Map();
@@ -432,25 +432,23 @@ export async function init(params, i18n) {
                 const item = document.createElement('div');
                 item.className = 'data-item';
 
-                let decoded = '';
-                try {
-                    decoded = atob(value);
-                } catch (e) {
-                    decoded = t('data-decode-failed');
-                }
-
-                const isAccountId = /^G[A-Z2-7]{55}$/.test(decoded);
-                // displayText is not truncated here for the box because CSS handles break-word,
-                // but if it's super long, maybe we still want to truncate?
-                // User said "is-mono break-word" in HTML, so we rely on CSS.
-                // However, I'll keep the logic simple as requested.
-
+                const { text, hex } = decodeTextValue(value);
                 let valueHtml = '';
 
-                if (isAccountId) {
-                    valueHtml = `<a href="/account/${encodeURIComponent(decoded)}" class="is-mono">${decoded}</a>`;
+                if (text) {
+                    const isAccountId = /^G[A-Z2-7]{55}$/.test(text);
+                    if (isAccountId) {
+                        valueHtml = `<a href="/account/${encodeURIComponent(text)}">${text}</a>`;
+                    } else {
+                        // Escape HTML to prevent XSS from data values
+                        const div = document.createElement('div');
+                        div.textContent = text;
+                        valueHtml = div.innerHTML;
+                    }
+                } else if (hex) {
+                    valueHtml = `<span class="has-text-grey-light select-all">0x${hex}</span>`;
                 } else {
-                    valueHtml = decoded;
+                    valueHtml = t('data-decode-failed');
                 }
 
                 item.innerHTML = `

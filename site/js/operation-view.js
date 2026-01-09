@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL } from './common.js';
+import { shorten, getHorizonURL, decodeTextValue } from './common.js';
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -50,48 +50,19 @@ export function assetLabelFull(code, issuer) {
   return code;
 }
 
-const td = typeof TextDecoder !== 'undefined' ? new TextDecoder() : null;
+// decodeDataValue is now in common.js as decodeTextValue
+// But we need to adapt it because existing code expects { decodedText, hex, format } or similar structure
+// Actually, let's update usage instead.
 
-function decodeDataValue(raw) {
-  if (raw === undefined || raw === null) {
-    return { raw: '—', decodedText: null, hex: null };
-  }
-  const str = String(raw);
+function parseDataValue(raw) {
+    if (raw === undefined || raw === null) return { raw: '—' };
 
-  const tryHex = () => {
-    if (!/^[0-9a-fA-F]+$/.test(str) || str.length % 2 !== 0) return null;
-    const bytes = [];
-    for (let i = 0; i < str.length; i += 2) {
-      bytes.push(parseInt(str.slice(i, i + 2), 16));
-    }
-    let text = null;
-    try {
-      const arr = Uint8Array.from(bytes);
-      text = td ? td.decode(arr) : decodeURIComponent(escape(String.fromCharCode(...bytes)));
-    } catch (_) {}
-    return { decodedText: text, hex: str.toLowerCase(), format: 'hex' };
-  };
+    // Use the common decoder
+    const { text, hex } = decodeTextValue(raw);
 
-  const tryBase64 = () => {
-    try {
-      const b64re = /^[A-Za-z0-9+/]+={0,2}$/;
-      if (!b64re.test(str)) return null;
-      const bin = atob(str);
-      let text = null;
-      try {
-        const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-        text = td ? td.decode(bytes) : decodeURIComponent(escape(bin));
-      } catch (_) {}
-      const hex = Array.from(bin, c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-      return { decodedText: text, hex, format: 'base64' };
-    } catch (_) {
-      return null;
-    }
-  };
-
-  const hex = tryHex();
-  if (hex) return hex;
-  return tryBase64() || { raw: str, decodedText: null, hex: null };
+    // We want to return structure compatible with what usage expects:
+    // usage: if (decoded.decodedText) ... if (decoded.hex) ...
+    return { decodedText: text, hex: hex, raw: raw };
 }
 
 function assetLink(code, issuer) {
@@ -283,7 +254,7 @@ export function renderOperationDetails(op, t) {
   } else if (type === 'manage_data') {
     const name = xdrInner ? (xdrInner.dataName ?? xdrInner.data_name) : op.data_name;
     const valueRaw = xdrInner ? (xdrInner.dataValue ?? xdrInner.data_value) : op.data_value;
-    const decoded = decodeDataValue(valueRaw);
+    const decoded = parseDataValue(valueRaw);
     addLine(T('op-data-name', 'Name'), name || '—');
     addLine(T('op-data-val-raw', 'Value (raw)'), valueRaw || '—');
     if (decoded.decodedText) {

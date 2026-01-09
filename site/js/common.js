@@ -202,3 +202,67 @@ export function encodeAddress(hexOrBytes) {
     
     return encodeBase32(payload);
 }
+
+export function bytesToHex(bytes) {
+    if (!bytes) return '';
+    return Array.from(bytes)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+export function decodeTextValue(input) {
+    if (input === undefined || input === null) return { text: null, hex: null };
+
+    // Determine if input is Base64 or Hex
+    let bytes;
+    let isHex = false;
+
+    try {
+        const binString = atob(input);
+        bytes = Uint8Array.from(binString, c => c.charCodeAt(0));
+    } catch (e) {
+        // Not base64, maybe hex?
+        if (/^[0-9a-fA-F]+$/.test(input) && input.length % 2 === 0) {
+            bytes = hexToBytes(input);
+            isHex = true;
+        } else {
+            return { text: null, hex: null, raw: input };
+        }
+    }
+
+    const hex = bytesToHex(bytes);
+    let text = null;
+
+    if (typeof TextDecoder !== 'undefined') {
+        try {
+            // fatal: true ensures we don't return garbage/replacement chars for invalid sequences
+            const decoder = new TextDecoder('utf-8', { fatal: true });
+            text = decoder.decode(bytes);
+        } catch (_) {
+            text = null;
+        }
+    } else {
+        // Fallback for very old browsers (unlikely)
+        try {
+            text = decodeURIComponent(escape(String.fromCharCode(...bytes)));
+        } catch (_) {
+            text = null;
+        }
+    }
+
+    // Heuristic: if text has too many non-printable characters, treat as binary.
+    // Allow tabs (09), newlines (0A), carriage returns (0D).
+    // Range 00-08, 0B, 0C, 0E-1F are control chars.
+    // 7F is DEL.
+    // 80-9F are C1 control characters (rarely used in valid text, often indicate binary).
+    if (text !== null) {
+        // eslint-disable-next-line no-control-regex
+        const badChars = text.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g);
+        if (badChars && badChars.length > 0) {
+            // If we have control characters, it's likely binary data, not text.
+            text = null;
+        }
+    }
+
+    return { text, hex };
+}

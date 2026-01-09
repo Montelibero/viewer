@@ -695,7 +695,87 @@ export async function init(params, i18n) {
         }
     }
 
+    // BSN Tags
+    const btnBsnTags = document.getElementById('btn-bsn-tags');
+    const bsnTagsBox = document.getElementById('bsn-tags-box');
+    const bsnTagsList = document.getElementById('bsn-tags-list');
+    const bsnTagsLoader = document.getElementById('bsn-tags-loader');
+
+    function renderBsnTags(income) {
+        if (!bsnTagsList) return;
+        bsnTagsList.innerHTML = '';
+
+        if (!income || Object.keys(income).length === 0) {
+            bsnTagsList.textContent = t('bsn-tags-empty');
+            return;
+        }
+
+        // Sort keys if needed, or just iterate
+        const keys = Object.keys(income);
+
+        keys.forEach(tagName => {
+            const tagData = income[tagName];
+            const links = tagData.links || {};
+            const accounts = Object.values(links);
+
+            if (accounts.length === 0) return;
+
+            const group = document.createElement('div');
+            group.className = 'mb-4';
+
+            const title = document.createElement('p');
+            title.className = 'has-text-weight-bold mb-2 is-size-7';
+            title.textContent = tagName;
+            group.appendChild(title);
+
+            const list = document.createElement('div');
+            list.className = 'tags';
+
+            accounts.forEach(acc => {
+                const tag = document.createElement('a');
+                tag.className = 'tag is-light is-info';
+                tag.href = `/account/${acc.id}`;
+
+                // Prioritize username, else shorten ID
+                const label = acc.username || shorten(acc.id);
+                tag.textContent = label;
+                tag.title = acc.id; // Tooltip with full address
+
+                list.appendChild(tag);
+            });
+            group.appendChild(list);
+            bsnTagsList.appendChild(group);
+        });
+    }
+
+    async function loadBsnTags() {
+        if (!accountId || !bsnTagsBox) return;
+
+        bsnTagsBox.classList.remove('is-hidden');
+        bsnTagsLoader.classList.remove('is-hidden');
+        bsnTagsList.innerHTML = '';
+
+        try {
+            const res = await fetch(`https://bsn.expert/accounts/${accountId}?format=json`);
+            if (!res.ok) throw new Error(`Status ${res.status}`);
+            const data = await res.json();
+            renderBsnTags(data.income);
+        } catch (e) {
+            console.error(e);
+            bsnTagsList.innerHTML = `<div class="notification is-danger is-light">${t('error-load-bsn-tags')}: ${e.message}</div>`;
+        } finally {
+            bsnTagsLoader.classList.add('is-hidden');
+        }
+    }
+
     // Event Listeners
+    if (btnBsnTags) {
+        btnBsnTags.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadBsnTags();
+        });
+    }
+
     const copyBtn = document.getElementById('copy-btn');
     if (copyBtn) {
         copyBtn.addEventListener('click', async () => {

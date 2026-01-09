@@ -355,17 +355,42 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-flags', 'Flags'), `set: ${set ?? '—'}, clear: ${clear ?? '—'}, auth: ${authorize ?? '—'}, maintain: ${maintain ?? '—'}, clawback: ${clawback ?? '—'}`);
   } else if (type === 'liquidity_pool_deposit') {
     const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
-    const maxA = xdrInner ? formatStroopAmount(xdrInner.maxAmountA ?? xdrInner.max_amount_a) : formatAmount(op.reserves_max_a);
-    const maxB = xdrInner ? formatStroopAmount(xdrInner.maxAmountB ?? xdrInner.max_amount_b) : formatAmount(op.reserves_max_b);
+
+    let maxA = null;
+    let maxB = null;
+
+    if (xdrInner) {
+      maxA = formatStroopAmount(xdrInner.maxAmountA ?? xdrInner.max_amount_a);
+      maxB = formatStroopAmount(xdrInner.maxAmountB ?? xdrInner.max_amount_b);
+    } else {
+      // Horizon can return arrays for reserves_max
+      if (Array.isArray(op.reserves_max) && op.reserves_max.length === 2) {
+        maxA = formatAmount(op.reserves_max[0].amount);
+        maxB = formatAmount(op.reserves_max[1].amount);
+      } else {
+        maxA = formatAmount(op.reserves_max_a);
+        maxB = formatAmount(op.reserves_max_b);
+      }
+    }
+
     const minPrice = xdrInner ? formatPriceObj(xdrInner.minPrice ?? xdrInner.min_price) : formatPriceObj(op.min_price);
     const maxPrice = xdrInner ? formatPriceObj(xdrInner.maxPrice ?? xdrInner.max_price) : formatPriceObj(op.max_price);
     addLine(T('op-pool', 'Pool'), pool || '—');
-    addLine(T('op-max-res-a', 'Max res A'), maxA);
-    addLine(T('op-max-res-b', 'Max res B'), maxB);
+    addLine(T('op-max-res-a', 'Max res A'), maxA || '—');
+    addLine(T('op-max-res-b', 'Max res B'), maxB || '—');
     addLine(T('op-min-price', 'Min price'), minPrice);
     addLine(T('op-max-price', 'Max price'), maxPrice);
-    if (op.reserves_deposited_a) addLine(T('op-deposited-a', 'Deposited A'), op.reserves_deposited_a);
-    if (op.reserves_deposited_b) addLine(T('op-deposited-b', 'Deposited B'), op.reserves_deposited_b);
+
+    let depA = op.reserves_deposited_a;
+    let depB = op.reserves_deposited_b;
+
+    if (Array.isArray(op.reserves_deposited) && op.reserves_deposited.length === 2) {
+      depA = formatAmount(op.reserves_deposited[0].amount);
+      depB = formatAmount(op.reserves_deposited[1].amount);
+    }
+
+    if (depA) addLine(T('op-deposited-a', 'Deposited A'), depA);
+    if (depB) addLine(T('op-deposited-b', 'Deposited B'), depB);
     if (op.shares_received) addLine(T('op-shares-received', 'Shares received'), op.shares_received);
   } else if (type === 'liquidity_pool_withdraw') {
     const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
@@ -388,40 +413,142 @@ export function renderOperationDetails(op, t) {
   return container;
 }
 
-export function createOperationCard(op, t) {
+export function renderOperationComponent(op, t, opts = {}) {
+  // Options defaults
+  const {
+    showTransactionLink = true,
+    showSource = true,
+    forceSuccessStatus = null, // boolean or null (auto)
+    index = null, // for #1, #2 numbering
+    allowLoadEffects = true, // show load effects button?
+    contextSource = null // implicit source to compare against
+  } = opts;
+
   const box = document.createElement('div');
   box.className = 'box is-size-7 op-card';
 
-  const statusTag = renderStatusTag(op.transaction_successful ?? op.successful ?? op.success, t);
-  const failed = op.transaction_successful === false || op.successful === false || op.success === false;
-  if (failed) box.classList.add('is-failed');
+  // Determine success status
+  // If forceSuccessStatus is provided, use it. Otherwise derive from op properties.
+  let successful = true;
+  if (forceSuccessStatus !== null) {
+    successful = forceSuccessStatus;
+  } else {
+    // Horizon op records usually have transaction_successful boolean
+    // Parsed XDR might have successful boolean
+    if (op.transaction_successful === false || op.successful === false || op.success === false) {
+      successful = false;
+    }
+  }
+
+  const statusTag = renderStatusTag(successful, t);
+  if (!successful) box.classList.add('is-failed');
 
   const typeKey = getOpType(op);
   const typeLabel = t ? t(typeKey) : typeKey;
 
+  // Header Construction
   const header = document.createElement('p');
-  header.innerHTML = `<strong>${typeLabel}</strong> · ${op.created_at || ''}${statusTag}`;
+  let headerHTML = '';
+  if (index !== null) {
+    headerHTML += `<strong>#${index + 1}</strong> · `;
+  }
+  headerHTML += `<strong>${typeLabel}</strong>`;
+  if (op.created_at) {
+    headerHTML += ` · ${op.created_at}`;
+  }
+  headerHTML += statusTag;
+  header.innerHTML = headerHTML;
   box.appendChild(header);
 
-  const src = document.createElement('p');
-  src.className = 'is-size-7';
-  const srcLink = accountLink(op.source_account);
-  const srcLabel = t ? t('source-label') : 'Source:';
-  src.innerHTML = `${srcLabel} ${srcLink ? `<a href="${srcLink}" class="is-mono">${shorten(op.source_account)}</a>` : (op.source_account || '—')}`;
-  box.appendChild(src);
+  const T = (k, f) => resolveT(t, k, f);
 
-  if (op.transaction_hash) {
-    const tx = document.createElement('p');
-    tx.className = 'is-size-7';
-    tx.innerHTML = `Transaction: <a class="is-mono" href="/transaction/${op.transaction_hash}">${shorten(op.transaction_hash)}</a>`;
-    box.appendChild(tx);
+  // Source Account
+  if (showSource) {
+    const opSource = op.source_account || op.sourceAccount || contextSource;
+    if (opSource) {
+      const srcP = document.createElement('p');
+      srcP.className = 'is-size-7 mt-1';
+      const srcLink = accountLink(opSource);
+      // If we have a contextSource and it matches opSource, we might want to hide it or show "same"?
+      // But user requested "unified", so let's stick to showing it clearly.
+      // Although transaction view showed "Operation source: ..."
+      // And account view showed "Source: ..."
+
+      // Let's standardize on "Source: <link>"
+      const label = T('source-label', 'Source:');
+      srcP.innerHTML = `${label} ${renderAccount(opSource, { short: false })}`;
+      box.appendChild(srcP);
+    }
   }
 
+  // Transaction Link
+  if (showTransactionLink && op.transaction_hash) {
+    const txP = document.createElement('p');
+    txP.className = 'is-size-7';
+    txP.innerHTML = `Transaction: <a class="is-mono" href="/transaction/${op.transaction_hash}">${shorten(op.transaction_hash)}</a>`;
+    box.appendChild(txP);
+  }
+
+  // Details
   const details = renderOperationDetails(op, t);
   details.classList.add('mt-2');
   box.appendChild(details);
 
+  // Load Effects Button
+  // Only if allowLoadEffects is true AND we have an ID to fetch with
+  const opId = op.id; // Horizon ID
+  if (allowLoadEffects && opId) {
+    const effectsContainer = document.createElement('div');
+    effectsContainer.className = 'mt-2';
+    // Border top separator to separate details from actions
+    effectsContainer.style.borderTop = '1px dashed #eee';
+    effectsContainer.style.paddingTop = '0.5rem';
+
+    const btn = document.createElement('a');
+    btn.className = 'button is-small is-ghost pl-0';
+    btn.textContent = T('load-effects', 'Load effects / Details');
+
+    // Icon? Maybe. Let's keep it simple text for now as per previous design.
+
+    let loaded = false;
+
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (loaded) return;
+      btn.classList.add('is-loading');
+
+      try {
+        const horizonBase = getHorizonURL();
+        const res = await fetch(`${horizonBase}/operations/${opId}/effects`);
+        if (!res.ok) throw new Error(`Effects load error ${res.status}`);
+        const json = await res.json();
+        const effectsData = json._embedded ? json._embedded.records : [];
+
+        btn.remove();
+        effectsContainer.appendChild(renderEffects(effectsData, t));
+        loaded = true;
+      } catch (err) {
+        console.error(err);
+        btn.classList.remove('is-loading');
+        btn.textContent = t('error-unknown');
+      }
+    });
+
+    effectsContainer.appendChild(btn);
+    box.appendChild(effectsContainer);
+  }
+
   return box;
+}
+
+// Deprecated wrappers for backward compatibility during refactor (or to be removed if I hit all files)
+export function createOperationCard(op, t) {
+  return renderOperationComponent(op, t, {
+    showTransactionLink: true,
+    showSource: true,
+    forceSuccessStatus: null, // infer
+    allowLoadEffects: true
+  });
 }
 
 export function renderEffects(effects, t) {
@@ -495,63 +622,3 @@ export function renderEffects(effects, t) {
   return container;
 }
 
-export function createXdrOperationBox(op, index, txSource, { txSuccessful = null, t = null, opId = null } = {}) {
-  const box = document.createElement('div');
-  box.className = 'box is-size-7 op-card';
-
-  const opSource = op.source_account || txSource;
-  const typeKey = getOpType(op);
-  const typeLabel = t ? t(typeKey) : typeKey;
-  const details = renderOperationDetails(op, t);
-  const statusTag = renderStatusTag(txSuccessful, t);
-  if (txSuccessful === false) box.classList.add('is-failed');
-
-  const T = (k, f) => resolveT(t, k, f);
-
-  box.innerHTML = `
-    <p><strong>#${index + 1}</strong> · <span>${typeLabel}</span>${statusTag}</p>
-    <p class="is-size-7 mt-1">
-      ${T('op-source', 'Operation source')}: ${renderAccount(opSource, { short: false })}
-    </p>
-  `;
-  details.classList.add('mt-2');
-  box.appendChild(details);
-
-  if (opId && t) {
-    const effectsContainer = document.createElement('div');
-    effectsContainer.className = 'mt-2';
-
-    const btn = document.createElement('a');
-    btn.className = 'button is-small is-ghost pl-0';
-    btn.textContent = t('load-effects');
-
-    let loaded = false;
-
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      if (loaded) return;
-      btn.classList.add('is-loading');
-
-      try {
-        const horizonBase = getHorizonURL();
-        const res = await fetch(`${horizonBase}/operations/${opId}/effects`);
-        if (!res.ok) throw new Error(`Effects load error ${res.status}`);
-        const json = await res.json();
-        const effectsData = json._embedded ? json._embedded.records : [];
-
-        btn.remove();
-        effectsContainer.appendChild(renderEffects(effectsData, t));
-        loaded = true;
-      } catch (err) {
-        console.error(err);
-        btn.classList.remove('is-loading');
-        btn.textContent = t('error-unknown');
-      }
-    });
-
-    effectsContainer.appendChild(btn);
-    box.appendChild(effectsContainer);
-  }
-
-  return box;
-}

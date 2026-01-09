@@ -611,6 +611,53 @@ export function renderEffects(effects, t) {
 
       content = `<strong>${t('effect-lp-trade', 'Liquidity Pool Trade')}</strong> (${poolLink})` +
                 `<br>${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
+    } else if (e.type === 'liquidity_pool_deposited') {
+      const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
+      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const shares = formatAmount(e.shares_received);
+
+      let reservesHtml = '';
+      if (Array.isArray(e.reserves_deposited)) {
+        reservesHtml = e.reserves_deposited.map(r => {
+           const assetStr = r.asset;
+           let assetObj = null;
+           if (assetStr === 'native') assetObj = 'native';
+           else {
+             const parts = assetStr.split(':');
+             if (parts.length === 2) assetObj = { asset_code: parts[0], asset_issuer: parts[1] };
+             else assetObj = assetStr;
+           }
+           return `<div>+ ${formatAmount(r.amount)} ${renderAsset(assetObj)}</div>`;
+        }).join('');
+      }
+
+      content = `<strong>${t('effect-lp-deposited', 'Liquidity Pool Deposit')}</strong> (${poolLink})` +
+                `<br>${t('effect-shares-received', 'Shares received')}: ${shares}` +
+                `<br><div class="pl-2 mt-1" style="border-left: 2px solid #f5f5f5">${reservesHtml}</div>`;
+
+    } else if (e.type === 'liquidity_pool_withdrew') {
+      const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
+      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const shares = formatAmount(e.shares_revoked);
+
+      let reservesHtml = '';
+      if (Array.isArray(e.reserves_received)) {
+        reservesHtml = e.reserves_received.map(r => {
+           const assetStr = r.asset;
+           let assetObj = null;
+           if (assetStr === 'native') assetObj = 'native';
+           else {
+             const parts = assetStr.split(':');
+             if (parts.length === 2) assetObj = { asset_code: parts[0], asset_issuer: parts[1] };
+             else assetObj = assetStr;
+           }
+           return `<div>+ ${formatAmount(r.amount)} ${renderAsset(assetObj)}</div>`;
+        }).join('');
+      }
+
+      content = `<strong>${t('effect-lp-withdrew', 'Liquidity Pool Withdraw')}</strong> (${poolLink})` +
+                `<br>${t('effect-shares-revoked', 'Shares revoked')}: ${shares}` +
+                `<br><div class="pl-2 mt-1" style="border-left: 2px solid #f5f5f5">${reservesHtml}</div>`;
     } else {
       content = `<strong>${e.type}</strong> <span class="is-italic has-text-grey-light">${e.id}</span>`;
     }

@@ -58,5 +58,9 @@
   "label-data": "Data",
   "label-selling": "Selling",
   "label-locked": "Всего залочено",
-  "label-available": "Доступно к использованию"
+  "label-available": "Доступно к использованию",
+  "btn-bsn-tags": "BSN Income Tags",
+  "bsn-tags-title": "BSN Income Tags",
+  "error-load-bsn-tags": "Не удалось загрузить теги BSN",
+  "bsn-tags-empty": "Входящих тегов не найдено."
 }

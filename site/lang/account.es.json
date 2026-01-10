@@ -58,5 +58,9 @@
   "label-data": "Datos",
   "label-selling": "Venta",
   "label-locked": "Total Bloqueado",
-  "label-available": "Disponible"
+  "label-available": "Disponible",
+  "btn-bsn-tags": "BSN Income Tags",
+  "bsn-tags-title": "BSN Income Tags",
+  "error-load-bsn-tags": "No se pudieron cargar las etiquetas BSN",
+  "bsn-tags-empty": "No se encontraron etiquetas de ingresos."
 }

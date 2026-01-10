@@ -58,5 +58,9 @@
   "label-data": "Data",
   "label-selling": "Selling",
   "label-locked": "Total Locked",
-  "label-available": "Available"
+  "label-available": "Available",
+  "btn-bsn-tags": "BSN Income Tags",
+  "bsn-tags-title": "BSN Income Tags",
+  "error-load-bsn-tags": "Failed to load BSN tags",
+  "bsn-tags-empty": "No income tags found."
 }

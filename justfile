@@ -12,6 +12,7 @@ build tag="latest":
 run: test
     # Build and Run Docker container
     docker build -t stellar_viewer:local .
+    echo "http://127.0.0.1:8081"
     docker run --rm -p 8081:80 stellar_viewer:local
 
 

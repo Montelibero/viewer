@@ -40,3 +40,4 @@
 - For each new task, first analyze the requirements and explicitly state which files or directories need to change.
 - Do not edit any files until there is direct permission that names the specific file(s) or directory that may be modified—no exceptions.
 - Before editing any file, estimate the chance the request can be interpreted in multiple ways; if there is more than a ~20% chance of ambiguity, ask the user to clarify the exact change.
+- Do not ask additional questions unless explicitly requested; avoid extra suggestions or clarifications.

@@ -734,11 +734,10 @@ export async function init(params, i18n) {
             accounts.forEach(acc => {
                 const tag = document.createElement('a');
                 tag.className = 'tag is-light is-info';
-                tag.href = `/account/${acc.id}`;
+                tag.href = `/account/${encodeURIComponent(acc.id)}`;
 
-                // Prioritize username, else shorten ID
-                const label = acc.username || shorten(acc.id);
-                tag.textContent = label;
+                // Always use shortened account ID for consistency
+                tag.textContent = shorten(acc.id);
                 tag.title = acc.id; // Tooltip with full address
 
                 list.appendChild(tag);

@@ -759,7 +759,8 @@ export async function init(params, i18n) {
             const res = await fetch(`https://bsn.expert/accounts/${accountId}?format=json`);
             if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();
-            renderBsnTags(data.income);
+            const income = data.links ? data.links.income : null;
+            renderBsnTags(income);
         } catch (e) {
             console.error(e);
             bsnTagsList.innerHTML = `<div class="notification is-danger is-light">${t('error-load-bsn-tags')}: ${e.message}</div>`;

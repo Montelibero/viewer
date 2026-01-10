@@ -65,6 +65,8 @@
   "effect-debited": "Debited",
   "effect-bought": "Bought",
   "effect-sold": "Sold",
+  "effect-counterparty": "Counterparty",
+  "effect-offer-id": "Offer ID",
   "status-success": "Success",
   "status-failed": "Failed"
 }

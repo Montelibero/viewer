@@ -1,0 +1,75 @@
+    <section class="section">
+      <div class="container">
+        <div class="mb-4">
+          <a class="button is-small is-light" id="btn-back" href="#" data-i18n="back-to-asset">Back</a>
+        </div>
+
+        <div class="box">
+            <h1 class="title is-5"><span data-i18n="charts-title">Charts</span> <span class="has-text-grey-light" id="base-code-display"></span></h1>
+
+            <div id="selection-area">
+                <div class="field">
+                    <label class="label" data-i18n="select-counter">Select Pair</label>
+                    <div class="control">
+                        <div class="select is-fullwidth" id="select-wrapper">
+                            <select id="counter-select">
+                                <option value="" disabled selected data-i18n="loading-pools">Loading pools...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label" data-i18n="manual-input">Or enter manually (CODE-ISSUER)</label>
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" type="text" id="manual-input" placeholder="XLM or CODE-ISSUER">
+                        </div>
+                        <div class="control">
+                            <button class="button is-info" id="btn-show" data-i18n="btn-show">Show</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="charts-container" class="is-hidden">
+            <div class="tabs is-toggle is-small mb-4">
+              <ul>
+                <li class="is-active" data-res="900000"><a>15m</a></li>
+                <li data-res="3600000"><a>1h</a></li>
+                <li data-res="86400000"><a>1d</a></li>
+              </ul>
+            </div>
+
+            <div class="box">
+                <h6 class="title is-6 has-text-centered" data-i18n="price">Price</h6>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="price-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="box">
+                <h6 class="title is-6 has-text-centered" data-i18n="volume">Volume</h6>
+                <div style="height: 200px; position: relative;">
+                    <canvas id="volume-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="box">
+                <h6 class="title is-6 has-text-centered" data-i18n="trades-count">Trades Count</h6>
+                <div style="height: 150px; position: relative;">
+                    <canvas id="count-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="has-text-centered mt-4">
+                 <button class="button is-ghost" id="btn-load-more" data-i18n="load-more">Load more data</button>
+            </div>
+        </div>
+
+        <article class="message is-danger is-hidden mt-4" id="error-box">
+          <div class="message-body" id="error-message"></div>
+        </article>
+      </div>
+    </section>

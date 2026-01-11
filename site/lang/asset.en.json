@@ -42,5 +42,16 @@
   "error-load-asset": "Failed to load asset",
   "error-load-holders": "Failed to load holders",
   "error-load-pools": "Failed to load pools",
-  "error-unknown": "Unknown error"
+  "error-unknown": "Unknown error",
+  "charts-title": "Charts",
+  "back-to-asset": "Back to Asset",
+  "select-counter": "Select Pair",
+  "manual-input": "Or enter manually (CODE-ISSUER)",
+  "btn-show": "Show",
+  "price": "Price",
+  "volume": "Volume",
+  "trades-count": "Trades Count",
+  "loading-pools": "Loading pools...",
+  "load-more": "Load more",
+  "no-more-data": "No more data"
 }

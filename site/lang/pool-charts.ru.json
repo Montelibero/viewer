@@ -4,5 +4,7 @@
   "chart-volume": "Объем",
   "loading": "Загрузка данных...",
   "error-title": "Ошибка",
-  "back-button": "Назад к пулу"
+  "back-button": "Назад к пулу",
+  "load-more-button": "Загрузить еще (7 дней)",
+  "no-more-data": "Конец истории"
 }

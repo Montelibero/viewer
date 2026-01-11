@@ -4,5 +4,7 @@
   "chart-volume": "Volume",
   "loading": "Loading data...",
   "error-title": "Error",
-  "back-button": "Back to Pool"
+  "back-button": "Back to Pool",
+  "load-more-button": "Load more (7 days)",
+  "no-more-data": "End of history"
 }

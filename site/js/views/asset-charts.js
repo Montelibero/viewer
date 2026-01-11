@@ -373,7 +373,7 @@ export async function init(params, i18n) {
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { intersect: false, mode: 'index' },
-                    scales: { x: { display: false } } // Hide X on top chart
+                    scales: { x: { display: true, ticks: { maxTicksLimit: 8 } } }
                 }
             });
 

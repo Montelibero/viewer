@@ -1,0 +1,62 @@
+<section class="section">
+  <div class="container">
+    <div class="mb-4">
+      <a class="button is-small is-light" id="btn-back" href="#" data-i18n="back-button">Back</a>
+    </div>
+
+    <h1 class="title is-4">
+      <span data-i18n="header-title">Pool Statistics</span>
+      <span id="pool-id-display" class="has-text-grey-light is-size-6 ml-2 is-mono"></span>
+    </h1>
+
+    <div id="loader" class="notification is-info is-light" data-i18n="loading">
+      Loading data...
+    </div>
+
+    <div id="error-box" class="notification is-danger is-hidden">
+      <button class="delete"></button>
+      <span data-i18n="error-title">Error</span>: <span id="error-message"></span>
+    </div>
+
+    <div id="charts-container" class="is-hidden">
+      <div class="box">
+        <h2 class="subtitle is-5" data-i18n="chart-price">Price</h2>
+        <div style="position: relative; height: 300px; width: 100%">
+          <canvas id="price-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 class="subtitle is-5" data-i18n="chart-volume">Volume</h2>
+        <div style="position: relative; height: 300px; width: 100%">
+          <canvas id="volume-chart"></canvas>
+        </div>
+      </div>
+
+      <div class="columns">
+        <div class="column is-6">
+          <div class="box">
+            <h2 class="subtitle is-5" data-i18n="chart-unique-traders">Unique Traders</h2>
+            <div style="position: relative; height: 300px; width: 100%">
+              <canvas id="unique-traders-chart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="column is-6">
+          <div class="box">
+            <h2 class="subtitle is-5" data-i18n="chart-avg-size">Avg Size</h2>
+            <div style="position: relative; height: 300px; width: 100%">
+              <canvas id="avg-size-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="has-text-centered mt-4">
+        <button id="btn-load-more" class="button is-link is-light" data-i18n="load-more-button">
+          Load more (7 days)
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

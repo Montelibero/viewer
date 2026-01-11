@@ -1,0 +1,12 @@
+{
+  "header-title": "Статистика пула",
+  "chart-price": "Цена",
+  "chart-volume": "Объем",
+  "chart-unique-traders": "Уникальные трейдеры (в день)",
+  "chart-avg-size": "Средний размер сделки (в день)",
+  "loading": "Загрузка данных...",
+  "error-title": "Ошибка",
+  "back-button": "Назад к пулу",
+  "load-more-button": "Загрузить еще (7 дней)",
+  "no-more-data": "Конец истории"
+}

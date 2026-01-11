@@ -5,6 +5,7 @@ const routes = [
   { pattern: /^\/account\/([^/]+)$/, view: 'account' },
   { pattern: /^\/account\/([^/]+)\/operations$/, view: 'account-operations', mixins: ['operation-types', 'operations'] },
   { pattern: /^\/pool\/([^/]+)$/, view: 'pool' },
+  { pattern: /^\/pool\/([^/]+)\/charts$/, view: 'pool-charts' },
   { pattern: /^\/pool\/([^/]+)\/operations$/, view: 'pool-operations', mixins: ['operation-types', 'operations'] },
   { pattern: /^\/transaction\/([0-9a-f]{64})$/, view: 'transaction', mixins: ['operation-types', 'operations'] },
   { pattern: /^\/tx\/([0-9a-f]{64})$/, view: 'transaction', mixins: ['operation-types', 'operations'] },
@@ -80,9 +81,10 @@ export async function router() {
 window.addEventListener('popstate', router);
 document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', e => {
-        if (e.target.matches('a') && e.target.origin === window.location.origin) {
+        const link = e.target.closest('a');
+        if (link && link.origin === window.location.origin) {
             e.preventDefault();
-            history.pushState(null, '', e.target.href);
+            history.pushState(null, '', link.href);
             router();
         }
     });

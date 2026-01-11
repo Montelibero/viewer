@@ -1,0 +1,12 @@
+{
+  "header-title": "Estadísticas del pool",
+  "chart-price": "Precio",
+  "chart-volume": "Volumen",
+  "chart-unique-traders": "Traders únicos (diario)",
+  "chart-avg-size": "Tamaño promedio (diario)",
+  "loading": "Cargando datos...",
+  "error-title": "Error",
+  "back-button": "Volver al pool",
+  "load-more-button": "Cargar más (7 días)",
+  "no-more-data": "Fin del historial"
+}

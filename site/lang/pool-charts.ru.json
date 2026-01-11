@@ -1,0 +1,8 @@
+{
+  "header-title": "Статистика пула",
+  "chart-price": "Цена",
+  "chart-volume": "Объем",
+  "loading": "Загрузка данных...",
+  "error-title": "Ошибка",
+  "back-button": "Назад к пулу"
+}

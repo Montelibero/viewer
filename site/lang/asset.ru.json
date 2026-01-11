@@ -42,5 +42,16 @@
   "error-load-asset": "Не удалось загрузить ассет",
   "error-load-holders": "Не удалось загрузить холдеров",
   "error-load-pools": "Не удалось загрузить пулы",
-  "error-unknown": "Неизвестная ошибка"
+  "error-unknown": "Неизвестная ошибка",
+  "charts-title": "Графики",
+  "back-to-asset": "Назад к Ассету",
+  "select-counter": "Выберите пару",
+  "manual-input": "Или введите вручную (CODE-ISSUER)",
+  "btn-show": "Показать",
+  "price": "Цена",
+  "volume": "Объем",
+  "trades-count": "Количество сделок",
+  "loading-pools": "Загрузка пулов...",
+  "load-more": "Загрузить еще",
+  "no-more-data": "Больше данных нет"
 }

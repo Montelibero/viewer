@@ -40,5 +40,16 @@
   "error-load-asset": "No se pudo cargar el activo",
   "error-load-holders": "No se pudo cargar los holders",
   "error-load-pools": "No se pudo cargar los pools",
-  "error-unknown": "Error desconocido"
+  "error-unknown": "Error desconocido",
+  "charts-title": "Gráficos",
+  "back-to-asset": "Volver al Activo",
+  "select-counter": "Seleccionar par",
+  "manual-input": "O ingresar manualmente (CODE-ISSUER)",
+  "btn-show": "Mostrar",
+  "price": "Precio",
+  "volume": "Volumen",
+  "trades-count": "Cantidad de operaciones",
+  "loading-pools": "Cargando pools...",
+  "load-more": "Cargar más",
+  "no-more-data": "No hay más datos"
 }

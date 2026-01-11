@@ -53,5 +53,6 @@
   "trades-count": "Trades Count",
   "loading-pools": "Loading pools...",
   "load-more": "Load more",
-  "no-more-data": "No more data"
+  "no-more-data": "No more data",
+  "log-scale": "Log Scale"
 }

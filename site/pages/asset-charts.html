@@ -50,7 +50,17 @@
             </div>
 
             <div class="box">
-                <h6 class="title is-6 has-text-centered" data-i18n="volume">Volume</h6>
+                <div class="level is-mobile mb-2">
+                    <div class="level-left">
+                        <h6 class="title is-6 has-text-centered mb-0" data-i18n="volume">Volume</h6>
+                    </div>
+                    <div class="level-right">
+                        <label class="checkbox">
+                            <input type="checkbox" id="volume-log-toggle">
+                            <span data-i18n="log-scale">Log Scale</span>
+                        </label>
+                    </div>
+                </div>
                 <div style="height: 200px; position: relative;">
                     <canvas id="volume-chart"></canvas>
                 </div>

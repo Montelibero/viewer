@@ -25,6 +25,7 @@ export async function init(params, i18n) {
     const errorMessage = document.getElementById('error-message');
     const chartsContainer = document.getElementById('charts-container');
     const loadMoreBtn = document.getElementById('btn-load-more');
+    const volumeLogToggle = document.getElementById('volume-log-toggle');
 
     if (backBtn) backBtn.href = `/pool/${poolId}`;
     if (poolIdDisplay) poolIdDisplay.textContent = shorten(poolId);
@@ -203,6 +204,7 @@ export async function init(params, i18n) {
         }
 
         // Volume Chart
+        const isLog = volumeLogToggle && volumeLogToggle.checked;
         if (!volumeChart) {
             const ctxVol = document.getElementById('volume-chart');
             volumeChart = new Chart(ctxVol, {
@@ -218,12 +220,16 @@ export async function init(params, i18n) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { x: { display: true, ticks: { maxTicksLimit: 8 } } }
+                    scales: {
+                        x: { display: true, ticks: { maxTicksLimit: 8 } },
+                        y: { type: isLog ? 'logarithmic' : 'linear' }
+                    }
                 }
             });
         } else {
             volumeChart.data.labels = labels;
             volumeChart.data.datasets[0].data = dataVolume;
+            volumeChart.options.scales.y.type = isLog ? 'logarithmic' : 'linear';
             volumeChart.update();
         }
 
@@ -282,6 +288,10 @@ export async function init(params, i18n) {
 
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', () => loadMoreData());
+    }
+
+    if (volumeLogToggle) {
+        volumeLogToggle.addEventListener('change', () => updateCharts());
     }
 
     // Initial Load

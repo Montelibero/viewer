@@ -66,6 +66,7 @@ export async function init(params, i18n) {
     const errorMsg = document.getElementById('error-message');
     const tabs = document.querySelectorAll('.tabs li');
     const btnLoadMore = document.getElementById('btn-load-more');
+    const volumeLogToggle = document.getElementById('volume-log-toggle');
 
     // Init UI text
     if (btnBack) btnBack.href = `/asset/${encodeURIComponent(assetParam)}`;
@@ -239,6 +240,13 @@ export async function init(params, i18n) {
         loadData(true);
     });
 
+    if (volumeLogToggle) {
+        volumeLogToggle.addEventListener('change', () => {
+             // Just update chart config without reload if data exists
+             if (allRecords.length > 0) renderCharts();
+        });
+    }
+
     function triggerLoad(counter) {
         currentCounter = counter;
 
@@ -370,6 +378,7 @@ export async function init(params, i18n) {
             });
 
             const ctxVol = document.getElementById('volume-chart');
+            const isLog = volumeLogToggle && volumeLogToggle.checked;
             volumeChart = new Chart(ctxVol, {
                 type: 'bar',
                 data: {
@@ -383,7 +392,10 @@ export async function init(params, i18n) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { x: { display: false } }
+                    scales: {
+                        x: { display: false },
+                        y: { type: isLog ? 'logarithmic' : 'linear' }
+                    }
                 }
             });
 
@@ -413,6 +425,8 @@ export async function init(params, i18n) {
 
             volumeChart.data.labels = labels;
             volumeChart.data.datasets[0].data = dataVol;
+            const isLog = volumeLogToggle && volumeLogToggle.checked;
+            volumeChart.options.scales.y.type = isLog ? 'logarithmic' : 'linear';
             volumeChart.update();
 
             countChart.data.labels = labels;

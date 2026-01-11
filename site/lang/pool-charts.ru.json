@@ -8,5 +8,6 @@
   "error-title": "Ошибка",
   "back-button": "Назад к пулу",
   "load-more-button": "Загрузить еще (7 дней)",
-  "no-more-data": "Конец истории"
+  "no-more-data": "Конец истории",
+  "log-scale": "Логарифмическая шкала"
 }

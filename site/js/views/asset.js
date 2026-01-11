@@ -499,6 +499,11 @@ export async function init(params, i18n) {
         });
     }
 
+    const btnCharts = document.getElementById('btn-charts');
+    if (btnCharts) {
+        btnCharts.href = `/asset/${encodeURIComponent(assetParam)}/charts`;
+    }
+
     // Init
     loadAsset(code, issuer).then(() => {
         // Load extra metrics after main asset data to ensure non-blocking

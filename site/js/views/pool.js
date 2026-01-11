@@ -122,6 +122,9 @@ export async function init(params, i18n) {
         const btnOps = document.getElementById('btn-operations');
         if(btnOps) btnOps.href = `/pool/${pool.id}/operations`;
 
+        const btnCharts = document.getElementById('btn-charts');
+        if(btnCharts) btnCharts.href = `/pool/${pool.id}/charts`;
+
         // External links
         const stellarXBtn = document.getElementById('btn-stellarx');
         const scopulyBtn = document.getElementById('btn-scopuly');

@@ -1,0 +1,8 @@
+{
+  "header-title": "Pool Statistics",
+  "chart-price": "Price",
+  "chart-volume": "Volume",
+  "loading": "Loading data...",
+  "error-title": "Error",
+  "back-button": "Back to Pool"
+}

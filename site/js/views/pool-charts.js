@@ -37,6 +37,8 @@ export async function init(params, i18n) {
     // Chart instances
     let priceChart = null;
     let volumeChart = null;
+    let tradersChart = null;
+    let avgSizeChart = null;
 
     function showError(msg) {
         if (loader) loader.classList.add('is-hidden');
@@ -53,6 +55,18 @@ export async function init(params, i18n) {
         console.error('Failed to load Chart.js', e);
         showError('Failed to load charting library.');
         return;
+    }
+
+    // Identify user account (non-pool participant)
+    function getUserAccount(trade) {
+        // For LP trades:
+        // if base_liquidity_pool_id == poolId, counter is user.
+        // if counter_liquidity_pool_id == poolId, base is user.
+        // Note: trade objects in Horizon response have fields `base_liquidity_pool_id` etc.
+        if (trade.base_liquidity_pool_id === poolId) return trade.counter_account;
+        if (trade.counter_liquidity_pool_id === poolId) return trade.base_account;
+        // Fallback?
+        return trade.base_account;
     }
 
     // Fetch Logic
@@ -120,9 +134,9 @@ export async function init(params, i18n) {
         // Prepare data: Reverse to be Chronological (Oldest -> Newest)
         const chronTrades = [...allTrades].reverse();
 
+        // Data for Price/Volume (per trade)
         const labels = chronTrades.map(t => {
             const d = new Date(t.ledger_close_time);
-            // Short format: DD.MM HH:mm
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const hours = String(d.getHours()).padStart(2, '0');
@@ -130,7 +144,6 @@ export async function init(params, i18n) {
             return `${day}.${month} ${hours}:${mins}`;
         });
 
-        // Infer assets
         const sample = allTrades[0];
         const baseCode = sample.base_asset_code || 'XLM';
         const counterCode = sample.counter_asset_code || 'XLM';
@@ -138,7 +151,30 @@ export async function init(params, i18n) {
         const dataPrice = chronTrades.map(t => parseFloat(t.price.n) / parseFloat(t.price.d));
         const dataVolume = chronTrades.map(t => parseFloat(t.base_amount));
 
-        // Create or Update Charts
+        // Aggregation for Daily Stats
+        const dailyStats = {}; // 'YYYY-MM-DD' -> { traders: Set(), volume: 0, count: 0 }
+
+        chronTrades.forEach(t => {
+            const d = new Date(t.ledger_close_time);
+            const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            if (!dailyStats[key]) {
+                dailyStats[key] = { traders: new Set(), volume: 0, count: 0 };
+            }
+
+            const user = getUserAccount(t);
+            if (user) dailyStats[key].traders.add(user);
+
+            dailyStats[key].volume += parseFloat(t.base_amount);
+            dailyStats[key].count += 1;
+        });
+
+        const dailyLabels = Object.keys(dailyStats).sort();
+        const dataUniqueTraders = dailyLabels.map(k => dailyStats[k].traders.size);
+        const dataAvgSize = dailyLabels.map(k => dailyStats[k].volume / dailyStats[k].count);
+
+        // --- RENDER ---
+
+        // Price Chart
         if (!priceChart) {
             const ctxPrice = document.getElementById('price-chart');
             priceChart = new Chart(ctxPrice, {
@@ -157,12 +193,17 @@ export async function init(params, i18n) {
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { intersect: false, mode: 'index' },
-                    scales: {
-                        x: { display: true, ticks: { maxTicksLimit: 8 } }
-                    }
+                    scales: { x: { display: true, ticks: { maxTicksLimit: 8 } } }
                 }
             });
+        } else {
+            priceChart.data.labels = labels;
+            priceChart.data.datasets[0].data = dataPrice;
+            priceChart.update();
+        }
 
+        // Volume Chart
+        if (!volumeChart) {
             const ctxVol = document.getElementById('volume-chart');
             volumeChart = new Chart(ctxVol, {
                 type: 'bar',
@@ -177,20 +218,65 @@ export async function init(params, i18n) {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        x: { display: true, ticks: { maxTicksLimit: 8 } }
-                    }
+                    scales: { x: { display: true, ticks: { maxTicksLimit: 8 } } }
                 }
             });
         } else {
-            // Update existing instances
-            priceChart.data.labels = labels;
-            priceChart.data.datasets[0].data = dataPrice;
-            priceChart.update();
-
             volumeChart.data.labels = labels;
             volumeChart.data.datasets[0].data = dataVolume;
             volumeChart.update();
+        }
+
+        // Unique Traders Chart
+        if (!tradersChart) {
+            const ctx = document.getElementById('unique-traders-chart');
+            tradersChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        label: t('chart-unique-traders'),
+                        data: dataUniqueTraders,
+                        backgroundColor: 'rgba(255, 159, 64, 0.5)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+        } else {
+            tradersChart.data.labels = dailyLabels;
+            tradersChart.data.datasets[0].data = dataUniqueTraders;
+            tradersChart.data.datasets[0].label = t('chart-unique-traders'); // in case lang changed? not really possible without reload
+            tradersChart.update();
+        }
+
+        // Avg Size Chart
+        if (!avgSizeChart) {
+            const ctx = document.getElementById('avg-size-chart');
+            avgSizeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dailyLabels,
+                    datasets: [{
+                        label: `${t('chart-avg-size')} (${baseCode})`,
+                        data: dataAvgSize,
+                        backgroundColor: 'rgba(153, 102, 255, 0.5)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        } else {
+            avgSizeChart.data.labels = dailyLabels;
+            avgSizeChart.data.datasets[0].data = dataAvgSize;
+            avgSizeChart.data.datasets[0].label = `${t('chart-avg-size')} (${baseCode})`;
+            avgSizeChart.update();
         }
     }
 

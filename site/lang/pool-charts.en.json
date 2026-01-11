@@ -2,6 +2,8 @@
   "header-title": "Pool Statistics",
   "chart-price": "Price",
   "chart-volume": "Volume",
+  "chart-unique-traders": "Unique Traders (Daily)",
+  "chart-avg-size": "Avg Trade Size (Daily)",
   "loading": "Loading data...",
   "error-title": "Error",
   "back-button": "Back to Pool",

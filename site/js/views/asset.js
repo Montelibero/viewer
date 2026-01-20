@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 
 const horizonBase = getHorizonURL();
 
@@ -475,6 +475,12 @@ export async function init(params, i18n) {
     if (idx > 0) {
         code = assetParam.slice(0, idx);
         issuer = assetParam.slice(idx + 1);
+    }
+
+    if (code && issuer) {
+        setPageTitle('Asset ' + code + ' by ' + shorten(issuer));
+    } else if (assetParam === 'native' || assetParam === 'XLM') {
+         setPageTitle('Asset XLM');
     }
 
     if (!code || !issuer) {

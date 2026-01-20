@@ -266,3 +266,12 @@ export function decodeTextValue(input) {
 
     return { text, hex };
 }
+
+export function setPageTitle(prefix) {
+    const suffix = ' - Stellar Viewer';
+    if (prefix) {
+        document.title = prefix + suffix;
+    } else {
+        document.title = 'Stellar Viewer';
+    }
+}

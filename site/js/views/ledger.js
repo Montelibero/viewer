@@ -1,9 +1,11 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 
 export async function init(params, i18n) {
     const { t } = i18n;
     const [ledgerSeq] = params;
     const horizonBase = getHorizonURL();
+
+    setPageTitle('Ledger ' + ledgerSeq);
 
     // DOM Elements
     const seqEl = document.getElementById('ledger-seq');

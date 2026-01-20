@@ -1,10 +1,12 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 
 const horizonBase = getHorizonURL();
 
 export async function init(params, i18n) {
     const { t } = i18n;
     const [poolId] = params;
+
+    setPageTitle('Pool ' + shorten(poolId));
 
     // UI References
     const statusLabel = document.getElementById('status-label');

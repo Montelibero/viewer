@@ -1,7 +1,8 @@
 
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 
 export async function init(params, i18n) {
+    setPageTitle();
     const { t } = i18n;
     const inputEl = document.getElementById('search-input');
     const buttonEl = document.getElementById('search-btn');

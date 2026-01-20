@@ -1,4 +1,4 @@
-import { shorten, isLocalLike, getHorizonURL, decodeTextValue } from '../common.js';
+import { shorten, isLocalLike, getHorizonURL, decodeTextValue, setPageTitle } from '../common.js';
 
 const horizonBase = getHorizonURL();
 const poolMetaCache = new Map();
@@ -94,6 +94,8 @@ function createBalanceCard({ title, subtitle = '', amount = '—', meta = null, 
 export async function init(params, i18n) {
     const { t } = i18n;
     const [accountId] = params;
+
+    setPageTitle('Account ' + shorten(accountId));
 
     // Global click handler to close popovers
     function closePopovers() {

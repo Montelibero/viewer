@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 import { renderOperationComponent, accountLink, formatStroopAmount } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
@@ -125,6 +125,8 @@ function extractTxObject(decoded) {
 export async function init(params, i18n) {
     const { t } = i18n;
     const [txHash] = params;
+
+    setPageTitle('Transaction ' + shorten(txHash));
 
     // UI References
     const statusEl = document.getElementById('status-label');

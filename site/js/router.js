@@ -1,4 +1,5 @@
 import { initI18n } from './i18n.js';
+import { setPageTitle } from './common.js';
 
 const routes = [
   { pattern: /^\/$/, view: 'home' },
@@ -32,6 +33,9 @@ async function loadView(route, params) {
         currentView.cleanup();
     }
     currentView = null;
+
+    // Reset Title
+    setPageTitle();
 
     // Show loading or just clear
     app.innerHTML = '<div class="section"><progress class="progress is-small is-primary" max="100">Loading</progress></div>';

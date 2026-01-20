@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 
 const horizonBase = getHorizonURL();
 
@@ -21,6 +21,8 @@ function assetLabel(asset) {
 export async function init(params, i18n) {
     const { t } = i18n;
     const [offerId] = params;
+
+    setPageTitle('Offer ' + offerId);
 
     const statusEl = document.getElementById('status-label');
     const errorBox = document.getElementById('error-box');

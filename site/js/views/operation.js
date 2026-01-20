@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle } from '../common.js';
 import { renderOperationDetails, renderEffects, accountLink } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
@@ -6,6 +6,8 @@ const horizonBase = getHorizonURL();
 export async function init(params, i18n) {
     const { t } = i18n;
     const [opId] = params;
+
+    setPageTitle('Operation ' + opId);
 
     // UI References
     const statusLabel = document.getElementById('status-label');

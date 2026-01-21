@@ -1,0 +1,20 @@
+{
+  "back-to-asset": "Назад к Ассету",
+  "orderbook": "Стакан",
+  "select-counter": "Выберите пару",
+  "manual-input": "Или введите вручную (CODE-ISSUER)",
+  "btn-show": "Показать",
+  "depth-chart": "Глубина",
+  "bids": "Покупка",
+  "asks": "Продажа",
+  "price": "Цена",
+  "amount": "Объем",
+  "cumulative": "Сумма",
+  "swap-quotes": "Свап стакан",
+  "swap-from-base": "Из",
+  "swap-from-counter": "Из",
+  "swap-send": "Отправить",
+  "swap-receive": "Получить",
+  "swap-price": "Цена",
+  "swap-no-path": "Путь для свапа не найден."
+}

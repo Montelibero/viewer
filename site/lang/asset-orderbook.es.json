@@ -1,0 +1,20 @@
+{
+  "back-to-asset": "Volver al activo",
+  "orderbook": "Libro de Órdenes",
+  "select-counter": "Seleccionar par",
+  "manual-input": "O ingrésalo manualmente (CODE-ISSUER)",
+  "btn-show": "Mostrar",
+  "depth-chart": "Profundidad",
+  "bids": "Compras",
+  "asks": "Ventas",
+  "price": "Precio",
+  "amount": "Cantidad",
+  "cumulative": "Suma",
+  "swap-quotes": "Cotizaciones de swap",
+  "swap-from-base": "Desde",
+  "swap-from-counter": "Desde",
+  "swap-send": "Enviar",
+  "swap-receive": "Recibir",
+  "swap-price": "Precio",
+  "swap-no-path": "No se encontró una ruta de swap."
+}

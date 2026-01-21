@@ -2,6 +2,7 @@ import { getHorizonURL, shorten } from '../common.js';
 import { findCounterAssets } from '../asset-utils.js';
 
 const horizonBase = getHorizonURL();
+const FIAT_CODES = new Set(['USD', 'USDC', 'USDT', 'EUR', 'EURC', 'GBP', 'JPY', 'AUD', 'CHF', 'CAD', 'BRL', 'MXN', 'CNY', 'HKD']);
 
 async function loadChartJs() {
     if (window.Chart) return;
@@ -42,6 +43,11 @@ export async function init(params, i18n) {
     const errorMsg = document.getElementById('error-message');
     const bidsBody = document.getElementById('bids-body');
     const asksBody = document.getElementById('asks-body');
+    const swapBaseLabel = document.getElementById('swap-base-label');
+    const swapCounterLabel = document.getElementById('swap-counter-label');
+    const swapSellBody = document.getElementById('swap-sell-body');
+    const swapBuyBody = document.getElementById('swap-buy-body');
+    const swapNote = document.getElementById('swap-note');
 
     if (btnBack) btnBack.href = `/asset/${encodeURIComponent(assetParam)}`;
     if (baseCodeDisplay) baseCodeDisplay.textContent = shorten(baseCode);
@@ -189,6 +195,7 @@ export async function init(params, i18n) {
         renderTable(bids, bidsBody, true);
         renderTable(asks, asksBody, false);
         renderChart(bids, asks);
+        renderSwapQuotes(bids, asks);
     }
 
     function renderTable(list, tbody, isBid) {
@@ -221,21 +228,26 @@ export async function init(params, i18n) {
         });
     }
 
-    function renderChart(bids, asks) {
-        const bidsPoints = [];
-        let bSum = 0;
-        bids.forEach(b => {
-            bSum += parseFloat(b.amount);
-            bidsPoints.push({ x: parseFloat(b.price), y: bSum });
+    function buildDepthPoints(list) {
+        const sorted = [...list].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        const points = [];
+        let sum = 0;
+        sorted.forEach(item => {
+            const amount = parseFloat(item.amount);
+            const price = parseFloat(item.price);
+            if (Number.isNaN(amount) || Number.isNaN(price)) return;
+            sum += amount;
+            points.push({ x: price, y: sum });
         });
-        bidsPoints.reverse();
+        if (points.length) {
+            points.unshift({ x: points[0].x, y: 0 });
+        }
+        return points;
+    }
 
-        const asksPoints = [];
-        let aSum = 0;
-        asks.forEach(a => {
-            aSum += parseFloat(a.amount);
-            asksPoints.push({ x: parseFloat(a.price), y: aSum });
-        });
+    function renderChart(bids, asks) {
+        const bidsPoints = buildDepthPoints(bids);
+        const asksPoints = buildDepthPoints(asks);
 
         const ctx = document.getElementById('depth-chart');
         if (chart) chart.destroy();
@@ -292,5 +304,153 @@ export async function init(params, i18n) {
             }
         });
 
+    }
+
+    function getAssetDetails(code, issuer) {
+        if (code === 'XLM') {
+            return { code: 'XLM', issuer: null, type: 'native' };
+        }
+        const type = code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
+        return { code, issuer, type };
+    }
+
+    function formatAssetIdentifier(asset) {
+        if (asset.type === 'native') return 'native';
+        return `${asset.code}:${asset.issuer}`;
+    }
+
+    function appendAssetParams(params, asset, prefix) {
+        params.set(`${prefix}_asset_type`, asset.type);
+        if (asset.type !== 'native') {
+            params.set(`${prefix}_asset_code`, asset.code);
+            params.set(`${prefix}_asset_issuer`, asset.issuer);
+        }
+    }
+
+    function formatNumber(value, options = {}) {
+        const safe = Number(value);
+        if (Number.isNaN(safe)) return '-';
+        return safe.toLocaleString(undefined, options);
+    }
+
+    function pickSwapAmounts(assetCode, priceHint) {
+        const upper = (assetCode || '').toUpperCase();
+        if (FIAT_CODES.has(upper)) {
+            return [1, 10, 100, 1000];
+        }
+        if (priceHint && priceHint >= 100) {
+            return [1, 0.1, 0.01, 0.001, 0.0001];
+        }
+        return [1, 10, 100, 1000];
+    }
+
+    async function fetchStrictSendQuote(sourceAsset, destinationAsset, amount) {
+        const params = new URLSearchParams();
+        appendAssetParams(params, sourceAsset, 'source');
+        params.set('source_amount', amount.toString());
+        params.set('destination_assets', formatAssetIdentifier(destinationAsset));
+        params.set('limit', 1);
+
+        const url = `${horizonBase}/paths/strict-send?${params.toString()}`;
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const data = await res.json();
+        const record = data?._embedded?.records?.[0];
+        if (!record) return null;
+        return parseFloat(record.destination_amount);
+    }
+
+    async function renderSwapQuotes(bids, asks) {
+        if (!swapSellBody || !swapBuyBody || !swapBaseLabel || !swapCounterLabel) return;
+        swapSellBody.innerHTML = '';
+        swapBuyBody.innerHTML = '';
+        if (swapNote) swapNote.classList.add('is-hidden');
+
+        const baseAsset = getAssetDetails(baseCode, baseIssuer);
+        const counterAsset = getAssetDetails(currentCounter.code, currentCounter.issuer);
+        swapBaseLabel.textContent = baseAsset.code;
+        swapCounterLabel.textContent = counterAsset.code;
+
+        const bestBid = bids.length ? parseFloat(bids[0].price) : null;
+        const bestAsk = asks.length ? parseFloat(asks[0].price) : null;
+        const priceHint = bestBid && bestAsk ? (bestBid + bestAsk) / 2 : bestBid || bestAsk || null;
+        const baseAmounts = pickSwapAmounts(baseAsset.code, priceHint);
+        const counterPriceHint = priceHint ? 1 / priceHint : null;
+        const counterAmounts = pickSwapAmounts(counterAsset.code, counterPriceHint);
+
+        const sellQuotes = await Promise.all(baseAmounts.map(async amount => {
+            const received = await fetchStrictSendQuote(baseAsset, counterAsset, amount);
+            return { amount, received };
+        }));
+        const buyQuotes = await Promise.all(counterAmounts.map(async amount => {
+            const received = await fetchStrictSendQuote(counterAsset, baseAsset, amount);
+            return { amount, received };
+        }));
+
+        let hasData = false;
+
+        sellQuotes.forEach(quote => {
+            const row = document.createElement('tr');
+            const sendCell = document.createElement('td');
+            sendCell.className = 'is-mono';
+            sendCell.textContent = formatNumber(quote.amount, { maximumFractionDigits: 7 });
+
+            const receiveCell = document.createElement('td');
+            receiveCell.className = 'has-text-right is-mono';
+            if (quote.received === null) {
+                receiveCell.textContent = t('swap-no-path');
+            } else {
+                hasData = true;
+                receiveCell.textContent = formatNumber(quote.received, { maximumFractionDigits: 7 });
+            }
+
+            const priceCell = document.createElement('td');
+            priceCell.className = 'has-text-right is-mono has-text-grey-light';
+            if (quote.received === null) {
+                priceCell.textContent = '-';
+            } else {
+                const price = quote.received / quote.amount;
+                priceCell.textContent = formatNumber(price, { maximumFractionDigits: 7 });
+            }
+
+            row.appendChild(sendCell);
+            row.appendChild(receiveCell);
+            row.appendChild(priceCell);
+            swapSellBody.appendChild(row);
+        });
+
+        buyQuotes.forEach(quote => {
+            const row = document.createElement('tr');
+            const sendCell = document.createElement('td');
+            sendCell.className = 'is-mono';
+            sendCell.textContent = formatNumber(quote.amount, { maximumFractionDigits: 7 });
+
+            const receiveCell = document.createElement('td');
+            receiveCell.className = 'has-text-right is-mono';
+            if (quote.received === null) {
+                receiveCell.textContent = t('swap-no-path');
+            } else {
+                hasData = true;
+                receiveCell.textContent = formatNumber(quote.received, { maximumFractionDigits: 7 });
+            }
+
+            const priceCell = document.createElement('td');
+            priceCell.className = 'has-text-right is-mono has-text-grey-light';
+            if (quote.received === null) {
+                priceCell.textContent = '-';
+            } else {
+                const price = quote.amount / quote.received;
+                priceCell.textContent = formatNumber(price, { maximumFractionDigits: 7 });
+            }
+
+            row.appendChild(sendCell);
+            row.appendChild(receiveCell);
+            row.appendChild(priceCell);
+            swapBuyBody.appendChild(row);
+        });
+
+        if (!hasData && swapNote) {
+            swapNote.classList.remove('is-hidden');
+        }
     }
 }

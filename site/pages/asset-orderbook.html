@@ -43,6 +43,50 @@
             </div>
         </div>
 
+        <!-- Swap Quotes -->
+        <div class="box" id="swap-quotes">
+            <h6 class="title is-6 has-text-centered" data-i18n="swap-quotes">Swap quotes</h6>
+            <div class="columns is-multiline">
+                <div class="column is-6">
+                    <h6 class="subtitle is-7 has-text-centered">
+                        <span data-i18n="swap-from-base">From</span>
+                        <span class="has-text-weight-semibold" id="swap-base-label">Base</span>
+                    </h6>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="swap-send">Send</th>
+                                    <th class="has-text-right" data-i18n="swap-receive">Receive</th>
+                                    <th class="has-text-right" data-i18n="swap-price">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="swap-sell-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="column is-6">
+                    <h6 class="subtitle is-7 has-text-centered">
+                        <span data-i18n="swap-from-counter">From</span>
+                        <span class="has-text-weight-semibold" id="swap-counter-label">Counter</span>
+                    </h6>
+                    <div class="table-container">
+                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="swap-send">Send</th>
+                                    <th class="has-text-right" data-i18n="swap-receive">Receive</th>
+                                    <th class="has-text-right" data-i18n="swap-price">Price</th>
+                                </tr>
+                            </thead>
+                            <tbody id="swap-buy-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <p class="help has-text-centered is-hidden" id="swap-note" data-i18n="swap-no-path">No swap path found.</p>
+        </div>
+
         <!-- Tables -->
         <div class="columns">
             <!-- BIDS (Buying Base) -->

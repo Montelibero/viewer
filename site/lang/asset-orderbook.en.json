@@ -1,0 +1,20 @@
+{
+  "back-to-asset": "Back to Asset",
+  "orderbook": "Orderbook",
+  "select-counter": "Select Pair",
+  "manual-input": "Or enter manually (CODE-ISSUER)",
+  "btn-show": "Show",
+  "depth-chart": "Depth Chart",
+  "bids": "Bids",
+  "asks": "Asks",
+  "price": "Price",
+  "amount": "Amount",
+  "cumulative": "Cumulative",
+  "swap-quotes": "Swap quotes",
+  "swap-from-base": "From",
+  "swap-from-counter": "From",
+  "swap-send": "Send",
+  "swap-receive": "Receive",
+  "swap-price": "Price",
+  "swap-no-path": "No swap path found."
+}

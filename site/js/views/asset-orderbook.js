@@ -20,10 +20,15 @@ export async function init(params, i18n) {
 
     let baseCode = '';
     let baseIssuer = '';
-    const idx = assetParam.lastIndexOf('-');
-    if (idx > 0) {
-        baseCode = assetParam.slice(0, idx);
-        baseIssuer = assetParam.slice(idx + 1);
+
+    if (assetParam === 'XLM') {
+        baseCode = 'XLM';
+    } else {
+        const idx = assetParam.lastIndexOf('-');
+        if (idx > 0) {
+            baseCode = assetParam.slice(0, idx);
+            baseIssuer = assetParam.slice(idx + 1);
+        }
     }
 
     const btnBack = document.getElementById('btn-back');
@@ -155,7 +160,7 @@ export async function init(params, i18n) {
             } else {
                 params.set('selling_asset_code', baseCode);
                 params.set('selling_asset_issuer', baseIssuer);
-                params.set('selling_asset_type', 'credit_alphanum12');
+                params.set('selling_asset_type', baseCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
             }
 
             if (currentCounter.code === 'XLM') {
@@ -163,7 +168,7 @@ export async function init(params, i18n) {
             } else {
                 params.set('buying_asset_code', currentCounter.code);
                 params.set('buying_asset_issuer', currentCounter.issuer);
-                params.set('buying_asset_type', 'credit_alphanum12');
+                params.set('buying_asset_type', currentCounter.code.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12');
             }
             params.set('limit', 200);
 

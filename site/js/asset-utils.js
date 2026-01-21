@@ -10,7 +10,7 @@ const horizonBase = getHorizonURL();
  * @returns {Promise<Array>} List of counter assets { code, issuer, type }
  */
 async function fetchPoolCounterAssets(code, issuer, limit = 200) {
-    const assetId = `${code}:${issuer}`;
+    const assetId = code === 'XLM' ? 'native' : `${code}:${issuer}`;
     let nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc`;
     let lastCursor = null;
     const pools = [];
@@ -58,7 +58,7 @@ async function fetchPoolCounterAssets(code, issuer, limit = 200) {
             cType = 'native';
         } else {
             [cCode, cIssuer] = other.asset.split(':');
-            cType = 'credit_alphanum4'; // Simplified
+            cType = cCode.length <= 4 ? 'credit_alphanum4' : 'credit_alphanum12';
         }
         counters.push({ code: cCode, issuer: cIssuer, type: cType });
     });
@@ -75,7 +75,8 @@ async function fetchPoolCounterAssets(code, issuer, limit = 200) {
 async function fetchOfferCounterAssets(code, issuer) {
     // selling = our asset
     // buying = what we want to find (counter asset)
-    let nextUrl = `${horizonBase}/offers?selling=${code}:${issuer}&limit=200&order=desc`;
+    const selling = code === 'XLM' ? 'native' : `${code}:${issuer}`;
+    let nextUrl = `${horizonBase}/offers?selling=${selling}&limit=200&order=desc`;
 
     let lastCursor = null;
     const counters = [];
@@ -113,7 +114,7 @@ async function fetchOfferCounterAssets(code, issuer) {
             const cursor = parsed.searchParams.get('cursor');
             if (!cursor || cursor === lastCursor) break;
             lastCursor = cursor;
-            nextUrl = `${horizonBase}/offers?selling=${code}:${issuer}&limit=200&order=desc&cursor=${encodeURIComponent(cursor)}`;
+            nextUrl = `${horizonBase}/offers?selling=${selling}&limit=200&order=desc&cursor=${encodeURIComponent(cursor)}`;
             pages++;
         } catch (e) {
             console.error('Error fetching offers:', e);

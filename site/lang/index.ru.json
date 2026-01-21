@@ -27,5 +27,17 @@
   "horizon-url-help": "Введите валидный URL Horizon API.",
   "save-button": "Сохранить",
   "reset-button": "Сбросить",
-  "cancel-button": "Отмена"
+  "cancel-button": "Отмена",
+  "orderbook": "Стакан",
+  "bids": "Покупка",
+  "asks": "Продажа",
+  "depth-chart": "Глубина",
+  "cumulative": "Сумма",
+  "price": "Цена",
+  "amount": "Объем",
+  "select-counter": "Выбрать пару",
+  "manual-input": "Или введите вручную (CODE-ISSUER)",
+  "btn-show": "Показать",
+  "back-to-asset": "Назад к активу",
+  "error-loading-pairs": "Ошибка загрузки пар"
 }

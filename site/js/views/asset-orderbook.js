@@ -38,6 +38,7 @@ export async function init(params, i18n) {
     const selectEl = document.getElementById('counter-select');
     const manualInput = document.getElementById('manual-input');
     const btnShow = document.getElementById('btn-show');
+    const btnSwapPair = document.getElementById('btn-swap-pair');
     const container = document.getElementById('orderbook-container');
     const errorBox = document.getElementById('error-box');
     const errorMsg = document.getElementById('error-message');
@@ -52,6 +53,7 @@ export async function init(params, i18n) {
     if (btnBack) btnBack.href = `/asset/${encodeURIComponent(assetParam)}`;
     if (baseCodeDisplay) baseCodeDisplay.textContent = shorten(baseCode);
     if (selectWrapper && !baseCode) selectWrapper.classList.add('is-loading');
+    if (btnSwapPair) btnSwapPair.disabled = true;
 
     let currentCounter = null;
     let charts = [];
@@ -159,6 +161,29 @@ export async function init(params, i18n) {
         triggerLoad({ code, issuer, type });
     });
 
+    function formatAssetParam(asset) {
+        if (!asset) return '';
+        if (asset.type === 'native' || asset.code === 'XLM') return 'XLM';
+        if (!asset.code || !asset.issuer) return '';
+        return `${asset.code}-${asset.issuer}`;
+    }
+
+    if (btnSwapPair) {
+        btnSwapPair.addEventListener('click', () => {
+            if (!currentCounter || !baseCode) return;
+            const baseAsset = getAssetDetails(baseCode, baseIssuer);
+            const counterAsset = getAssetDetails(currentCounter.code, currentCounter.issuer);
+            const newBase = formatAssetParam(counterAsset);
+            const newCounter = formatAssetParam(baseAsset);
+            if (!newBase || !newCounter) return;
+            const url = new URL(window.location);
+            url.pathname = `/asset/${encodeURIComponent(newBase)}/orderbook`;
+            url.searchParams.set('counter', newCounter);
+            window.history.pushState(null, '', url);
+            window.dispatchEvent(new Event('popstate'));
+        });
+    }
+
     Object.values(logToggles).forEach(toggle => {
         if (!toggle) return;
         toggle.addEventListener('change', () => {
@@ -170,6 +195,7 @@ export async function init(params, i18n) {
 
     function triggerLoad(counter) {
         currentCounter = counter;
+        if (btnSwapPair) btnSwapPair.disabled = false;
         const url = new URL(window.location);
         const id = counter.type === 'native' ? 'XLM' : `${counter.code}-${counter.issuer}`;
         url.searchParams.set('counter', id);

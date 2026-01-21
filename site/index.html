@@ -90,7 +90,7 @@
     import { initI18n } from '/v{{readFile "VERSION" | trim}}/js/i18n.js';
     import { appVersion, initSettings } from '/v{{readFile "VERSION" | trim}}/js/common.js';
 
-    document.getElementById('app-version').textContent = appVersion;
+    document.getElementById('app-version').textContent = '1.' + appVersion;
     initSettings();
 
     // Lang switcher logic (global)

@@ -1,4 +1,5 @@
 import { getHorizonURL, shorten } from '../common.js';
+import { findCounterAssets } from '../asset-utils.js';
 
 const horizonBase = getHorizonURL();
 
@@ -11,35 +12,6 @@ async function loadChartJs() {
         script.onerror = reject;
         document.head.appendChild(script);
     });
-}
-
-// Reuse logic from asset.js but we only need the counter assets
-async function fetchAssetPools(code, issuer) {
-    const assetId = `${code}:${issuer}`;
-    let nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc`;
-    let lastCursor = null;
-    const pools = [];
-
-    while (nextUrl) {
-        const res = await fetch(nextUrl);
-        if (!res.ok) throw new Error(`Horizon error ${res.status}`);
-
-        const data = await res.json();
-        const records = data?._embedded?.records || [];
-        pools.push(...records);
-
-        if (!records.length) break;
-
-        const nextHref = data?._links?.next?.href;
-        if (!nextHref) break;
-        const parsed = new URL(nextHref);
-        const cursor = parsed.searchParams.get('cursor');
-        if (!cursor || cursor === lastCursor) break;
-        lastCursor = cursor;
-        nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc&cursor=${encodeURIComponent(cursor)}`;
-    }
-
-    return pools;
 }
 
 export async function init(params, i18n) {
@@ -91,48 +63,11 @@ export async function init(params, i18n) {
     }
 
     // Load Pools to populate dropdown
-    fetchAssetPools(baseCode, baseIssuer).then(pools => {
+    findCounterAssets(baseCode, baseIssuer).then(counters => {
         selectEl.innerHTML = `<option value="" selected disabled>${t('select-counter') || 'Select Pair'}</option>`;
         if (selectWrapper) selectWrapper.classList.remove('is-loading');
 
-        const pairs = new Map(); // Key: "CODE:ISSUER", Value: details
-
-        pools.forEach(p => {
-            // Find the other asset
-            const res = p.reserves;
-            const myAssetId = `${baseCode}:${baseIssuer}`;
-            const other = res.find(r => r.asset !== myAssetId) || (res[0].asset === myAssetId ? res[1] : res[0]);
-
-            // Check if other is same (should not happen in valid pool)
-            if (!other) return;
-
-            let cCode, cIssuer, cType;
-            if (other.asset === 'native') {
-                cCode = 'XLM';
-                cIssuer = null;
-                cType = 'native';
-            } else {
-                [cCode, cIssuer] = other.asset.split(':');
-                cType = 'credit_alphanum4'; // Simplified
-            }
-
-            const key = other.asset;
-            if (!pairs.has(key)) {
-                pairs.set(key, { code: cCode, issuer: cIssuer, type: cType, count: 1 });
-            } else {
-                pairs.get(key).count++;
-            }
-        });
-
-        // Convert map to options
-        // Sort by 'native' first, then alphanumeric
-        const sorted = [...pairs.values()].sort((a, b) => {
-            if (a.type === 'native') return -1;
-            if (b.type === 'native') return 1;
-            return a.code.localeCompare(b.code);
-        });
-
-        sorted.forEach(p => {
+        counters.forEach(p => {
             const opt = document.createElement('option');
             // Store as JSON in value
             opt.value = JSON.stringify(p);

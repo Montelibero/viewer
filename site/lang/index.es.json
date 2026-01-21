@@ -26,5 +26,17 @@
   "horizon-url-help": "Ingrese una URL válida de la API de Horizon.",
   "save-button": "Guardar",
   "reset-button": "Restablecer",
-  "cancel-button": "Cancelar"
+  "cancel-button": "Cancelar",
+  "orderbook": "Libro de Órdenes",
+  "bids": "Compras",
+  "asks": "Ventas",
+  "depth-chart": "Profundidad",
+  "cumulative": "Suma",
+  "price": "Precio",
+  "amount": "Cantidad",
+  "select-counter": "Seleccionar Par",
+  "manual-input": "O ingresar manualmente (CÓDIGO-EMISOR)",
+  "btn-show": "Mostrar",
+  "back-to-asset": "Volver al Activo",
+  "error-loading-pairs": "Error al cargar pares"
 }

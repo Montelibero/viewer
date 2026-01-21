@@ -27,5 +27,17 @@
   "horizon-url-help": "Enter a valid Horizon API URL.",
   "save-button": "Save",
   "reset-button": "Reset to Default",
-  "cancel-button": "Cancel"
+  "cancel-button": "Cancel",
+  "orderbook": "Orderbook",
+  "bids": "Bids",
+  "asks": "Asks",
+  "depth-chart": "Depth Chart",
+  "cumulative": "Cumulative",
+  "price": "Price",
+  "amount": "Amount",
+  "select-counter": "Select Pair",
+  "manual-input": "Or enter manually (CODE-ISSUER)",
+  "btn-show": "Show",
+  "back-to-asset": "Back to Asset",
+  "error-loading-pairs": "Error loading pairs"
 }

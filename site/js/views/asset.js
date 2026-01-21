@@ -510,6 +510,11 @@ export async function init(params, i18n) {
         btnCharts.href = `/asset/${encodeURIComponent(assetParam)}/charts`;
     }
 
+    const btnOrderbook = document.getElementById('btn-orderbook');
+    if (btnOrderbook) {
+        btnOrderbook.href = `/asset/${encodeURIComponent(assetParam)}/orderbook`;
+    }
+
     // Init
     loadAsset(code, issuer).then(() => {
         // Load extra metrics after main asset data to ensure non-blocking

@@ -1,0 +1,93 @@
+<section class="section">
+  <div class="container">
+    <div class="mb-4">
+      <a class="button is-small is-light" id="btn-back" href="#" data-i18n="back-to-asset">Back</a>
+    </div>
+
+    <div class="box">
+        <h1 class="title is-5"><span data-i18n="orderbook">Orderbook</span> <span class="has-text-grey-light" id="base-code-display"></span></h1>
+
+        <div id="selection-area">
+            <div class="field">
+                <label class="label" data-i18n="select-counter">Select Pair</label>
+                <div class="control">
+                    <div class="select is-fullwidth" id="select-wrapper">
+                        <select id="counter-select">
+                            <option value="" disabled selected data-i18n="loading-pools">Loading pairs...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label" data-i18n="manual-input">Or enter manually (CODE-ISSUER)</label>
+                <div class="field has-addons">
+                    <div class="control is-expanded">
+                        <input class="input" type="text" id="manual-input" placeholder="XLM or CODE-ISSUER">
+                    </div>
+                    <div class="control">
+                        <button class="button is-info" id="btn-show" data-i18n="btn-show">Show</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="orderbook-container" class="is-hidden">
+
+        <!-- Chart -->
+        <div class="box">
+            <h6 class="title is-6 has-text-centered" data-i18n="depth-chart">Depth Chart</h6>
+            <div style="height: 300px; position: relative;">
+                <canvas id="depth-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Tables -->
+        <div class="columns">
+            <!-- BIDS (Buying Base) -->
+            <div class="column is-6">
+                <div class="box">
+                    <h6 class="title is-6 has-text-centered has-text-success" data-i18n="bids">Bids</h6>
+                    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="price">Price</th>
+                                    <th class="has-text-right" data-i18n="amount">Amount</th>
+                                    <th class="has-text-right" data-i18n="cumulative">Sum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bids-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASKS (Selling Base) -->
+            <div class="column is-6">
+                <div class="box">
+                    <h6 class="title is-6 has-text-centered has-text-danger" data-i18n="asks">Asks</h6>
+                     <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="price">Price</th>
+                                    <th class="has-text-right" data-i18n="amount">Amount</th>
+                                    <th class="has-text-right" data-i18n="cumulative">Sum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="asks-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <article class="message is-danger is-hidden mt-4" id="error-box">
+      <div class="message-body" id="error-message"></div>
+    </article>
+  </div>
+</section>

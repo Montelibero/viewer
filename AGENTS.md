@@ -20,7 +20,7 @@
 - Maintain kebab-case for IDs/file names and keep translations aligned across locales.
 
 ## Cache Busting & Versioning
-- Static assets use a manual version query (currently `v=8`). When changing JS/CSS/translation files, bump the version in `site/index.html` imports/links and in `site/js/router.js` dynamic imports to avoid stale caches.
+- Никогда не изменять фалйл /site/VERSION
 
 ## Testing Guidelines
 - No automated tests; perform manual checks: home search flow, account view, transaction view, offers/operations lists (including pagination) and navigation without full reloads.

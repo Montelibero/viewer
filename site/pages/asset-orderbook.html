@@ -35,11 +35,27 @@
 
     <div id="orderbook-container" class="is-hidden">
 
-        <!-- Chart -->
+        <!-- Charts -->
         <div class="box">
-            <h6 class="title is-6 has-text-centered" data-i18n="depth-chart">Depth Chart</h6>
-            <div style="height: 300px; position: relative;">
-                <canvas id="depth-chart"></canvas>
+            <div class="level is-mobile mb-2">
+                <div class="level-left">
+                    <h6 class="title is-6 has-text-centered mb-0" data-i18n="depth-chart-5">Liquidity by level (Top 20)</h6>
+                </div>
+                <div class="level-right">
+                    <label class="checkbox is-size-7">
+                        <input type="checkbox" id="depth-log-5">
+                        <span data-i18n="log-scale">Log Scale</span>
+                    </label>
+                </div>
+            </div>
+            <div class="orderbook-chart">
+                <canvas id="depth-chart-5"></canvas>
+            </div>
+        </div>
+        <div class="box">
+            <h6 class="title is-6 has-text-centered" data-i18n="depth-chart-6">Price impact (Avg price vs size)</h6>
+            <div class="orderbook-chart">
+                <canvas id="depth-chart-6"></canvas>
             </div>
         </div>
 

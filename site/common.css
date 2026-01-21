@@ -74,6 +74,17 @@ body {
   flex-shrink: 0;
 }
 
+.orderbook-chart {
+  height: 260px;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .orderbook-chart {
+    height: 300px;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .button.is-light,
   .tag.is-light {

@@ -54,7 +54,23 @@ export async function init(params, i18n) {
     if (selectWrapper && !baseCode) selectWrapper.classList.add('is-loading');
 
     let currentCounter = null;
-    let chart = null;
+    let charts = [];
+    let lastBids = [];
+    let lastAsks = [];
+    const TOP_LEVELS = 30;
+    const LEVEL_BARS = 20;
+    const LOG_EPS = 0.000001;
+    const chartPalette = {
+        bidLine: '#20b96b',
+        bidFill: 'rgba(32, 185, 107, 0.2)',
+        askLine: '#ff4f6d',
+        askFill: 'rgba(255, 79, 109, 0.2)',
+        bidBar: 'rgba(32, 185, 107, 0.55)',
+        askBar: 'rgba(255, 79, 109, 0.55)'
+    };
+    const logToggles = {
+        depth5: document.getElementById('depth-log-5')
+    };
 
     function showError(msg) {
         if (errorMsg) errorMsg.textContent = msg;
@@ -143,6 +159,15 @@ export async function init(params, i18n) {
         triggerLoad({ code, issuer, type });
     });
 
+    Object.values(logToggles).forEach(toggle => {
+        if (!toggle) return;
+        toggle.addEventListener('change', () => {
+            if (lastBids.length || lastAsks.length) {
+                renderCharts(lastBids, lastAsks);
+            }
+        });
+    });
+
     function triggerLoad(counter) {
         currentCounter = counter;
         const url = new URL(window.location);
@@ -192,9 +217,11 @@ export async function init(params, i18n) {
     }
 
     function renderOrderbook(bids, asks) {
+        lastBids = bids;
+        lastAsks = asks;
         renderTable(bids, bidsBody, true);
         renderTable(asks, asksBody, false);
-        renderChart(bids, asks);
+        renderCharts(bids, asks);
         renderSwapQuotes(bids, asks);
     }
 
@@ -228,82 +255,235 @@ export async function init(params, i18n) {
         });
     }
 
-    function buildDepthPoints(list) {
-        const sorted = [...list].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-        const points = [];
-        let sum = 0;
-        sorted.forEach(item => {
-            const amount = parseFloat(item.amount);
+    function parseLevels(list) {
+        return list.map(item => {
             const price = parseFloat(item.price);
-            if (Number.isNaN(amount) || Number.isNaN(price)) return;
-            sum += amount;
-            points.push({ x: price, y: sum });
-        });
-        if (points.length) {
-            points.unshift({ x: points[0].x, y: 0 });
+            const amount = parseFloat(item.amount);
+            if (Number.isNaN(price) || Number.isNaN(amount)) return null;
+            return { price, amount, value: price * amount };
+        }).filter(Boolean);
+    }
+
+    function sortLevels(levels, side) {
+        const sorted = [...levels];
+        if (side === 'bid') {
+            sorted.sort((a, b) => b.price - a.price);
+        } else {
+            sorted.sort((a, b) => a.price - b.price);
         }
+        return sorted;
+    }
+
+    function sliceLevels(levels, side, limit) {
+        return sortLevels(levels, side).slice(0, limit);
+    }
+
+    function accumulate(levels, side) {
+        const sorted = sortLevels(levels, side);
+        let sum = 0;
+        let sumValue = 0;
+        return sorted.map(level => {
+            sum += level.amount;
+            sumValue += level.value;
+            return { level, sum, sumValue };
+        });
+    }
+
+    function toPoints(accum, xMapper, yMapper, sortByX = false) {
+        const points = accum.map(item => {
+            const x = xMapper(item);
+            const y = yMapper(item);
+            if (Number.isNaN(x) || Number.isNaN(y)) return null;
+            return { x, y };
+        }).filter(Boolean);
+        if (sortByX) points.sort((a, b) => a.x - b.x);
         return points;
     }
 
-    function renderChart(bids, asks) {
-        const bidsPoints = buildDepthPoints(bids);
-        const asksPoints = buildDepthPoints(asks);
+    function isLogEnabled(toggle) {
+        return Boolean(toggle && toggle.checked);
+    }
 
-        const ctx = document.getElementById('depth-chart');
-        if (chart) chart.destroy();
+    function clampLogValue(value) {
+        if (!Number.isFinite(value)) return value;
+        return value <= 0 ? LOG_EPS : value;
+    }
 
-        chart = new Chart(ctx, {
+    function clampLogSeries(values, isLog) {
+        if (!isLog) return values;
+        return values.map(value => clampLogValue(value));
+    }
+
+    function pickBestPrice(levels, side) {
+        return levels.reduce((best, level) => {
+            if (best === null) return level.price;
+            return side === 'bid' ? Math.max(best, level.price) : Math.min(best, level.price);
+        }, null);
+    }
+
+    function destroyCharts() {
+        charts.forEach(item => item.destroy());
+        charts = [];
+    }
+
+    function makeDepthDataset(label, points, color, fillColor, options = {}) {
+        return {
+            label,
+            data: points,
+            borderColor: color,
+            backgroundColor: fillColor,
+            fill: options.fill ?? true,
+            stepped: options.stepped ?? false,
+            tension: options.tension ?? 0,
+            pointRadius: options.pointRadius ?? 0,
+            borderWidth: 2
+        };
+    }
+
+    function createLineChart(id, datasets, options = {}) {
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+        const chart = new Chart(ctx, {
             type: 'line',
-            data: {
-                datasets: [
-                    {
-                        label: 'Bids (Buy)',
-                        data: bidsPoints,
-                        borderColor: '#48c774', // Green
-                        backgroundColor: 'rgba(72, 199, 116, 0.2)',
-                        fill: true,
-                        stepped: 'before',
-                        tension: 0,
-                        pointRadius: 0
-                    },
-                    {
-                        label: 'Asks (Sell)',
-                        data: asksPoints,
-                        borderColor: '#f14668', // Red
-                        backgroundColor: 'rgba(241, 70, 104, 0.2)',
-                        fill: true,
-                        stepped: 'after',
-                        tension: 0,
-                        pointRadius: 0
-                    }
-                ]
-            },
+            data: { datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 interaction: {
                     intersect: false,
-                    mode: 'index',
+                    mode: 'index'
                 },
                 scales: {
                     x: {
-                        type: 'linear',
-                        title: { display: true, text: `Price (${currentCounter.code})` }
+                        type: options.xType || 'linear',
+                        title: options.xTitle ? { display: true, text: options.xTitle } : undefined
                     },
                     y: {
-                        title: { display: true, text: `Volume (${baseCode})` }
+                        type: options.yType || 'linear',
+                        title: options.yTitle ? { display: true, text: options.yTitle } : undefined,
+                        suggestedMin: options.yMin,
+                        suggestedMax: options.yMax
                     }
                 },
                 plugins: {
+                    legend: { position: 'top' },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.y.toFixed(2)}`
+                            label: options.tooltipFormatter || ((ctx) => {
+                                const value = ctx.parsed?.y;
+                                return `${ctx.dataset.label}: ${formatNumber(value, { maximumFractionDigits: 6 })}`;
+                            })
                         }
                     }
                 }
             }
         });
+        charts.push(chart);
+    }
 
+    function createBarChart(id, labels, datasets, options = {}) {
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Level' }
+                    },
+                    y: {
+                        type: options.yType || 'linear',
+                        beginAtZero: options.yType !== 'logarithmic',
+                        title: options.yTitle ? { display: true, text: options.yTitle } : undefined
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: ${formatNumber(ctx.parsed.y, { maximumFractionDigits: 6 })}`
+                        }
+                    }
+                }
+            }
+        });
+        charts.push(chart);
+    }
+
+    function renderCharts(bids, asks) {
+        destroyCharts();
+
+        const bidLevels = parseLevels(bids);
+        const askLevels = parseLevels(asks);
+        const topBids = sliceLevels(bidLevels, 'bid', TOP_LEVELS);
+        const topAsks = sliceLevels(askLevels, 'ask', TOP_LEVELS);
+        const bidAccum = accumulate(topBids, 'bid');
+        const askAccum = accumulate(topAsks, 'ask');
+
+        const bidsLabel = t('bids');
+        const asksLabel = t('asks');
+        const volumeLabel = `Volume (${baseCode})`;
+        const logDepth5 = isLogEnabled(logToggles.depth5);
+
+        const barBidLevels = sliceLevels(bidLevels, 'bid', LEVEL_BARS);
+        const barAskLevels = sliceLevels(askLevels, 'ask', LEVEL_BARS);
+        const barDepth = Math.max(barBidLevels.length, barAskLevels.length);
+        const barLabels = [];
+        for (let i = barDepth; i >= 1; i -= 1) barLabels.push(`-${i}`);
+        barLabels.push('0');
+        for (let i = 1; i <= barDepth; i += 1) barLabels.push(`${i}`);
+
+        const barSize = barLabels.length || 1;
+        const bidSeries = Array(barSize).fill(null);
+        const askSeries = Array(barSize).fill(null);
+
+        barBidLevels.forEach((level, idx) => {
+            const position = barDepth - 1 - idx;
+            if (position >= 0 && position < bidSeries.length) bidSeries[position] = level.amount;
+        });
+        barAskLevels.forEach((level, idx) => {
+            const position = barDepth + 1 + idx;
+            if (position >= 0 && position < askSeries.length) askSeries[position] = level.amount;
+        });
+
+        const barBidAmounts = clampLogSeries(bidSeries, logDepth5);
+        const barAskAmounts = clampLogSeries(askSeries, logDepth5);
+        createBarChart('depth-chart-5', barLabels, [
+            {
+                label: bidsLabel,
+                data: barBidAmounts,
+                backgroundColor: chartPalette.bidBar,
+                borderRadius: 4
+            },
+            {
+                label: asksLabel,
+                data: barAskAmounts,
+                backgroundColor: chartPalette.askBar,
+                borderRadius: 4
+            }
+        ], { yTitle: volumeLabel, yType: logDepth5 ? 'logarithmic' : 'linear' });
+
+        const impactBidPoints = toPoints(
+            bidAccum,
+            item => item.sum,
+            item => (item.sum ? item.sumValue / item.sum : 0)
+        );
+        const impactAskPoints = toPoints(
+            askAccum,
+            item => item.sum,
+            item => (item.sum ? item.sumValue / item.sum : 0)
+        );
+        createLineChart('depth-chart-6', [
+            makeDepthDataset(bidsLabel, impactBidPoints, chartPalette.bidLine, chartPalette.bidFill, { fill: false, tension: 0.2 }),
+            makeDepthDataset(asksLabel, impactAskPoints, chartPalette.askLine, chartPalette.askFill, { fill: false, tension: 0.2 })
+        ], {
+            xTitle: `Size (${baseCode})`,
+            yTitle: `Avg price (${currentCounter.code})`,
+            tooltipFormatter: (ctx) => `${ctx.dataset.label}: ${formatNumber(ctx.parsed.y, { maximumFractionDigits: 7 })}`
+        });
     }
 
     function getAssetDetails(code, issuer) {

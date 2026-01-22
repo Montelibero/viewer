@@ -8,6 +8,7 @@
   "depth-chart-5": "Liquidez por nivel (top 20)",
   "depth-chart-6": "Impacto en el precio (precio medio vs volumen)",
   "log-scale": "Escala logarítmica",
+  "x-balance-scale": "Escalar equilibrado",
   "bids": "Compras",
   "asks": "Ventas",
   "price": "Precio",

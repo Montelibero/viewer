@@ -8,6 +8,7 @@
   "depth-chart-5": "Liquidity by level (Top 20)",
   "depth-chart-6": "Price impact (Avg price vs size)",
   "log-scale": "Log Scale",
+  "x-balance-scale": "Balance scale",
   "bids": "Bids",
   "asks": "Asks",
   "price": "Price",

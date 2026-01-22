@@ -73,6 +73,7 @@ export async function init(params, i18n) {
     const logToggles = {
         depth5: document.getElementById('depth-log-5')
     };
+    const xBalanceToggle6 = document.getElementById('depth-x-balance-6');
 
     function showError(msg) {
         if (errorMsg) errorMsg.textContent = msg;
@@ -192,6 +193,13 @@ export async function init(params, i18n) {
             }
         });
     });
+    if (xBalanceToggle6) {
+        xBalanceToggle6.addEventListener('change', () => {
+            if (lastBids.length || lastAsks.length) {
+                renderCharts(lastBids, lastAsks);
+            }
+        });
+    }
 
     function triggerLoad(counter) {
         currentCounter = counter;
@@ -382,7 +390,8 @@ export async function init(params, i18n) {
                 scales: {
                     x: {
                         type: options.xType || 'linear',
-                        title: options.xTitle ? { display: true, text: options.xTitle } : undefined
+                        title: options.xTitle ? { display: true, text: options.xTitle } : undefined,
+                        max: options.xMax
                     },
                     y: {
                         type: options.yType || 'linear',
@@ -502,12 +511,22 @@ export async function init(params, i18n) {
             item => item.sum,
             item => (item.sum ? item.sumValue / item.sum : 0)
         );
+        let xMax = undefined;
+        if (xBalanceToggle6 && xBalanceToggle6.checked) {
+            const bidMaxVolume = bidAccum.length > 0 ? bidAccum[bidAccum.length - 1].sum : 0;
+            const askMaxVolume = askAccum.length > 0 ? askAccum[askAccum.length - 1].sum : 0;
+            const minVolume = Math.min(bidMaxVolume, askMaxVolume);
+            if (minVolume > 0) {
+                xMax = minVolume * 1.05;
+            }
+        }
         createLineChart('depth-chart-6', [
             makeDepthDataset(bidsLabel, impactBidPoints, chartPalette.bidLine, chartPalette.bidFill, { fill: false, tension: 0.2 }),
             makeDepthDataset(asksLabel, impactAskPoints, chartPalette.askLine, chartPalette.askFill, { fill: false, tension: 0.2 })
         ], {
             xTitle: `Size (${baseCode})`,
             yTitle: `Avg price (${currentCounter.code})`,
+            xMax: xMax,
             tooltipFormatter: (ctx) => `${ctx.dataset.label}: ${formatNumber(ctx.parsed.y, { maximumFractionDigits: 7 })}`
         });
     }
@@ -611,7 +630,7 @@ export async function init(params, i18n) {
             }
 
             const priceCell = document.createElement('td');
-            priceCell.className = 'has-text-right is-mono has-text-grey-light';
+            priceCell.className = 'has-text-right is-mono has-text-success';
             if (quote.received === null) {
                 priceCell.textContent = '-';
             } else {
@@ -641,7 +660,7 @@ export async function init(params, i18n) {
             }
 
             const priceCell = document.createElement('td');
-            priceCell.className = 'has-text-right is-mono has-text-grey-light';
+            priceCell.className = 'has-text-right is-mono has-text-danger';
             if (quote.received === null) {
                 priceCell.textContent = '-';
             } else {

@@ -141,7 +141,17 @@
             </div>
         </div>
         <div class="box">
-            <h6 class="title is-6 has-text-centered" data-i18n="depth-chart-6">Price impact (Avg price vs size)</h6>
+            <div class="level is-mobile mb-2">
+                <div class="level-left">
+                    <h6 class="title is-6 has-text-centered mb-0" data-i18n="depth-chart-6">Price impact (Avg price vs size)</h6>
+                </div>
+                <div class="level-right">
+                    <label class="checkbox is-size-7">
+                        <input type="checkbox" id="depth-x-balance-6">
+                        <span data-i18n="x-balance-scale">Balance scale</span>
+                    </label>
+                </div>
+            </div>
             <div class="orderbook-chart">
                 <canvas id="depth-chart-6"></canvas>
             </div>

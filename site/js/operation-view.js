@@ -229,7 +229,7 @@ export function renderOperationDetails(op, t) {
       const poolId = xdrInner
         ? (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id)
         : op.liquidity_pool_id;
-      const label = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const label = poolId ? `<a href="/pool/${poolId}">${shorten(poolId)}</a>` : '—';
       const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
       addLine(T('op-trust-pool', 'Trust Liquidity Pool'), label);
       addLine(T('op-limit', 'Limit'), limit);
@@ -577,7 +577,7 @@ export function renderEffects(effects, t) {
       }
     } else if (e.type === 'liquidity_pool_trade') {
       const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
-      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const poolLink = poolId ? `<a href="/pool/${poolId}">${shorten(poolId)}</a>` : '—';
 
       const parseAsset = (str) => {
         if (!str || str === 'native') return 'native';
@@ -595,7 +595,7 @@ export function renderEffects(effects, t) {
                 `<br>${t('effect-sold')} ${soldAmt} ${soldAsset} <span class="mx-1">→</span> ${t('effect-bought')} ${boughtAmt} ${boughtAsset}`;
     } else if (e.type === 'liquidity_pool_deposited') {
       const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
-      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const poolLink = poolId ? `<a href="/pool/${poolId}">${shorten(poolId)}</a>` : '—';
       const shares = formatAmount(e.shares_received);
 
       let reservesHtml = '';
@@ -619,7 +619,7 @@ export function renderEffects(effects, t) {
 
     } else if (e.type === 'liquidity_pool_withdrew') {
       const poolId = e.liquidity_pool ? e.liquidity_pool.id : null;
-      const poolLink = poolId ? `<a href="/liquidity_pool/${poolId}">${shorten(poolId)}</a>` : '—';
+      const poolLink = poolId ? `<a href="/pool/${poolId}">${shorten(poolId)}</a>` : '—';
       const shares = formatAmount(e.shares_revoked);
 
       let reservesHtml = '';

@@ -129,6 +129,42 @@ function isXdrOp(op) {
   return false;
 }
 
+function getOfferId(op, xdrInner) {
+  // 1. Try Horizon op.offer_id or xdrInner.offerId
+  // Note: For creation, xdrInner.offerId is 0.
+  let id = op.offer_id || (xdrInner ? (xdrInner.offerId ?? xdrInner.offer_id) : null);
+
+  if (id && id !== '0' && id !== 0) return String(id);
+
+  // 2. Try op.result (attached in transaction view)
+  if (!op.result) return null;
+
+  const res = op.result;
+  // res.tr is the union (op_inner in some JSON formats)
+  const tr = res.op_inner || res.tr || res;
+
+  // Possible keys for result union (handling snake_case and CamelCase)
+  const innerRes =
+      tr.manage_sell_offer || tr.manageSellOfferResult ||
+      tr.manage_buy_offer || tr.manageBuyOfferResult ||
+      tr.create_passive_sell_offer || tr.createPassiveSellOfferResult;
+
+  if (innerRes && innerRes.success) {
+      // success.offer is ManageOfferEffect union
+      const effect = innerRes.success.offer;
+
+      // Check for created/updated keys (snake_case JSON often uses union arm name)
+      // or 'offer' if flattened
+      const entry = effect.created || effect.updated || effect.offer;
+
+      if (entry) {
+          return String(entry.offer_id ?? entry.offerId);
+      }
+  }
+
+  return null;
+}
+
 function renderStatusTag(success, t) {
   const T = (k, f) => t ? t(k) : f;
   if (success === true) {
@@ -198,6 +234,10 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-selling', 'Selling'), `${amount} ${selling}`);
     addLine(T('op-buying', 'Buying'), buying);
     addLine(T('op-price', 'Price'), price);
+    const offerId = getOfferId(op, xdrInner);
+    if (offerId) {
+        addLine(T('op-offer-id', 'Offer ID'), `<a href="/offer/${offerId}">${offerId}</a>`);
+    }
   } else if (type === 'set_options') {
     const inflation = xdrInner ? (xdrInner.inflationDest ?? xdrInner.inflation_dest) : op.inflation_dest;
     const homeDomain = xdrInner ? (xdrInner.homeDomain ?? xdrInner.home_domain) : op.home_domain;

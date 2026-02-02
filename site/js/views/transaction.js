@@ -238,6 +238,10 @@ export async function init(params, i18n) {
             // But renderOperationComponent expects op.id for effects loading.
             if (opId) op.id = opId;
 
+            if (tx.operationResults && tx.operationResults[index]) {
+                op.result = tx.operationResults[index];
+            }
+
             const box = renderOperationComponent(op, t, {
                 index,
                 forceSuccessStatus: tx.successful,
@@ -441,6 +445,35 @@ export async function init(params, i18n) {
             if(memoEl) memoEl.textContent = describeMemo(txObj.memo, t);
             if(timeBoundsEl) timeBoundsEl.textContent = describeTimeBounds(txObj.cond, t);
             if(baseFeeEl) baseFeeEl.textContent = `${txObj.fee ?? '—'} ${t('base-fee-suffix')}`;
+
+            // Decode Result XDR if available
+            if (tx.result_xdr) {
+                try {
+                    let decodedRes = decodeFn('TransactionResult', tx.result_xdr.trim());
+                    if (typeof decodedRes === 'string') {
+                        decodedRes = JSON.parse(decodedRes);
+                    }
+
+                    // Extract operation results
+                    // Structure depends on stellar-xdr-json (tx_success/tx_failed)
+                    let opResults = null;
+                    if (decodedRes && decodedRes.result) {
+                         if (Array.isArray(decodedRes.result.tx_success)) {
+                             opResults = decodedRes.result.tx_success;
+                         } else if (Array.isArray(decodedRes.result.tx_failed)) {
+                             opResults = decodedRes.result.tx_failed;
+                         } else if (Array.isArray(decodedRes.result.results)) {
+                             opResults = decodedRes.result.results;
+                         }
+                    }
+
+                    if (opResults) {
+                        txObj.operationResults = opResults;
+                    }
+                } catch (err) {
+                    console.warn('Failed to decode result XDR', err);
+                }
+            }
 
             // Inject successful status into txObj for rendering (createXdrOperationBox uses it)
             txObj.successful = successful;

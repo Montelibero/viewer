@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@stellar/stellar-xdr-json": "^23.0.0"
+  }
+}

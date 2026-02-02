@@ -203,3 +203,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 /.idea/
+
+# Node
+node_modules/

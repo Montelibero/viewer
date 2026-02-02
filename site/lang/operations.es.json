@@ -12,6 +12,7 @@
   "op-selling": "Vendiando",
   "op-buying": "Comprando",
   "op-price": "Precio",
+  "op-offer-id": "ID de oferta",
   "op-domain": "Dominio",
   "op-inflation-dest": "Dest. inflación",
   "op-thresholds": "Umbrales",

@@ -85,6 +85,70 @@ body {
   }
 }
 
+/* Combined Orderbook Styles */
+.orderbook-combined {
+  font-family: monospace;
+}
+
+.orderbook-table {
+  margin-bottom: 0 !important;
+  background: transparent;
+}
+
+.orderbook-table tbody tr {
+  background: transparent;
+}
+
+.orderbook-table td,
+.orderbook-table th {
+  border: none;
+  padding: 0.35rem 0.5rem;
+  vertical-align: middle;
+}
+
+.orderbook-row {
+  transition: background 0.1s ease;
+}
+
+.orderbook-spread {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-top: 1px solid #dbdbdb;
+  border-bottom: 1px solid #dbdbdb;
+  background: var(--bulma-scheme-main-bis, #fafafa);
+}
+
+@media (prefers-color-scheme: dark) {
+  .orderbook-spread {
+    border-color: #3a3a3a;
+    background: var(--bulma-scheme-main-ter, #1f1f1f);
+  }
+}
+
+.spread-price {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.spread-percent {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.orderbook-scroll {
+  border: 1px solid #dbdbdb;
+  border-radius: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .orderbook-scroll {
+    border-color: #3a3a3a;
+  }
+}
+
 @media (prefers-color-scheme: dark) {
   .button.is-light,
   .tag.is-light {

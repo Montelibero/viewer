@@ -82,43 +82,55 @@
             <p class="help has-text-centered is-hidden" id="swap-note" data-i18n="swap-no-path">No swap path found.</p>
         </div>
 
-        <!-- Tables -->
-        <div class="columns">
-            <!-- BIDS (Buying Base) -->
-            <div class="column is-6">
-                <div class="box">
-                    <h6 class="title is-6 has-text-centered has-text-success" data-i18n="bids">Bids</h6>
-                    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
-                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="price">Price</th>
-                                    <th class="has-text-right" data-i18n="amount">Amount</th>
-                                    <th class="has-text-right" data-i18n="cumulative">Sum</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bids-body"></tbody>
-                        </table>
+        <!-- Combined Orderbook -->
+        <div class="box">
+            <div class="level is-mobile mb-2">
+                <div class="level-left">
+                    <h6 class="title is-6 mb-0" data-i18n="orderbook">Orderbook</h6>
+                </div>
+                <div class="level-right">
+                    <div class="field has-addons is-small">
+                        <p class="control">
+                            <span class="button is-static is-small" data-i18n="price-step">Step</span>
+                        </p>
+                        <p class="control">
+                            <span class="select is-small">
+                                <select id="price-step-select">
+                                    <option value="0">Auto</option>
+                                    <option value="0.0001">0.0001</option>
+                                    <option value="0.001">0.001</option>
+                                    <option value="0.01">0.01</option>
+                                    <option value="0.1">0.1</option>
+                                    <option value="1">1</option>
+                                    <option value="10">10</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </span>
+                        </p>
                     </div>
                 </div>
             </div>
-
-            <!-- ASKS (Selling Base) -->
-            <div class="column is-6">
-                <div class="box">
-                    <h6 class="title is-6 has-text-centered has-text-danger" data-i18n="asks">Asks</h6>
-                     <div class="table-container" style="max-height: 500px; overflow-y: auto;">
-                        <table class="table is-fullwidth is-striped is-narrow is-size-7">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="price">Price</th>
-                                    <th class="has-text-right" data-i18n="amount">Amount</th>
-                                    <th class="has-text-right" data-i18n="cumulative">Sum</th>
-                                </tr>
-                            </thead>
-                            <tbody id="asks-body"></tbody>
-                        </table>
+            <div class="orderbook-combined">
+                <table class="table is-fullwidth is-narrow is-size-7 orderbook-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="amount">Amount</span> (<span id="ob-base-code"></span>)</th>
+                            <th class="has-text-centered"><span data-i18n="price">Price</span> (<span id="ob-counter-code"></span>)</th>
+                            <th class="has-text-right"><span data-i18n="cumulative">Total</span> (<span id="ob-total-code"></span>)</th>
+                        </tr>
+                    </thead>
+                </table>
+                <div class="orderbook-scroll" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table is-fullwidth is-narrow is-size-7 orderbook-table">
+                        <tbody id="asks-body"></tbody>
+                    </table>
+                    <div class="orderbook-spread" id="orderbook-spread">
+                        <span class="spread-price" id="spread-price">--</span>
+                        <span class="spread-percent" id="spread-percent"></span>
                     </div>
+                    <table class="table is-fullwidth is-narrow is-size-7 orderbook-table">
+                        <tbody id="bids-body"></tbody>
+                    </table>
                 </div>
             </div>
         </div>

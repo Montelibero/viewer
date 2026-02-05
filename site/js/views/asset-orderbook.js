@@ -44,6 +44,13 @@ export async function init(params, i18n) {
     const errorMsg = document.getElementById('error-message');
     const bidsBody = document.getElementById('bids-body');
     const asksBody = document.getElementById('asks-body');
+    const spreadEl = document.getElementById('orderbook-spread');
+    const spreadPriceEl = document.getElementById('spread-price');
+    const spreadPercentEl = document.getElementById('spread-percent');
+    const obBaseCode = document.getElementById('ob-base-code');
+    const obCounterCode = document.getElementById('ob-counter-code');
+    const obTotalCode = document.getElementById('ob-total-code');
+    const priceStepSelect = document.getElementById('price-step-select');
     const swapBaseLabel = document.getElementById('swap-base-label');
     const swapCounterLabel = document.getElementById('swap-counter-label');
     const swapSellBody = document.getElementById('swap-sell-body');
@@ -193,6 +200,14 @@ export async function init(params, i18n) {
             }
         });
     });
+
+    if (priceStepSelect) {
+        priceStepSelect.addEventListener('change', () => {
+            if (lastBids.length || lastAsks.length) {
+                renderOrderbookTables(lastBids, lastAsks);
+            }
+        });
+    }
     if (xBalanceToggle6) {
         xBalanceToggle6.addEventListener('change', () => {
             if (lastBids.length || lastAsks.length) {
@@ -253,38 +268,189 @@ export async function init(params, i18n) {
     function renderOrderbook(bids, asks) {
         lastBids = bids;
         lastAsks = asks;
-        renderTable(bids, bidsBody, true);
-        renderTable(asks, asksBody, false);
+
+        // Update column headers
+        if (obBaseCode) obBaseCode.textContent = shorten(baseCode);
+        if (obCounterCode) obCounterCode.textContent = currentCounter ? shorten(currentCounter.code) : '';
+        if (obTotalCode) obTotalCode.textContent = currentCounter ? shorten(currentCounter.code) : '';
+
+        renderOrderbookTables(bids, asks);
         renderCharts(bids, asks);
         renderSwapQuotes(bids, asks);
     }
 
-    function renderTable(list, tbody, isBid) {
-        tbody.innerHTML = '';
-        let sum = 0;
+    function getPriceStep() {
+        if (!priceStepSelect) return 0;
+        return parseFloat(priceStepSelect.value) || 0;
+    }
+
+    function calculateAutoStep(bids, asks) {
+        // Get best bid and ask prices
+        const bestBid = bids.length > 0 ? parseFloat(bids[0].price) : 0;
+        const bestAsk = asks.length > 0 ? parseFloat(asks[0].price) : 0;
+        const midPrice = (bestBid && bestAsk) ? (bestBid + bestAsk) / 2 : (bestBid || bestAsk);
+
+        if (!midPrice) return 0.01;
+
+        // Calculate step as ~0.5-1% of price, rounded to nice number
+        const rawStep = midPrice * 0.005;
+        const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+        const normalized = rawStep / magnitude;
+
+        // Round to 1, 2, or 5
+        let nice;
+        if (normalized < 1.5) nice = 1;
+        else if (normalized < 3.5) nice = 2;
+        else if (normalized < 7.5) nice = 5;
+        else nice = 10;
+
+        return nice * magnitude;
+    }
+
+    function groupOrdersByPrice(list, step, isBid) {
+        if (step <= 0 || list.length === 0) return list;
+
+        const groups = new Map();
 
         list.forEach(item => {
+            const price = parseFloat(item.price);
             const amount = parseFloat(item.amount);
-            sum += amount;
 
+            // Round price to step
+            // For bids: round down (floor) - buyer wants lower price
+            // For asks: round up (ceil) - seller wants higher price
+            let groupPrice;
+            if (isBid) {
+                groupPrice = Math.floor(price / step) * step;
+            } else {
+                groupPrice = Math.ceil(price / step) * step;
+            }
+
+            const key = groupPrice.toFixed(10);
+            if (groups.has(key)) {
+                const existing = groups.get(key);
+                existing.amount = (parseFloat(existing.amount) + amount).toString();
+            } else {
+                groups.set(key, {
+                    price: groupPrice.toString(),
+                    amount: amount.toString()
+                });
+            }
+        });
+
+        // Convert back to array and sort
+        const result = Array.from(groups.values());
+        if (isBid) {
+            result.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+        } else {
+            result.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        }
+
+        return result;
+    }
+
+    function renderOrderbookTables(bids, asks) {
+        let step = getPriceStep();
+        if (step === 0) {
+            step = calculateAutoStep(bids, asks);
+        }
+
+        const groupedBids = groupOrdersByPrice(bids, step, true);
+        const groupedAsks = groupOrdersByPrice(asks, step, false);
+
+        // Calculate max totals for depth bars
+        const bidTotals = calculateTotals(groupedBids);
+        const askTotals = calculateTotals(groupedAsks);
+        const maxBidTotal = bidTotals.length > 0 ? bidTotals[bidTotals.length - 1] : 0;
+        const maxAskTotal = askTotals.length > 0 ? askTotals[askTotals.length - 1] : 0;
+        const maxTotal = Math.max(maxBidTotal, maxAskTotal);
+
+        // Render asks (reversed so best ask is at bottom, near spread)
+        renderTable(groupedAsks, asksBody, false, maxTotal, true);
+        // Render bids (normal order, best bid at top, near spread)
+        renderTable(groupedBids, bidsBody, true, maxTotal, false);
+
+        // Update spread display (use original data for accurate spread)
+        renderSpread(bids, asks);
+    }
+
+    function calculateTotals(list) {
+        const totals = [];
+        let sum = 0;
+        list.forEach(item => {
+            const amount = parseFloat(item.amount);
+            const price = parseFloat(item.price);
+            sum += amount * price;
+            totals.push(sum);
+        });
+        return totals;
+    }
+
+    function renderSpread(bids, asks) {
+        if (!spreadPriceEl || !spreadPercentEl) return;
+
+        const bestBid = bids.length > 0 ? parseFloat(bids[0].price) : null;
+        const bestAsk = asks.length > 0 ? parseFloat(asks[0].price) : null;
+
+        if (bestBid && bestAsk) {
+            const midPrice = (bestBid + bestAsk) / 2;
+            const spreadPercent = ((bestAsk - bestBid) / midPrice) * 100;
+
+            spreadPriceEl.textContent = midPrice.toFixed(7);
+            spreadPercentEl.textContent = `${spreadPercent.toFixed(2)}%`;
+        } else {
+            spreadPriceEl.textContent = '--';
+            spreadPercentEl.textContent = '';
+        }
+    }
+
+    function renderTable(list, tbody, isBid, maxTotal, reverse) {
+        tbody.innerHTML = '';
+
+        // Calculate per-row totals and cumulative for depth bars
+        const rows = [];
+        let cumSum = 0;
+        list.forEach(item => {
+            const amount = parseFloat(item.amount);
+            const price = parseFloat(item.price);
+            const total = amount * price;  // per-row total
+            cumSum += total;
+            rows.push({ amount, price, total, cumSum });
+        });
+
+        // Reverse for asks so best ask (lowest price) appears at bottom
+        if (reverse) {
+            rows.reverse();
+        }
+
+        rows.forEach(item => {
             const row = document.createElement('tr');
+            row.className = 'orderbook-row';
 
-            const pCell = document.createElement('td');
-            pCell.className = 'is-mono';
-            pCell.classList.add(isBid ? 'has-text-success' : 'has-text-danger');
-            pCell.textContent = parseFloat(item.price).toFixed(7);
+            // Depth bar via CSS gradient background on the row
+            const depthPercent = maxTotal > 0 ? (item.cumSum / maxTotal) * 100 : 0;
+            const bgColor = isBid ? 'rgba(32, 185, 107, 0.15)' : 'rgba(255, 79, 109, 0.15)';
+            row.style.background = `linear-gradient(to left, ${bgColor} ${depthPercent}%, transparent ${depthPercent}%)`;
 
+            // Amount column
             const aCell = document.createElement('td');
-            aCell.className = 'has-text-right is-mono';
-            aCell.textContent = amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
+            aCell.className = 'is-mono';
+            aCell.textContent = item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
 
-            const sCell = document.createElement('td');
-            sCell.className = 'has-text-right is-mono has-text-grey-light';
-            sCell.textContent = sum.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
+            // Price column (colored)
+            const pCell = document.createElement('td');
+            pCell.className = 'has-text-centered is-mono';
+            pCell.classList.add(isBid ? 'has-text-success' : 'has-text-danger');
+            pCell.textContent = item.price.toFixed(7);
 
-            row.appendChild(pCell);
+            // Total column (per-row value in counter asset: amount * price)
+            const tCell = document.createElement('td');
+            tCell.className = 'has-text-right is-mono has-text-grey-light';
+            tCell.textContent = item.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
+
             row.appendChild(aCell);
-            row.appendChild(sCell);
+            row.appendChild(pCell);
+            row.appendChild(tCell);
             tbody.appendChild(row);
         });
     }

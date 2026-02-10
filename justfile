@@ -41,10 +41,10 @@ clean-docker:
     docker volume prune -f
 
 
-push-gitdocker tag="latest":
-    docker build -t {{IMAGE_NAME}}:{{tag}} .
-    docker tag {{IMAGE_NAME}} ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
-    docker push ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
+#push-gitdocker tag="latest":
+#    docker build -t {{IMAGE_NAME}}:{{tag}} .
+#    docker tag {{IMAGE_NAME}} ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
+#    docker push ghcr.io/montelibero/{{IMAGE_NAME}}:{{tag}}
 
 test:
     node scripts/validate-json.js

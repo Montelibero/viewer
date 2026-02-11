@@ -68,6 +68,9 @@
   "effect-sold": "Продано",
   "effect-counterparty": "Контрагент",
   "effect-offer-id": "ID предложения",
+  "effect-sponsorship-removed": "Спонсирование прекращено",
+  "effect-former-sponsor": "Бывший спонсор",
+  "effect-account-removed": "Аккаунт удален",
   "status-success": "Успешно",
   "status-failed": "Неуспешно"
 }

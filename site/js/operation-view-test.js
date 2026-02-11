@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL, decodeTextValue } from './common.js';
+// MOCKED IMPORTS
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -287,9 +287,7 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-asset', 'Asset'), asset);
     addLine(T('op-auth', 'Authorized'), auth ? T('op-auth-yes', 'Yes') : T('op-auth-no', 'No'));
   } else if (type === 'account_merge') {
-    const dest = xdrInner && xdrInner.destination
-        ? xdrInner.destination
-        : (typeof xdrInner === 'string' || (xdrInner && xdrInner.ed25519) ? xdrInner : (op.into || op.account || op.account_merge_dest));
+    const dest = xdrInner ? xdrInner.destination : (op.into || op.account || op.account_merge_dest);
     addLine(T('op-merge-to', 'Merge into'), renderAccount(dest, { short: false }));
   } else if (type === 'inflation') {
     addLine(T('op-inflation', 'Run inflation'), '');
@@ -682,12 +680,6 @@ export function renderEffects(effects, t) {
       content = `<strong>${t('effect-lp-withdrew', 'Liquidity Pool Withdraw')}</strong> (${poolLink})` +
                 `<br>${t('effect-shares-revoked', 'Shares revoked')}: ${shares}` +
                 `<br><div class="pl-2 mt-1" style="border-left: 2px solid #f5f5f5">${reservesHtml}</div>`;
-    } else if (e.type === 'account_sponsorship_removed') {
-      const former = e.former_sponsor ? renderAccount(e.former_sponsor) : '—';
-      content = `<strong>${t('effect-sponsorship-removed', 'Sponsorship removed')}</strong>` +
-                `<br>${t('effect-former-sponsor', 'Former sponsor')}: ${former}`;
-    } else if (e.type === 'account_removed') {
-      content = `<strong>${t('effect-account-removed', 'Account removed')}</strong>`;
     } else {
       content = `<strong>${e.type}</strong> <span class="is-italic has-text-grey-light">${e.id}</span>`;
     }
@@ -698,4 +690,3 @@ export function renderEffects(effects, t) {
 
   return container;
 }
-

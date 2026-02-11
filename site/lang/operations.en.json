@@ -68,6 +68,9 @@
   "effect-sold": "Sold",
   "effect-counterparty": "Counterparty",
   "effect-offer-id": "Offer ID",
+  "effect-sponsorship-removed": "Sponsorship removed",
+  "effect-former-sponsor": "Former sponsor",
+  "effect-account-removed": "Account removed",
   "status-success": "Success",
   "status-failed": "Failed"
 }

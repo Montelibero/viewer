@@ -257,7 +257,17 @@ export async function init(params, i18n) {
             if (!res.ok) throw new Error('Failed to fetch orderbook');
             const data = await res.json();
 
-            renderOrderbook(data.bids, data.asks);
+            // In Stellar, orderbook bids return the amount of the counter asset.
+            // We convert it to base asset here so the rest of the UI can treat
+            // bids and asks amounts identically (as base asset volume).
+            const normalizedBids = (data.bids || []).map(bid => {
+                const price = parseFloat(bid.price);
+                const amount = parseFloat(bid.amount);
+                const baseAmount = price > 0 ? (amount / price) : 0;
+                return { ...bid, amount: baseAmount.toFixed(7) };
+            });
+
+            renderOrderbook(normalizedBids, data.asks || []);
 
         } catch (e) {
             console.error(e);
@@ -435,7 +445,7 @@ export async function init(params, i18n) {
             // Amount column
             const aCell = document.createElement('td');
             aCell.className = 'is-mono';
-            aCell.textContent = item.amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
+            aCell.textContent = item.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 });
 
             // Price column (colored)
             const pCell = document.createElement('td');
@@ -446,7 +456,7 @@ export async function init(params, i18n) {
             // Total column (per-row value in counter asset: amount * price)
             const tCell = document.createElement('td');
             tCell.className = 'has-text-right is-mono has-text-grey-light';
-            tCell.textContent = item.total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 7});
+            tCell.textContent = item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 7 });
 
             row.appendChild(aCell);
             row.appendChild(pCell);

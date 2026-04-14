@@ -1,0 +1,22 @@
+{
+  "header-title": "Contract events",
+  "back-contract": "Back to contract",
+  "error-title": "Error",
+  "loader-text": "Loading",
+  "events-title": "Recent events (Soroban RPC)",
+  "events-help": "Data directly from Soroban RPC. Retention window is limited.",
+  "events-empty": "No events found within the RPC window.",
+  "events-th-ledger": "Ledger",
+  "events-th-time": "Time",
+  "events-th-tx": "Transaction",
+  "events-th-topics": "Topics",
+  "events-topic-suffix": "item(s)",
+  "error-load-events": "Failed to load events",
+  "btn-load-expert": "Load history from Stellar Expert",
+  "expert-title": "Event history (Stellar Expert)",
+  "expert-empty": "History is empty.",
+  "expert-th-date": "Date",
+  "expert-th-initiator": "Initiator",
+  "expert-th-topic": "Event",
+  "error-load-expert": "Failed to load history"
+}

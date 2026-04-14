@@ -2,18 +2,35 @@
     root * /srv
     encode gzip
 
-    # Rewrite versioned paths (e.g. /v15/js/... or /v1.0.14/js/...) to actual paths (/js/...)
-    @versioned {
-        path_regexp v ^/v[^/]+/(.*)$
+    # Reverse proxy to Stellar Expert API. Their Cloudflare returns 403 for
+    # browser-origin requests, so we hop through Caddy with server-style headers.
+    handle /api/expert/* {
+        uri replace "/api/expert/" "/explorer/public/"
+        reverse_proxy https://api.stellar.expert {
+            header_up Host api.stellar.expert
+            header_up -Origin
+            header_up -Referer
+            header_up User-Agent "Go-http-client/1.1"
+            transport http {
+                tls
+                tls_server_name api.stellar.expert
+            }
+        }
     }
-    rewrite @versioned /{re.v.1}
 
-    # Enable templates (Caddy will apply them if the file being served is supported, e.g. .html)
-    # We remove the matcher so it applies to index.html even when served as the index file.
-    templates
+    handle {
+        # Rewrite versioned paths (e.g. /v15/js/... or /v1.0.14/js/...) to actual paths (/js/...)
+        @versioned {
+            path_regexp v ^/v[^/]+/(.*)$
+        }
+        rewrite @versioned /{re.v.1}
 
-    # SPA Routing: Rewrite all requests that don't match a file to index.html
-    try_files {path} /index.html
+        # Enable templates (Caddy will apply them if the file being served is supported, e.g. .html)
+        templates
 
-    file_server
+        # SPA Routing: Rewrite all requests that don't match a file to index.html
+        try_files {path} /index.html
+
+        file_server
+    }
 }

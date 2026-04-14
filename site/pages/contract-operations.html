@@ -1,0 +1,39 @@
+<section class="section">
+    <div class="container">
+        <div class="mb-4">
+            <a class="button is-small is-light" id="btn-back-contract" data-i18n="back-contract">К контракту</a>
+        </div>
+
+        <div class="box">
+            <p class="title is-5" data-i18n="header-title">События контракта</p>
+            <p class="subtitle is-7 is-mono" id="contract-id">—</p>
+        </div>
+
+        <article class="message is-danger is-hidden" id="error-box">
+            <div class="message-header"><p data-i18n="error-title">Ошибка</p></div>
+            <div class="message-body" id="error-text">—</div>
+        </article>
+
+        <div class="box">
+            <p class="title is-6" data-i18n="events-title">Свежие события (Soroban RPC)</p>
+            <p class="help mb-3" data-i18n="events-help">Данные напрямую из Soroban RPC. Окно хранения ограничено.</p>
+            <progress class="progress is-small is-primary is-hidden"
+                      max="100" id="events-loader" data-i18n="loader-text">Загрузка</progress>
+            <div id="events-list"></div>
+        </div>
+
+        <div class="has-text-centered mt-4 mb-4">
+            <button class="button is-link is-light" id="btn-load-expert" data-i18n="btn-load-expert">
+                Загрузить историю со Stellar Expert
+            </button>
+        </div>
+
+        <div class="box is-hidden" id="expert-box">
+            <p class="title is-6" data-i18n="expert-title">История событий (Stellar Expert)</p>
+            <progress class="progress is-small is-primary is-hidden"
+                      max="100" id="expert-loader" data-i18n="loader-text">Загрузка</progress>
+            <div id="expert-list"></div>
+        </div>
+
+    </div>
+</section>

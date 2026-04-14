@@ -14,6 +14,7 @@ const routes = [
   { pattern: /^\/offer\/(\d+)$/, view: 'offer' },
   { pattern: /^\/offer\/(\d+)\/trades$/, view: 'offer-trades' },
   { pattern: /^\/contract\/([A-Z0-9]{56})$/, view: 'contract' },
+  { pattern: /^\/contract\/([A-Z0-9]{56})\/operations$/, view: 'contract-operations' },
   { pattern: /^\/ledger\/(\d+)$/, view: 'ledger' },
   { pattern: /^\/asset\/([^/]+)\/charts$/, view: 'asset-charts' },
   { pattern: /^\/asset\/([^/]+)\/orderbook$/, view: 'asset-orderbook' },

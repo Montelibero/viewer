@@ -1,0 +1,22 @@
+{
+  "header-title": "События контракта",
+  "back-contract": "К контракту",
+  "error-title": "Ошибка",
+  "loader-text": "Загрузка",
+  "events-title": "Свежие события (Soroban RPC)",
+  "events-help": "Данные напрямую из Soroban RPC. Окно хранения ограничено.",
+  "events-empty": "События не найдены в пределах окна RPC.",
+  "events-th-ledger": "Ledger",
+  "events-th-time": "Время",
+  "events-th-tx": "Транзакция",
+  "events-th-topics": "Топики",
+  "events-topic-suffix": "шт.",
+  "error-load-events": "Не удалось загрузить события",
+  "btn-load-expert": "Загрузить историю со Stellar Expert",
+  "expert-title": "История событий (Stellar Expert)",
+  "expert-empty": "История пуста.",
+  "expert-th-date": "Дата",
+  "expert-th-initiator": "Источник",
+  "expert-th-topic": "Событие",
+  "error-load-expert": "Не удалось загрузить историю"
+}

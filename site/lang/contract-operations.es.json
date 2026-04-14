@@ -1,0 +1,22 @@
+{
+  "header-title": "Eventos del contrato",
+  "back-contract": "Volver al contrato",
+  "error-title": "Error",
+  "loader-text": "Cargando",
+  "events-title": "Eventos recientes (Soroban RPC)",
+  "events-help": "Datos directamente desde Soroban RPC. La ventana de retención es limitada.",
+  "events-empty": "No se encontraron eventos dentro de la ventana de RPC.",
+  "events-th-ledger": "Ledger",
+  "events-th-time": "Hora",
+  "events-th-tx": "Transacción",
+  "events-th-topics": "Topics",
+  "events-topic-suffix": "uds.",
+  "error-load-events": "No se pudieron cargar los eventos",
+  "btn-load-expert": "Cargar historial de Stellar Expert",
+  "expert-title": "Historial de eventos (Stellar Expert)",
+  "expert-empty": "El historial está vacío.",
+  "expert-th-date": "Fecha",
+  "expert-th-initiator": "Iniciador",
+  "expert-th-topic": "Evento",
+  "error-load-expert": "No se pudo cargar el historial"
+}

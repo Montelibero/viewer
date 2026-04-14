@@ -46,6 +46,11 @@ export async function init(params, i18n) {
         btnStellarExpert.href = `https://stellar.expert/explorer/public/contract/${contractId}`;
     }
 
+    const btnOperations = document.getElementById('btn-operations');
+    if (btnOperations) {
+        btnOperations.href = `/contract/${contractId}/operations`;
+    }
+
     function showError(msg) {
         if (errorBox) {
             errorBox.classList.remove('is-hidden');

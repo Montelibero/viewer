@@ -1,0 +1,29 @@
+<section class="section">
+    <div class="container">
+        <div class="mb-4">
+            <a class="button is-small is-light" id="btn-back-contract" data-i18n="back-contract">К контракту</a>
+        </div>
+
+        <div class="box">
+            <p class="title is-5" data-i18n="header-title">Состояние контракта</p>
+            <p class="subtitle is-7 is-mono" id="contract-id">—</p>
+            <p class="help" data-i18n="help">Persistent и temporary storage через Stellar Expert.</p>
+        </div>
+
+        <article class="message is-danger is-hidden" id="error-box">
+            <div class="message-header"><p data-i18n="error-title">Ошибка</p></div>
+            <div class="message-body" id="error-text">—</div>
+        </article>
+
+        <div class="box">
+            <progress class="progress is-small is-primary is-hidden"
+                      max="100" id="state-loader" data-i18n="loader-text">Загрузка</progress>
+            <div id="state-list"></div>
+            <div class="has-text-centered mt-3 is-hidden" id="more-box">
+                <button class="button is-small is-light" id="btn-load-more" data-i18n="btn-load-more">
+                    Загрузить ещё
+                </button>
+            </div>
+        </div>
+    </div>
+</section>

@@ -35,6 +35,11 @@ export async function init(params, i18n) {
         btnOperations.href = `/contract/${contractId}/operations`;
     }
 
+    const btnState = document.getElementById('btn-state');
+    if (btnState) {
+        btnState.href = `/contract/${contractId}/state`;
+    }
+
     function showError(msg) {
         if (errorBox) {
             errorBox.classList.remove('is-hidden');

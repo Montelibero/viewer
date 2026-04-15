@@ -1,0 +1,14 @@
+{
+  "header-title": "Contract state",
+  "back-contract": "Back to contract",
+  "error-title": "Error",
+  "loader-text": "Loading",
+  "help": "Persistent and temporary storage via Stellar Expert.",
+  "th-key": "Key",
+  "th-value": "Value",
+  "th-durability": "Durability",
+  "th-updated": "Updated",
+  "empty": "Storage is empty.",
+  "btn-load-more": "Load more",
+  "error-load": "Failed to load state"
+}

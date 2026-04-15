@@ -1,0 +1,14 @@
+{
+  "header-title": "Состояние контракта",
+  "back-contract": "К контракту",
+  "error-title": "Ошибка",
+  "loader-text": "Загрузка",
+  "help": "Persistent и temporary storage через Stellar Expert.",
+  "th-key": "Ключ",
+  "th-value": "Значение",
+  "th-durability": "Durability",
+  "th-updated": "Обновлено",
+  "empty": "Storage пуст.",
+  "btn-load-more": "Загрузить ещё",
+  "error-load": "Не удалось загрузить состояние"
+}

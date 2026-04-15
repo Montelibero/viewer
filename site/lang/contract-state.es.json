@@ -1,0 +1,14 @@
+{
+  "header-title": "Estado del contrato",
+  "back-contract": "Volver al contrato",
+  "error-title": "Error",
+  "loader-text": "Cargando",
+  "help": "Almacenamiento persistent y temporary vía Stellar Expert.",
+  "th-key": "Clave",
+  "th-value": "Valor",
+  "th-durability": "Durabilidad",
+  "th-updated": "Actualizado",
+  "empty": "El almacenamiento está vacío.",
+  "btn-load-more": "Cargar más",
+  "error-load": "No se pudo cargar el estado"
+}

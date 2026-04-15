@@ -1,54 +1,75 @@
-import { shorten, encodeAddress } from '../common.js';
+import { shorten } from '../common.js';
 
 const expertBase = '/api/expert';
 
-function formatSCVal(val) {
-    if (val === null || val === undefined) return 'null';
-    if (val.string !== undefined) {
-        const s = String(val.string);
-        const escaped = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return `"${escaped}"`;
+let sbPromise = null;
+function loadStellarBase() {
+    if (!sbPromise) {
+        sbPromise = import('https://esm.sh/@stellar/stellar-base?bundle')
+            .then(mod => mod.default || mod);
     }
-    if (val.symbol !== undefined) return val.symbol;
-    if (val.u32 !== undefined) return val.u32;
-    if (val.i32 !== undefined) return val.i32;
-    if (val.u64 !== undefined) return val.u64;
-    if (val.i64 !== undefined) return val.i64;
-    if (val.u128 !== undefined) return JSON.stringify(val.u128);
-    if (val.i128 !== undefined) return JSON.stringify(val.i128);
-    if (val.bool !== undefined) return val.bool.toString();
-    if (val.void !== undefined) return 'void';
-    if (val.bytes !== undefined) {
-        if (val.bytes.length === 64 && /^[0-9a-fA-F]+$/.test(val.bytes)) {
-            const addr = encodeAddress(val.bytes);
-            if (addr) return `<a href="/account/${addr}">${shorten(addr)}</a>`;
+    return sbPromise;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function isContractAddress(s) {
+    return typeof s === 'string' && s.length === 56 && s[0] === 'C';
+}
+
+function isAccountAddress(s) {
+    return typeof s === 'string' && s.length === 56 && s[0] === 'G';
+}
+
+function formatNative(v) {
+    if (v === null || v === undefined) return '<span class="has-text-grey">null</span>';
+    if (typeof v === 'string') {
+        if (isAccountAddress(v)) return `<a href="/account/${v}">${shorten(v)}</a>`;
+        if (isContractAddress(v)) return `<a href="/contract/${v}" class="is-mono">${shorten(v)}</a>`;
+        return `"${escapeHtml(v)}"`;
+    }
+    if (typeof v === 'number' || typeof v === 'bigint') return String(v);
+    if (typeof v === 'boolean') return v.toString();
+    if (typeof v === 'symbol') return v.description || v.toString();
+    if (v instanceof Uint8Array) {
+        return `bytes[${v.length}]`;
+    }
+    if (Array.isArray(v)) {
+        return '[' + v.map(formatNative).join(', ') + ']';
+    }
+    if (typeof v === 'object') {
+        // scValToNative returns plain objects for maps, keyed by symbol/string
+        const entries = Object.entries(v);
+        if (!entries.length) return '{}';
+        return '{ ' + entries.map(([k, val]) => `${escapeHtml(k)}: ${formatNative(val)}`).join(', ') + ' }';
+    }
+    return escapeHtml(String(v));
+}
+
+function formatScVal(sb, scval) {
+    if (!scval) return 'null';
+    const t = scval.switch().name;
+    // Short labels for types that scValToNative can't handle or that are noisy.
+    if (t === 'scvLedgerKeyContractInstance') return '[LedgerKeyContractInstance]';
+    if (t === 'scvLedgerKeyNonce') return '[LedgerKeyNonce]';
+    if (t === 'scvContractInstance') {
+        try {
+            const ci = scval.instance();
+            const exec = ci.executable();
+            const execName = exec.switch().name;
+            return `[ContractInstance: ${execName}]`;
+        } catch (_) {
+            return '[ContractInstance]';
         }
-        return `bytes[${val.bytes.length / 2}]`;
     }
-    if (val.address !== undefined) {
-        const a = val.address;
-        if (typeof a === 'string') {
-            return `<a href="/account/${a}">${shorten(a)}</a>`;
-        }
-        if (a.account_id) {
-            return `<a href="/account/${a.account_id}">${shorten(a.account_id)}</a>`;
-        }
-        if (a.contract) {
-            return `<a href="/contract/${a.contract}" class="is-mono">${shorten(a.contract)}</a>`;
-        }
-        return JSON.stringify(a);
+    try {
+        const native = sb.scValToNative(scval);
+        return formatNative(native);
+    } catch (e) {
+        return `<span class="has-text-danger">${escapeHtml(t)}: ${escapeHtml(e.message)}</span>`;
     }
-    if (val.vec !== undefined) {
-        if (val.vec === null) return '[]';
-        return '[' + val.vec.map(formatSCVal).join(', ') + ']';
-    }
-    if (val.map !== undefined) {
-        if (val.map === null) return '{}';
-        return '{ ' + val.map.map(e => `${formatSCVal(e.key)}: ${formatSCVal(e.val)}`).join(', ') + ' }';
-    }
-    if (val.ledger_key_contract_instance !== undefined) return '[LedgerKeyContractInstance]';
-    if (val.contract_instance !== undefined) return '[ContractInstance]';
-    return JSON.stringify(val);
 }
 
 function formatTs(unixSeconds) {
@@ -85,23 +106,12 @@ export async function init(params, i18n) {
         if (el) el.classList.toggle('is-hidden', !show);
     }
 
-    // Load XDR decoder once.
-    let decodeFn = null;
-    async function getDecoder() {
-        if (decodeFn) return decodeFn;
-        const mod = await import('https://esm.sh/@stellar/stellar-xdr-json');
-        const initFn = mod.default || mod.init;
-        if (typeof initFn === 'function') await initFn();
-        decodeFn = mod.decode;
-        return decodeFn;
-    }
-
+    let sb = null;
     function decodeScVal(base64) {
         try {
-            const raw = decodeFn('ScVal', base64);
-            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return sb.xdr.ScVal.fromXDR(base64, 'base64');
         } catch (e) {
-            return { _decodeError: e.message, _raw: base64 };
+            return null;
         }
     }
 
@@ -131,18 +141,20 @@ export async function init(params, i18n) {
     function appendRows(records) {
         ensureTable();
         records.forEach(rec => {
-            const keyObj = decodeScVal(rec.key);
-            const valObj = decodeScVal(rec.value);
+            const keyScVal = decodeScVal(rec.key);
+            const valScVal = decodeScVal(rec.value);
 
             const tr = document.createElement('tr');
 
             const tdKey = document.createElement('td');
-            tdKey.innerHTML = formatSCVal(keyObj);
+            tdKey.innerHTML = keyScVal ? formatScVal(sb, keyScVal)
+                : `<span class="has-text-danger">decode error</span>`;
             tr.appendChild(tdKey);
 
             const tdVal = document.createElement('td');
             tdVal.style.wordBreak = 'break-all';
-            tdVal.innerHTML = formatSCVal(valObj);
+            tdVal.innerHTML = valScVal ? formatScVal(sb, valScVal)
+                : `<span class="has-text-danger">decode error</span>`;
             tr.appendChild(tdVal);
 
             const tdDur = document.createElement('td');
@@ -166,7 +178,7 @@ export async function init(params, i18n) {
         if (moreBtn) moreBtn.disabled = true;
 
         try {
-            await getDecoder();
+            sb = await loadStellarBase();
             const res = await fetch(nextUrl);
             if (!res.ok) throw new Error(`Expert ${res.status}`);
             const data = await res.json();

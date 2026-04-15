@@ -55,6 +55,8 @@
   "op-min-res-b": "Mín res B",
   "op-received-a": "Recibido A",
   "op-received-b": "Recibido B",
+  "op-host-fn": "Función",
+  "op-raw-json": "JSON en bruto",
   "load-effects": "Cargar información adicional",
   "effect-trade": "Intercambio",
   "effect-lp-trade": "Intercambio en pool",

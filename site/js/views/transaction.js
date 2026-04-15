@@ -1,5 +1,5 @@
 import { shorten, getHorizonURL, setPageTitle } from '../common.js';
-import { renderOperationComponent, accountLink, formatStroopAmount } from '../operation-view.js';
+import { renderOperationComponent, accountLink, formatStroopAmount, cleanXdrJson } from '../operation-view.js';
 
 const horizonBase = getHorizonURL();
 const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -437,7 +437,7 @@ export async function init(params, i18n) {
                 decodedObj = decoded;
             }
 
-            if(jsonBodyEl) jsonBodyEl.textContent = JSON.stringify(decodedObj, null, 2);
+            if(jsonBodyEl) jsonBodyEl.textContent = JSON.stringify(cleanXdrJson(decodedObj), null, 2);
 
             const txObj = extractTxObject(decodedObj);
             

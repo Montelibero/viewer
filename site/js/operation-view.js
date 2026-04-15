@@ -1,4 +1,154 @@
-import { shorten, getHorizonURL, decodeTextValue } from './common.js';
+import { shorten, getHorizonURL, decodeTextValue, encodeAddress, encodeContract, bytesToHex } from './common.js';
+
+// ---- Minimal synchronous ScVal decoder (covers types used in Soroban
+// invoke_host_function parameters: bool, void, u32/i32, u64/i64, u128/i128,
+// bytes, string, symbol, vec, map, address). Used to render contract calls
+// inline without pulling in the stellar-base bundle.
+function scvalReader(base64) {
+  const bin = atob(base64);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { bytes, view, off: 0 };
+}
+function rU32(r) { const v = r.view.getUint32(r.off, false); r.off += 4; return v; }
+function rI32(r) { const v = r.view.getInt32(r.off, false); r.off += 4; return v; }
+function rU64(r) { const v = r.view.getBigUint64(r.off, false); r.off += 8; return v; }
+function rI64(r) { const v = r.view.getBigInt64(r.off, false); r.off += 8; return v; }
+function rOpaque(r, len) {
+  const s = r.off;
+  r.off += len;
+  const pad = (4 - (len % 4)) % 4;
+  r.off += pad;
+  return r.bytes.subarray(s, s + len);
+}
+function rVarOpaque(r) { return rOpaque(r, rU32(r)); }
+function utf8(bytes) {
+  try { return new TextDecoder('utf-8', { fatal: false }).decode(bytes); }
+  catch (_) { return ''; }
+}
+
+export function decodeScVal(base64) {
+  try {
+    const r = scvalReader(base64);
+    return readScVal(r);
+  } catch (e) {
+    return { type: 'error', error: e.message, raw: base64 };
+  }
+}
+
+function readScVal(r) {
+  const type = rU32(r);
+  switch (type) {
+    case 0: return { type: 'bool', value: rU32(r) !== 0 };
+    case 1: return { type: 'void' };
+    case 2: return { type: 'error', value: rU32(r) };
+    case 3: return { type: 'u32', value: rU32(r) };
+    case 4: return { type: 'i32', value: rI32(r) };
+    case 5: return { type: 'u64', value: rU64(r).toString() };
+    case 6: return { type: 'i64', value: rI64(r).toString() };
+    case 7: return { type: 'timepoint', value: rU64(r).toString() };
+    case 8: return { type: 'duration', value: rU64(r).toString() };
+    case 9: {
+      const hi = rU64(r), lo = rU64(r);
+      return { type: 'u128', value: ((hi << 64n) | lo).toString() };
+    }
+    case 10: {
+      const hi = rI64(r), lo = rU64(r);
+      return { type: 'i128', value: (hi * (1n << 64n) + lo).toString() };
+    }
+    case 13: return { type: 'bytes', value: rVarOpaque(r) };
+    case 14: return { type: 'string', value: utf8(rVarOpaque(r)) };
+    case 15: return { type: 'symbol', value: utf8(rVarOpaque(r)) };
+    case 16: {
+      const present = rU32(r);
+      if (!present) return { type: 'vec', value: null };
+      const len = rU32(r);
+      const items = [];
+      for (let i = 0; i < len; i++) items.push(readScVal(r));
+      return { type: 'vec', value: items };
+    }
+    case 17: {
+      const present = rU32(r);
+      if (!present) return { type: 'map', value: null };
+      const len = rU32(r);
+      const entries = [];
+      for (let i = 0; i < len; i++) {
+        const k = readScVal(r);
+        const v = readScVal(r);
+        entries.push({ key: k, val: v });
+      }
+      return { type: 'map', value: entries };
+    }
+    case 18: {
+      const addrType = rU32(r);
+      if (addrType === 0) {
+        rU32(r); // PublicKey tag (ed25519)
+        const key = rOpaque(r, 32);
+        return { type: 'address', subtype: 'account', bytes: key };
+      }
+      if (addrType === 1) {
+        const hash = rOpaque(r, 32);
+        return { type: 'address', subtype: 'contract', bytes: hash };
+      }
+      return { type: 'address', subtype: 'unknown' };
+    }
+    case 19: return { type: 'ledger_key_contract_instance' };
+    default:
+      return { type: 'unknown', code: type };
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+export function formatScValInline(v, depth = 0) {
+  if (!v) return '—';
+  switch (v.type) {
+    case 'void': return 'void';
+    case 'bool':
+    case 'u32':
+    case 'i32':
+    case 'u64':
+    case 'i64':
+    case 'u128':
+    case 'i128':
+    case 'timepoint':
+    case 'duration':
+      return escapeHtml(String(v.value));
+    case 'symbol':
+      return escapeHtml(v.value);
+    case 'string':
+      return `"${escapeHtml(v.value)}"`;
+    case 'bytes': {
+      const hex = bytesToHex(v.value);
+      return hex.length > 16 ? `0x${hex.slice(0, 8)}…${hex.slice(-8)}` : `0x${hex}`;
+    }
+    case 'address': {
+      const g = v.subtype === 'account' ? (v.strkey || encodeAddress(v.bytes)) : null;
+      const c = v.subtype === 'contract' ? (v.strkey || encodeContract(v.bytes)) : null;
+      if (g) return `<a class="is-mono" href="/account/${g}">${shorten(g)}</a>`;
+      if (c) return `<a class="is-mono" href="/contract/${c}">${shorten(c)}</a>`;
+      return '—';
+    }
+    case 'vec': {
+      if (v.value === null) return '[]';
+      if (depth >= 2) return `[…${v.value.length}]`;
+      return '[' + v.value.map(x => formatScValInline(x, depth + 1)).join(', ') + ']';
+    }
+    case 'map': {
+      if (v.value === null) return '{}';
+      if (depth >= 2) return `{…${v.value.length}}`;
+      return '{ ' + v.value.map(e =>
+        `${formatScValInline(e.key, depth + 1)}: ${formatScValInline(e.val, depth + 1)}`
+      ).join(', ') + ' }';
+    }
+    case 'ledger_key_contract_instance': return '[Instance]';
+    case 'error': return `<span class="has-text-danger">err</span>`;
+    case 'unknown': return `<span class="has-text-grey">?${v.code}</span>`;
+    default: return '—';
+  }
+}
 
 export function accountLink(acc) {
   return acc ? `/account/${encodeURIComponent(acc)}` : null;
@@ -178,6 +328,169 @@ function renderStatusTag(success, t) {
 
 function resolveT(t, key, fallback) {
   return t ? t(key) : fallback;
+}
+
+// Walk an object decoded by stellar-xdr-json and fix `\xNN` escapes in any
+// string field so JSON output is human-readable.
+export function cleanXdrJson(v) {
+  if (typeof v === 'string') return decodeXdrJsonString(v);
+  if (Array.isArray(v)) return v.map(cleanXdrJson);
+  if (v && typeof v === 'object') {
+    const out = {};
+    for (const k of Object.keys(v)) out[k] = cleanXdrJson(v[k]);
+    return out;
+  }
+  return v;
+}
+
+// stellar-xdr-json encodes SCV_STRING bytes as ASCII with \xNN escapes
+// for non-ASCII — convert back to real UTF-8.
+function decodeXdrJsonString(s) {
+  if (typeof s !== 'string') return String(s);
+  if (!/\\x[0-9a-fA-F]{2}/.test(s)) return s;
+  const bytes = [];
+  for (let i = 0; i < s.length;) {
+    if (s[i] === '\\' && s[i + 1] === 'x') {
+      bytes.push(parseInt(s.substr(i + 2, 2), 16));
+      i += 4;
+    } else {
+      bytes.push(s.charCodeAt(i) & 0xff);
+      i += 1;
+    }
+  }
+  try { return new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes)); }
+  catch (_) { return s; }
+}
+
+// Convert stellar-xdr-json ScVal JSON shape into our canonical shape used by
+// formatScValInline (same shape as decodeScVal's output).
+function xdrScValToCanonical(obj) {
+  if (obj == null || typeof obj !== 'object') return { type: 'unknown' };
+  if ('bool' in obj) return { type: 'bool', value: !!obj.bool };
+  if ('void' in obj) return { type: 'void' };
+  if ('u32' in obj) return { type: 'u32', value: obj.u32 };
+  if ('i32' in obj) return { type: 'i32', value: obj.i32 };
+  if ('u64' in obj) return { type: 'u64', value: String(obj.u64) };
+  if ('i64' in obj) return { type: 'i64', value: String(obj.i64) };
+  if ('timepoint' in obj) return { type: 'timepoint', value: String(obj.timepoint) };
+  if ('duration' in obj) return { type: 'duration', value: String(obj.duration) };
+  if ('u128' in obj) return { type: 'u128', value: String(obj.u128) };
+  if ('i128' in obj) return { type: 'i128', value: String(obj.i128) };
+  if ('bytes' in obj) {
+    const hex = String(obj.bytes);
+    const u = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < u.length; i++) u[i] = parseInt(hex.substr(i * 2, 2), 16);
+    return { type: 'bytes', value: u };
+  }
+  if ('string' in obj) return { type: 'string', value: decodeXdrJsonString(obj.string) };
+  if ('symbol' in obj) return { type: 'symbol', value: obj.symbol };
+  if ('address' in obj) {
+    const s = obj.address;
+    if (typeof s === 'string' && s.length === 56) {
+      if (s[0] === 'G') return { type: 'address', subtype: 'account', strkey: s };
+      if (s[0] === 'C') return { type: 'address', subtype: 'contract', strkey: s };
+    }
+    return { type: 'address', subtype: 'unknown' };
+  }
+  if ('vec' in obj) {
+    return { type: 'vec', value: Array.isArray(obj.vec) ? obj.vec.map(xdrScValToCanonical) : null };
+  }
+  if ('map' in obj) {
+    return {
+      type: 'map',
+      value: Array.isArray(obj.map)
+        ? obj.map.map(e => ({ key: xdrScValToCanonical(e.key), val: xdrScValToCanonical(e.val) }))
+        : null
+    };
+  }
+  if ('ledger_key_contract_instance' in obj) return { type: 'ledger_key_contract_instance' };
+  return { type: 'unknown' };
+}
+
+// Normalize invoke_host_function op from either Horizon or XDR shape into
+// a single canonical structure. Returns null if op isn't an invoke-contract call.
+function normalizeInvokeContract(op) {
+  // Horizon shape: op.function + op.parameters[{ type, value: base64 }]
+  if (op.function && Array.isArray(op.parameters) && op.parameters.length >= 2) {
+    const isInvoke = /InvokeContract/i.test(op.function)
+      || (op.parameters[0]?.type === 'Address' && op.parameters[1]?.type === 'Sym');
+    if (isInvoke) {
+      const contract = decodeScVal(op.parameters[0].value);
+      const fn = decodeScVal(op.parameters[1].value);
+      const args = op.parameters.slice(2).map(p => decodeScVal(p.value));
+      return {
+        contract,
+        fnName: fn?.type === 'symbol' ? fn.value : null,
+        args
+      };
+    }
+  }
+  // XDR shape: op.body.invoke_host_function.host_function.invoke_contract
+  const ic = op?.body?.invoke_host_function?.host_function?.invoke_contract
+    || op?.body?.invokeHostFunction?.hostFunction?.invokeContract;
+  if (ic) {
+    return {
+      contract: { type: 'address', subtype: ic.contract_address?.[0] === 'C' ? 'contract' : 'account', strkey: ic.contract_address },
+      fnName: ic.function_name || ic.functionName,
+      args: (ic.args || []).map(xdrScValToCanonical)
+    };
+  }
+  return null;
+}
+
+function renderInvokeHostFunction(container, op, T) {
+  const call = normalizeInvokeContract(op);
+
+  if (call) {
+    const contractHtml = formatScValInline(call.contract);
+    const fnName = call.fnName ? escapeHtml(call.fnName) : '?';
+    const argsHtml = call.args.map(a => formatScValInline(a)).join(', ');
+
+    const callP = document.createElement('p');
+    callP.className = 'is-mono';
+    callP.innerHTML = `${contractHtml}.<strong>${fnName}</strong>(${argsHtml})`;
+    container.appendChild(callP);
+  } else if (op.function) {
+    const p = document.createElement('p');
+    p.innerHTML = `<strong>${T('op-host-fn', 'Function')}:</strong> ${escapeHtml(op.function)}`;
+    container.appendChild(p);
+  }
+
+  const changes = Array.isArray(op.asset_balance_changes) ? op.asset_balance_changes : [];
+  changes.forEach(ch => {
+    const p = document.createElement('p');
+    const amount = formatAmount(ch.amount);
+    const asset = renderAsset({
+      asset_code: ch.asset_code,
+      asset_issuer: ch.asset_issuer,
+      native: ch.asset_type === 'native'
+    });
+    const from = ch.from ? renderAccountOrContract(ch.from) : '—';
+    const to = ch.to ? renderAccountOrContract(ch.to) : '—';
+    const typeLabel = ch.type || 'transfer';
+    p.innerHTML = `<strong>${escapeHtml(typeLabel)}:</strong> ${amount} ${asset} · ${from} → ${to}`;
+    container.appendChild(p);
+  });
+
+  const details = document.createElement('details');
+  details.className = 'mt-2';
+  const summary = document.createElement('summary');
+  summary.className = 'is-size-7 has-text-grey is-clickable';
+  summary.textContent = T('op-raw-json', 'Raw JSON');
+  details.appendChild(summary);
+  const pre = document.createElement('pre');
+  pre.className = 'is-size-7';
+  pre.textContent = JSON.stringify(cleanXdrJson(op), null, 2);
+  details.appendChild(pre);
+  container.appendChild(details);
+}
+
+function renderAccountOrContract(addr) {
+  if (!addr) return '—';
+  if (typeof addr === 'string' && addr.length === 56 && addr[0] === 'C') {
+    return `<a class="is-mono" href="/contract/${addr}">${shorten(addr)}</a>`;
+  }
+  return renderAccount(addr);
 }
 
 export function renderOperationDetails(op, t) {
@@ -416,6 +729,8 @@ export function renderOperationDetails(op, t) {
     addLine(T('op-min-res-b', 'Min res B'), minB);
     if (op.reserves_received_a) addLine(T('op-received-a', 'Received A'), op.reserves_received_a);
     if (op.reserves_received_b) addLine(T('op-received-b', 'Received B'), op.reserves_received_b);
+  } else if (type === 'invoke_host_function') {
+    renderInvokeHostFunction(container, op, T);
   } else {
     const raw = xdrInner || op;
     const pre = document.createElement('pre');

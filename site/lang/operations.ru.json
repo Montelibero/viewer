@@ -55,6 +55,8 @@
   "op-min-res-b": "Мин. резерв B",
   "op-received-a": "Получено A",
   "op-received-b": "Получено B",
+  "op-host-fn": "Функция",
+  "op-raw-json": "Сырой JSON",
   "load-effects": "Загрузить доп. инфо",
   "effect-trade": "Торговля",
   "effect-lp-trade": "Торговля в пуле",

@@ -182,25 +182,33 @@ function crc16(buffer) {
     return crc & 0xFFFF;
 }
 
-export function encodeAddress(hexOrBytes) {
+export function encodeStrKey(hexOrBytes, versionByte) {
     let bytes;
     if (typeof hexOrBytes === 'string') {
         bytes = hexToBytes(hexOrBytes);
     } else {
         bytes = hexOrBytes;
     }
-    
+
     if (!bytes || bytes.length !== 32) return null;
 
     const payload = new Uint8Array(35);
-    payload[0] = 6 << 3; // 48
+    payload[0] = versionByte;
     payload.set(bytes, 1);
-    
+
     const checksum = crc16(payload.slice(0, 33));
     payload[33] = checksum & 0xFF;
     payload[34] = (checksum >>> 8) & 0xFF;
-    
+
     return encodeBase32(payload);
+}
+
+export function encodeAddress(hexOrBytes) {
+    return encodeStrKey(hexOrBytes, 6 << 3); // G...
+}
+
+export function encodeContract(hexOrBytes) {
+    return encodeStrKey(hexOrBytes, 2 << 3); // C...
 }
 
 export function bytesToHex(bytes) {

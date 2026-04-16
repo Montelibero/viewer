@@ -138,6 +138,7 @@ export async function init(params, i18n) {
         url.searchParams.set('order', 'desc');
         url.searchParams.set('limit', limit);
         url.searchParams.set('include_failed', 'true');
+        url.searchParams.set('join', 'transactions');
         if (cursor) url.searchParams.set('cursor', cursor);
 
         const res = await fetch(url.toString());

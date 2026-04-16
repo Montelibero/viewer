@@ -453,6 +453,12 @@ export function normalizeOperation(rawOp) {
 
   const xdrInner = isXdr ? (op.body[rawType] || {}) : null;
 
+  // Horizon can attach the parent transaction via ?join=transactions; also
+  // allow flat memo fields in case another source flattened them.
+  const tx = op.transaction || null;
+  const memoType = op.memo_type ?? tx?.memo_type ?? null;
+  const memoValue = op.memo ?? tx?.memo ?? null;
+
   const c = {
     _canonical: true,
     _raw: op,
@@ -463,6 +469,8 @@ export function normalizeOperation(rawOp) {
     opId: op.id ?? null,
     createdAt: op.created_at ?? op.createdAt ?? null,
     result: op.result ?? null,
+    memoType: memoType && memoType !== 'none' ? memoType : null,
+    memo: memoValue != null && memoValue !== '' ? String(memoValue) : null,
   };
 
   switch (type) {
@@ -933,6 +941,14 @@ export function renderOperationComponent(rawOp, t, opts = {}) {
     txP.className = 'is-size-7';
     txP.innerHTML = `Transaction: <a class="is-mono" href="/transaction/${c.txHash}">${shorten(c.txHash)}</a>`;
     box.appendChild(txP);
+  }
+
+  if (c.memo) {
+    const memoP = document.createElement('p');
+    memoP.className = 'is-size-7';
+    const typeLabel = c.memoType ? ` <span class="has-text-grey">(${c.memoType})</span>` : '';
+    memoP.innerHTML = `<strong>${T('memo-label', 'Memo')}:</strong>${typeLabel} <span class="is-mono">${escapeHtml(c.memo)}</span>`;
+    box.appendChild(memoP);
   }
 
   const details = renderOperationDetails(c, t);

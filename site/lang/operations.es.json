@@ -1,5 +1,6 @@
 {
   "source-label": "Origen:",
+  "memo-label": "Memo",
   "op-source": "Fuente de operación",
   "op-amount": "Cantidad",
   "op-dest": "Destino",

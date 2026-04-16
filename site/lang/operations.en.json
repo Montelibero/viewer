@@ -1,5 +1,6 @@
 {
   "source-label": "Source:",
+  "memo-label": "Memo",
   "op-source": "Operation Source",
   "op-amount": "Amount",
   "op-dest": "Destination",

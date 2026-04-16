@@ -1,5 +1,6 @@
 {
   "source-label": "Источник:",
+  "memo-label": "Мемо",
   "op-source": "Источник операции",
   "op-amount": "Сумма",
   "op-dest": "Получатель",

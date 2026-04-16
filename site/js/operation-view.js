@@ -262,23 +262,6 @@ export function renderAsset(asset) {
   return typeof asset === 'string' ? asset : JSON.stringify(asset);
 }
 
-function getOpType(op) {
-  if (op?.type) return op.type;
-  const body = op?.body;
-  if (typeof body === 'string') return body;
-  const keys = body ? Object.keys(body) : [];
-  if (!keys.length) return 'unknown';
-  return keys[0];
-}
-
-function isXdrOp(op) {
-  if (!op || typeof op !== 'object') return false;
-  if (op.body && typeof op.body === 'object') return true;
-  if (typeof op.body === 'string') return true;
-  if (op.type === 'end_sponsoring_future_reserves' && op.body === 'end_sponsoring_future_reserves') return true;
-  return false;
-}
-
 function getOfferId(op, xdrInner) {
   // 1. Try Horizon op.offer_id or xdrInner.offerId
   // Note: For creation, xdrInner.offerId is 0.
@@ -407,6 +390,255 @@ function xdrScValToCanonical(obj) {
   return { type: 'unknown' };
 }
 
+// ---- Canonical operation normalization ------------------------------------
+// All views (account-operations, transaction, pool-operations, operation)
+// pass raw ops (Horizon JSON or stellar-xdr-json-decoded) into render. The
+// rendering pipeline calls normalizeOperation once at entry and then reads
+// ONLY from the canonical object. Do not add `xdrInner ? ... : op....`
+// branches inside the renderer — put the field extraction here instead.
+
+function assetFromHorizon(op, prefix = '') {
+  const p = prefix ? `${prefix}_` : '';
+  const code = op[`${p}asset_code`] ?? (prefix ? undefined : op.asset);
+  const issuer = op[`${p}asset_issuer`];
+  const type = op[`${p}asset_type`];
+  if (!code && type !== 'native') return null;
+  return { asset_code: code, asset_issuer: issuer, native: type === 'native' };
+}
+
+function toSnakeCase(s) {
+  return String(s || '').replace(/[A-Z]/g, (c, i) => (i > 0 ? '_' : '') + c.toLowerCase());
+}
+
+function pickField(xdrInner, xdrKeys, op, horizonKeys) {
+  if (xdrInner) {
+    for (const k of xdrKeys) {
+      if (xdrInner[k] !== undefined && xdrInner[k] !== null) return xdrInner[k];
+    }
+  }
+  if (op) {
+    for (const k of horizonKeys) {
+      if (op[k] !== undefined && op[k] !== null) return op[k];
+    }
+  }
+  return null;
+}
+
+function pickAmount(xdrInner, xdrKeys, op, horizonKey) {
+  if (xdrInner) {
+    for (const k of xdrKeys) {
+      if (xdrInner[k] !== undefined && xdrInner[k] !== null) return formatStroopAmount(xdrInner[k]);
+    }
+  }
+  if (op && horizonKey && op[horizonKey] !== undefined && op[horizonKey] !== null) {
+    return String(op[horizonKey]);
+  }
+  return null;
+}
+
+export function normalizeOperation(rawOp) {
+  if (!rawOp) return null;
+  if (rawOp._canonical) return rawOp;
+
+  const op = rawOp;
+  const isXdrEmpty = typeof op.body === 'string';
+  const isXdr = !op.type && op.body && !isXdrEmpty;
+
+  let rawType;
+  if (op.type) rawType = op.type;
+  else if (isXdrEmpty) rawType = op.body;
+  else if (isXdr) rawType = Object.keys(op.body)[0];
+  else rawType = 'unknown';
+  const type = toSnakeCase(rawType);
+
+  const xdrInner = isXdr ? (op.body[rawType] || {}) : null;
+
+  const c = {
+    _canonical: true,
+    _raw: op,
+    type,
+    source: op.source_account ?? op.sourceAccount ?? null,
+    successful: op.transaction_successful ?? op.successful ?? op.success ?? null,
+    txHash: op.transaction_hash ?? op.transactionHash ?? null,
+    opId: op.id ?? null,
+    createdAt: op.created_at ?? op.createdAt ?? null,
+    result: op.result ?? null,
+  };
+
+  switch (type) {
+    case 'payment':
+      c.destination = pickField(xdrInner, ['destination'], op, ['to_muxed', 'to', 'to_muxed_id']);
+      c.amount = xdrInner ? formatStroopAmount(xdrInner.amount) : op.amount;
+      c.asset = xdrInner ? xdrInner.asset : assetFromHorizon(op);
+      break;
+    case 'path_payment_strict_receive':
+      c.destination = pickField(xdrInner, ['destination'], op, ['to_muxed', 'to', 'to_muxed_id']);
+      c.destAmount = pickAmount(xdrInner, ['destAmount', 'dest_amount'], op, 'amount');
+      c.destAsset = xdrInner ? (xdrInner.destAsset ?? xdrInner.dest_asset) : assetFromHorizon(op);
+      c.sendMax = pickAmount(xdrInner, ['sendMax', 'send_max'], op, 'source_amount');
+      c.sendAsset = xdrInner ? (xdrInner.sendAsset ?? xdrInner.send_asset) : assetFromHorizon(op, 'source');
+      break;
+    case 'path_payment_strict_send':
+      c.destination = pickField(xdrInner, ['destination'], op, ['to_muxed', 'to', 'to_muxed_id']);
+      c.sendAmount = pickAmount(xdrInner, ['sendAmount', 'send_amount'], op, 'source_amount');
+      c.sendAsset = xdrInner ? (xdrInner.sendAsset ?? xdrInner.send_asset) : assetFromHorizon(op, 'source');
+      c.destMin = pickAmount(xdrInner, ['destMin', 'dest_min'], op, 'destination_min');
+      c.destAsset = xdrInner ? (xdrInner.destAsset ?? xdrInner.dest_asset) : assetFromHorizon(op);
+      break;
+    case 'create_account':
+      c.startingBalance = pickAmount(xdrInner, ['startingBalance', 'starting_balance'], op, 'starting_balance');
+      c.newAccount = pickField(xdrInner, ['destination'], op, ['account']);
+      break;
+    case 'manage_sell_offer':
+    case 'manage_buy_offer':
+    case 'create_passive_sell_offer':
+      c.amount = xdrInner ? formatStroopAmount(xdrInner.amount) : op.amount;
+      c.selling = xdrInner ? xdrInner.selling : assetFromHorizon(op, 'selling');
+      c.buying = xdrInner ? xdrInner.buying : assetFromHorizon(op, 'buying');
+      c.price = xdrInner && xdrInner.price
+        ? `${xdrInner.price.n}/${xdrInner.price.d}`
+        : (op.price || null);
+      c.offerId = getOfferId(op, xdrInner);
+      break;
+    case 'set_options':
+      c.inflationDest = pickField(xdrInner, ['inflationDest', 'inflation_dest'], op, ['inflation_dest']);
+      c.homeDomain = pickField(xdrInner, ['homeDomain', 'home_domain'], op, ['home_domain']);
+      c.thresholds = {
+        master: xdrInner ? (xdrInner.masterWeight ?? xdrInner.master_weight) : op.master_key_weight,
+        low: xdrInner ? (xdrInner.lowThreshold ?? xdrInner.low_threshold) : op.low_threshold,
+        med: xdrInner ? (xdrInner.medThreshold ?? xdrInner.med_threshold) : op.med_threshold,
+        high: xdrInner ? (xdrInner.highThreshold ?? xdrInner.high_threshold) : op.high_threshold,
+      };
+      c.setFlags = pickField(xdrInner, ['setFlags', 'set_flags'], op, ['set_flags_s', 'set_flags']);
+      c.clearFlags = pickField(xdrInner, ['clearFlags', 'clear_flags'], op, ['clear_flags_s', 'clear_flags']);
+      c.signer = xdrInner
+        ? xdrInner.signer
+        : (op.signer_key ? { key: op.signer_key, weight: op.signer_weight } : null);
+      break;
+    case 'change_trust': {
+      const isPool = op.asset_type === 'liquidity_pool_shares'
+        || !!op.liquidity_pool_id
+        || !!(xdrInner && (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id));
+      c.isPool = isPool;
+      c.poolId = isPool
+        ? (xdrInner?.line?.liquidityPoolId || xdrInner?.line?.liquidity_pool_id || op.liquidity_pool_id)
+        : null;
+      c.line = !isPool ? (xdrInner ? xdrInner.line : assetFromHorizon(op)) : null;
+      c.limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || null);
+      break;
+    }
+    case 'allow_trust':
+      c.trustor = pickField(xdrInner, ['trustor'], op, ['trustor']);
+      c.asset = xdrInner ? xdrInner.asset : assetFromHorizon(op);
+      c.authorized = op.authorize !== undefined ? op.authorize : xdrInner?.authorize;
+      break;
+    case 'account_merge':
+      c.mergeInto = (xdrInner && xdrInner.destination)
+        || (typeof xdrInner === 'string' ? xdrInner : null)
+        || op.into || op.account || op.account_merge_dest || null;
+      break;
+    case 'inflation':
+      break;
+    case 'manage_data': {
+      c.name = pickField(xdrInner, ['dataName', 'data_name'], op, ['data_name']);
+      c.valueRaw = pickField(xdrInner, ['dataValue', 'data_value'], op, ['data_value']);
+      const decoded = parseDataValue(c.valueRaw);
+      c.valueText = decoded.decodedText || null;
+      c.valueHex = decoded.hex || null;
+      break;
+    }
+    case 'bump_sequence':
+      c.bumpTo = pickField(xdrInner, ['bumpTo', 'bump_to'], op, ['bump_to']);
+      break;
+    case 'create_claimable_balance':
+      c.amount = xdrInner ? formatStroopAmount(xdrInner.amount) : op.amount;
+      c.asset = xdrInner ? xdrInner.asset : assetFromHorizon(op);
+      c.claimants = xdrInner ? xdrInner.claimants : op.claimants;
+      break;
+    case 'claim_claimable_balance':
+    case 'clawback_claimable_balance':
+      c.balanceId = pickField(xdrInner, ['balanceId', 'balance_id'], op, ['balance_id']);
+      break;
+    case 'begin_sponsoring_future_reserves':
+    case 'end_sponsoring_future_reserves':
+      c.sponsored = pickField(xdrInner, ['sponsoredId', 'sponsoredID', 'sponsored_id'], op, ['sponsored_id']);
+      break;
+    case 'revoke_sponsorship':
+      c.target = pickField(
+        xdrInner,
+        ['accountId', 'account_id', 'claimableBalanceId', 'claimable_balance_id', 'liquidityPoolId', 'liquidity_pool_id'],
+        op,
+        ['account_id', 'trustline_account_id', 'signer_account_id', 'data_account_id', 'claimable_balance_id', 'liquidity_pool_id', 'offer_id']
+      );
+      c.dataName = pickField(xdrInner, ['dataName', 'data_name'], op, ['data_name']);
+      c.signerKey = pickField(xdrInner, ['signerKey', 'signer_key'], op, ['signer_key']);
+      c.trustlineAsset = op.trustline_asset
+        ?? xdrInner?.trustLine?.asset ?? xdrInner?.trustLine?.assetId
+        ?? xdrInner?.trust_line?.asset ?? xdrInner?.trust_line?.asset_id
+        ?? null;
+      c.offerId = op.offer_id || null;
+      c.claimableBalanceId = op.claimable_balance_id || null;
+      c.liquidityPoolId = op.liquidity_pool_id || null;
+      break;
+    case 'clawback':
+      c.from = pickField(xdrInner, ['from'], op, ['from']);
+      c.amount = xdrInner ? formatStroopAmount(xdrInner.amount) : op.amount;
+      c.asset = xdrInner ? xdrInner.asset : assetFromHorizon(op);
+      break;
+    case 'set_trust_line_flags':
+      c.trustor = pickField(xdrInner, ['trustor'], op, ['trustor']);
+      c.asset = xdrInner ? xdrInner.asset : assetFromHorizon(op);
+      c.authorize = op.authorize ?? xdrInner?.authorize ?? xdrInner?.setFlags;
+      c.authorizeMaintain = op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities;
+      c.clawbackEnabled = op.clawback_enabled ?? xdrInner?.clawbackEnabled;
+      c.setFlags = pickField(xdrInner, ['setFlags', 'set_flags'], op, ['set_flags', 'set_flags_s']);
+      c.clearFlags = pickField(xdrInner, ['clearFlags', 'clear_flags'], op, ['clear_flags', 'clear_flags_s']);
+      break;
+    case 'liquidity_pool_deposit':
+      c.poolId = pickField(xdrInner, ['liquidityPoolId', 'liquidity_pool_id'], op, ['liquidity_pool_id']);
+      if (xdrInner) {
+        c.maxA = formatStroopAmount(xdrInner.maxAmountA ?? xdrInner.max_amount_a);
+        c.maxB = formatStroopAmount(xdrInner.maxAmountB ?? xdrInner.max_amount_b);
+      } else if (Array.isArray(op.reserves_max) && op.reserves_max.length === 2) {
+        c.maxA = op.reserves_max[0].amount;
+        c.maxB = op.reserves_max[1].amount;
+      } else {
+        c.maxA = op.reserves_max_a || null;
+        c.maxB = op.reserves_max_b || null;
+      }
+      c.minPrice = xdrInner
+        ? formatPriceObj(xdrInner.minPrice ?? xdrInner.min_price)
+        : formatPriceObj(op.min_price);
+      c.maxPrice = xdrInner
+        ? formatPriceObj(xdrInner.maxPrice ?? xdrInner.max_price)
+        : formatPriceObj(op.max_price);
+      if (Array.isArray(op.reserves_deposited) && op.reserves_deposited.length === 2) {
+        c.depositedA = op.reserves_deposited[0].amount;
+        c.depositedB = op.reserves_deposited[1].amount;
+      } else {
+        c.depositedA = op.reserves_deposited_a || null;
+        c.depositedB = op.reserves_deposited_b || null;
+      }
+      c.sharesReceived = op.shares_received || null;
+      break;
+    case 'liquidity_pool_withdraw':
+      c.poolId = pickField(xdrInner, ['liquidityPoolId', 'liquidity_pool_id'], op, ['liquidity_pool_id']);
+      c.shares = xdrInner ? formatStroopAmount(xdrInner.amount) : op.shares;
+      c.minA = xdrInner ? formatStroopAmount(xdrInner.minAmountA ?? xdrInner.min_amount_a) : op.reserves_min_a;
+      c.minB = xdrInner ? formatStroopAmount(xdrInner.minAmountB ?? xdrInner.min_amount_b) : op.reserves_min_b;
+      c.receivedA = op.reserves_received_a || null;
+      c.receivedB = op.reserves_received_b || null;
+      break;
+    case 'invoke_host_function':
+      c.invokeContract = normalizeInvokeContract(op);
+      c.balanceChanges = Array.isArray(op.asset_balance_changes) ? op.asset_balance_changes : [];
+      c.hostFunctionName = op.function || null;
+      break;
+  }
+
+  return c;
+}
+
 // Normalize invoke_host_function op from either Horizon or XDR shape into
 // a single canonical structure. Returns null if op isn't an invoke-contract call.
 function normalizeInvokeContract(op) {
@@ -438,8 +670,8 @@ function normalizeInvokeContract(op) {
   return null;
 }
 
-function renderInvokeHostFunction(container, op, T) {
-  const call = normalizeInvokeContract(op);
+function renderInvokeHostFunction(container, c, T) {
+  const call = c.invokeContract;
 
   if (call) {
     const contractHtml = formatScValInline(call.contract);
@@ -450,14 +682,13 @@ function renderInvokeHostFunction(container, op, T) {
     callP.className = 'is-mono';
     callP.innerHTML = `${contractHtml}.<strong>${fnName}</strong>(${argsHtml})`;
     container.appendChild(callP);
-  } else if (op.function) {
+  } else if (c.hostFunctionName) {
     const p = document.createElement('p');
-    p.innerHTML = `<strong>${T('op-host-fn', 'Function')}:</strong> ${escapeHtml(op.function)}`;
+    p.innerHTML = `<strong>${T('op-host-fn', 'Function')}:</strong> ${escapeHtml(c.hostFunctionName)}`;
     container.appendChild(p);
   }
 
-  const changes = Array.isArray(op.asset_balance_changes) ? op.asset_balance_changes : [];
-  changes.forEach(ch => {
+  (c.balanceChanges || []).forEach(ch => {
     const p = document.createElement('p');
     const amount = formatAmount(ch.amount);
     const asset = renderAsset({
@@ -480,7 +711,7 @@ function renderInvokeHostFunction(container, op, T) {
   details.appendChild(summary);
   const pre = document.createElement('pre');
   pre.className = 'is-size-7';
-  pre.textContent = JSON.stringify(cleanXdrJson(op), null, 2);
+  pre.textContent = JSON.stringify(cleanXdrJson(c._raw), null, 2);
   details.appendChild(pre);
   container.appendChild(details);
 }
@@ -493,14 +724,10 @@ function renderAccountOrContract(addr) {
   return renderAccount(addr);
 }
 
-export function renderOperationDetails(op, t) {
+export function renderOperationDetails(rawOp, t) {
+  const c = normalizeOperation(rawOp);
   const container = document.createElement('div');
   container.className = 'is-size-7';
-
-  const type = getOpType(op);
-  const xdrInner = isXdrOp(op)
-    ? (typeof op.body === 'string' ? {} : op.body?.[type] || {})
-    : null;
 
   const addLine = (label, value) => {
     const p = document.createElement('p');
@@ -510,321 +737,209 @@ export function renderOperationDetails(op, t) {
 
   const T = (k, f) => resolveT(t, k, f);
 
-  if (type === 'payment') {
-    const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
-    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
-    addLine(T('op-dest', 'Destination'), renderAccount(dest));
-  } else if (type === 'path_payment_strict_receive') {
-    const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
-    const destAmount = xdrInner ? formatStroopAmount(xdrInner.destAmount ?? xdrInner.dest_amount) : formatAmount(op.amount);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    const sourceAmount = xdrInner ? formatStroopAmount(xdrInner.sendMax ?? xdrInner.send_max) : formatAmount(op.source_amount);
-    const sourceAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : renderAsset({ asset_code: op.source_asset_code, asset_issuer: op.source_asset_issuer, native: op.source_asset_type === 'native' });
-    addLine(T('op-dest', 'Destination'), renderAccount(dest));
-    addLine(T('op-receives', 'Receives'), `${destAmount} ${destAsset}`);
-    addLine(T('op-spend-max', 'Send max'), `${sourceAmount} ${sourceAsset}`);
-  } else if (type === 'path_payment_strict_send') {
-    const dest = xdrInner ? xdrInner.destination : (op.to_muxed || op.to || op.to_muxed_id);
-    const sendAmount = xdrInner ? formatStroopAmount(xdrInner.sendAmount ?? xdrInner.send_amount) : formatAmount(op.source_amount);
-    const sendAsset = xdrInner ? renderAsset(xdrInner.sendAsset ?? xdrInner.send_asset) : renderAsset({ asset_code: op.source_asset_code, asset_issuer: op.source_asset_issuer, native: op.source_asset_type === 'native' });
-    const destMin = xdrInner ? formatStroopAmount(xdrInner.destMin ?? xdrInner.dest_min) : formatAmount(op.destination_min);
-    const destAsset = xdrInner ? renderAsset(xdrInner.destAsset ?? xdrInner.dest_asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    addLine(T('op-dest', 'Destination'), renderAccount(dest));
-    addLine(T('op-sending', 'Sending'), `${sendAmount} ${sendAsset}`);
-    addLine(T('op-expect-min', 'Expect min'), `${destMin} ${destAsset}`);
-  } else if (type === 'create_account') {
-    const amount = xdrInner ? formatStroopAmount(xdrInner.startingBalance ?? xdrInner.starting_balance) : formatAmount(op.starting_balance);
-    const account = xdrInner ? xdrInner.destination : op.account;
-    addLine(T('op-start-balance', 'Starting balance'), `${amount} XLM`);
-    addLine(T('op-new-acc', 'New account'), renderAccount(account));
-  } else if (type === 'manage_sell_offer' || type === 'manage_buy_offer' || type === 'create_passive_sell_offer') {
-    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const selling = xdrInner ? renderAsset(xdrInner.selling) : renderAsset({ asset_code: op.selling_asset_code, asset_issuer: op.selling_asset_issuer, native: op.selling_asset_type === 'native' });
-    const buying = xdrInner ? renderAsset(xdrInner.buying) : renderAsset({ asset_code: op.buying_asset_code, asset_issuer: op.buying_asset_issuer, native: op.buying_asset_type === 'native' });
-    const price = xdrInner && xdrInner.price ? `${xdrInner.price.n}/${xdrInner.price.d}` : (op.price || '—');
-    addLine(T('op-selling', 'Selling'), `${amount} ${selling}`);
-    addLine(T('op-buying', 'Buying'), buying);
-    addLine(T('op-price', 'Price'), price);
-    const offerId = getOfferId(op, xdrInner);
-    if (offerId) {
-        addLine(T('op-offer-id', 'Offer ID'), `<a href="/offer/${offerId}">${offerId}</a>`);
-    }
-  } else if (type === 'set_options') {
-    const inflation = xdrInner ? (xdrInner.inflationDest ?? xdrInner.inflation_dest) : op.inflation_dest;
-    const homeDomain = xdrInner ? (xdrInner.homeDomain ?? xdrInner.home_domain) : op.home_domain;
-    const thresholds = {
-      master: xdrInner ? (xdrInner.masterWeight ?? xdrInner.master_weight) : op.master_key_weight,
-      low: xdrInner ? (xdrInner.lowThreshold ?? xdrInner.low_threshold) : op.low_threshold,
-      med: xdrInner ? (xdrInner.medThreshold ?? xdrInner.med_threshold) : op.med_threshold,
-      high: xdrInner ? (xdrInner.highThreshold ?? xdrInner.high_threshold) : op.high_threshold
-    };
-    const clear = xdrInner ? (xdrInner.clearFlags ?? xdrInner.clear_flags) : op.clear_flags_s || op.clear_flags;
-    const set = xdrInner ? (xdrInner.setFlags ?? xdrInner.set_flags) : op.set_flags_s || op.set_flags;
-    addLine(T('op-domain', 'Domain'), homeDomain || '—');
-    addLine(T('op-inflation-dest', 'Inflation dest'), inflation ? renderAccount(inflation, { short: false }) : '—');
-    addLine(T('op-thresholds', 'Thresholds'), `low: ${thresholds.low ?? '—'}, med: ${thresholds.med ?? '—'}, high: ${thresholds.high ?? '—'}`);
-    addLine(T('op-master-weight', 'Master weight'), thresholds.master ?? '—');
-    if (set !== undefined) addLine(T('op-set-flags', 'Set flags'), set);
-    if (clear !== undefined) addLine(T('op-clear-flags', 'Clear flags'), clear);
-    const signer = xdrInner ? xdrInner.signer : (op.signer_key ? { key: op.signer_key, weight: op.signer_weight } : null);
-    if (signer) {
-      const key = signer.ed25519 || signer.preAuthTx || signer.hashX || signer.key || signer.ed25519PublicKey || signer.sha256Hash;
-      addLine(T('op-signer', 'Signer'), `${key || '—'} (weight ${signer.weight ?? signer.signer_weight ?? '—'})`);
-    }
-  } else if (type === 'change_trust') {
-    const isPool = op.asset_type === 'liquidity_pool_shares' ||
-                   op.liquidity_pool_id ||
-                   (xdrInner && (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id));
-
-    if (isPool) {
-      const poolId = xdrInner
-        ? (xdrInner.line?.liquidityPoolId || xdrInner.line?.liquidity_pool_id)
-        : op.liquidity_pool_id;
-      const label = poolId ? `<a href="/pool/${poolId}">${shorten(poolId)}</a>` : '—';
-      const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
-      addLine(T('op-trust-pool', 'Trust Liquidity Pool'), label);
-      addLine(T('op-limit', 'Limit'), limit);
-    } else {
-      const asset = xdrInner ? renderAsset(xdrInner.line) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-      const limit = xdrInner ? formatStroopAmount(xdrInner.limit) : (op.limit || '—');
-      addLine(T('op-trust-asset', 'Trust asset'), asset);
-      addLine(T('op-limit', 'Limit'), limit);
-    }
-  } else if (type === 'allow_trust') {
-    const trustor = xdrInner ? xdrInner.trustor : op.trustor;
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    const auth = op.authorize !== undefined ? op.authorize : xdrInner?.authorize;
-    addLine(T('op-trustor', 'Trustor'), renderAccount(trustor));
-    addLine(T('op-asset', 'Asset'), asset);
-    addLine(T('op-auth', 'Authorized'), auth ? T('op-auth-yes', 'Yes') : T('op-auth-no', 'No'));
-  } else if (type === 'account_merge') {
-    const dest = xdrInner && xdrInner.destination
-        ? xdrInner.destination
-        : (typeof xdrInner === 'string' || (xdrInner && xdrInner.ed25519) ? xdrInner : (op.into || op.account || op.account_merge_dest));
-    addLine(T('op-merge-to', 'Merge into'), renderAccount(dest, { short: false }));
-  } else if (type === 'inflation') {
-    addLine(T('op-inflation', 'Run inflation'), '');
-  } else if (type === 'manage_data') {
-    const name = xdrInner ? (xdrInner.dataName ?? xdrInner.data_name) : op.data_name;
-    const valueRaw = xdrInner ? (xdrInner.dataValue ?? xdrInner.data_value) : op.data_value;
-    const decoded = parseDataValue(valueRaw);
-    addLine(T('op-data-name', 'Name'), name || '—');
-    addLine(T('op-data-val-raw', 'Value (raw)'), valueRaw || '—');
-    if (decoded.decodedText) {
-      addLine(T('op-data-val-str', 'Value (string)'), decoded.decodedText);
-    }
-    if (decoded.hex) {
-      addLine(T('op-data-val-hex', 'Value (hex)'), decoded.hex);
-    }
-  } else if (type === 'bump_sequence') {
-    const bump = xdrInner ? (xdrInner.bumpTo ?? xdrInner.bump_to) : op.bump_to;
-    addLine(T('op-bump-seq', 'Bump to'), bump || '—');
-  } else if (type === 'create_claimable_balance') {
-    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    const claimants = xdrInner ? xdrInner.claimants : op.claimants;
-    addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
-    addLine(T('op-claimants', 'Claimants'), renderClaimants(claimants));
-  } else if (type === 'claim_claimable_balance') {
-    const id = xdrInner ? (xdrInner.balanceId ?? xdrInner.balance_id) : op.balance_id;
-    addLine(T('op-balance-id', 'Balance ID'), id || '—');
-  } else if (type === 'begin_sponsoring_future_reserves') {
-    const sponsored = xdrInner
-      ? (xdrInner.sponsoredId || xdrInner.sponsoredID || xdrInner.sponsored_id)
-      : op.sponsored_id;
-    addLine(T('op-sponsored', 'Sponsored'), renderAccount(sponsored));
-  } else if (type === 'end_sponsoring_future_reserves') {
-    const sponsored = op.sponsored_id || xdrInner?.sponsoredId || xdrInner?.sponsoredID || xdrInner?.sponsored_id;
-    addLine(T('op-sponsor-end', 'End sponsoring future reserves'), '');
-    if (sponsored) addLine(T('op-sponsored', 'Sponsored'), renderAccount(sponsored));
-  } else if (type === 'revoke_sponsorship') {
-    const target =
-      op.account_id || op.trustline_account_id || op.signer_account_id || op.data_account_id ||
-      op.claimable_balance_id || op.liquidity_pool_id || op.offer_id ||
-      xdrInner?.accountId || xdrInner?.account_id || xdrInner?.claimableBalanceId || xdrInner?.claimable_balance_id || xdrInner?.liquidityPoolId || xdrInner?.liquidity_pool_id;
-    const dataName = op.data_name || xdrInner?.dataName || xdrInner?.data_name;
-    const signerKey = op.signer_key || xdrInner?.signerKey || xdrInner?.signer_key;
-    const trustAsset = op.trustline_asset || xdrInner?.trustLine?.asset || xdrInner?.trustLine?.assetId || xdrInner?.trust_line?.asset || xdrInner?.trust_line?.asset_id;
-    let targetDesc = '';
-    if (target && dataName) targetDesc = `Data: ${renderAccount(target)} / ${dataName}`;
-    else if (target && signerKey) targetDesc = `Signer: ${renderAccount(target)} / ${signerKey}`;
-    else if (target && trustAsset) {
-      const assetLabelStr = typeof trustAsset === 'object' ? renderAsset(trustAsset) : trustAsset;
-      targetDesc = `Trustline: ${renderAccount(target)} / ${assetLabelStr}`;
-    }
-    else if (target) targetDesc = renderAccount(target, { short: false });
-    if (op.offer_id) targetDesc = `Offer ${op.offer_id}`;
-    if (op.claimable_balance_id) targetDesc = `Claimable balance ${op.claimable_balance_id}`;
-    if (op.liquidity_pool_id) targetDesc = `Liquidity pool ${op.liquidity_pool_id}`;
-    addLine(T('op-sponsor-revoke', 'Revoke sponsorship'), targetDesc || JSON.stringify(xdrInner || op));
-  } else if (type === 'clawback') {
-    const from = xdrInner ? xdrInner.from : op.from;
-    const amount = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.amount);
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code || op.asset, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    addLine(T('op-clawback-from', 'Clawback from'), renderAccount(from));
-    addLine(T('op-amount', 'Amount'), `${amount} ${asset}`);
-  } else if (type === 'clawback_claimable_balance') {
-    const id = xdrInner ? (xdrInner.balanceId ?? xdrInner.balance_id) : op.balance_id;
-    addLine(T('op-balance-id', 'Balance ID'), id || '—');
-  } else if (type === 'set_trust_line_flags') {
-    const trustor = xdrInner ? xdrInner.trustor : op.trustor;
-    const asset = xdrInner ? renderAsset(xdrInner.asset) : renderAsset({ asset_code: op.asset_code, asset_issuer: op.asset_issuer, native: op.asset_type === 'native' });
-    addLine(T('op-trustor', 'Trustor'), renderAccount(trustor));
-    addLine(T('op-asset', 'Asset'), asset);
-    const authorize = op.authorize ?? xdrInner?.authorize ?? xdrInner?.setFlags;
-    const maintain = op.authorize_to_maintain_liabilities ?? xdrInner?.authorizeToMaintainLiabilities;
-    const clawback = op.clawback_enabled ?? xdrInner?.clawbackEnabled;
-    const clear = op.clear_flags ?? op.clear_flags_s ?? xdrInner?.clearFlags ?? xdrInner?.clear_flags;
-    const set = op.set_flags ?? op.set_flags_s ?? xdrInner?.setFlags ?? xdrInner?.set_flags;
-    addLine(T('op-flags', 'Flags'), `set: ${set ?? '—'}, clear: ${clear ?? '—'}, auth: ${authorize ?? '—'}, maintain: ${maintain ?? '—'}, clawback: ${clawback ?? '—'}`);
-  } else if (type === 'liquidity_pool_deposit') {
-    const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
-
-    let maxA = null;
-    let maxB = null;
-
-    if (xdrInner) {
-      maxA = formatStroopAmount(xdrInner.maxAmountA ?? xdrInner.max_amount_a);
-      maxB = formatStroopAmount(xdrInner.maxAmountB ?? xdrInner.max_amount_b);
-    } else {
-      // Horizon can return arrays for reserves_max
-      if (Array.isArray(op.reserves_max) && op.reserves_max.length === 2) {
-        maxA = formatAmount(op.reserves_max[0].amount);
-        maxB = formatAmount(op.reserves_max[1].amount);
-      } else {
-        maxA = formatAmount(op.reserves_max_a);
-        maxB = formatAmount(op.reserves_max_b);
+  switch (c.type) {
+    case 'payment':
+      addLine(T('op-amount', 'Amount'), `${c.amount ?? '—'} ${renderAsset(c.asset)}`);
+      addLine(T('op-dest', 'Destination'), renderAccount(c.destination));
+      break;
+    case 'path_payment_strict_receive':
+      addLine(T('op-dest', 'Destination'), renderAccount(c.destination));
+      addLine(T('op-receives', 'Receives'), `${c.destAmount ?? '—'} ${renderAsset(c.destAsset)}`);
+      addLine(T('op-spend-max', 'Send max'), `${c.sendMax ?? '—'} ${renderAsset(c.sendAsset)}`);
+      break;
+    case 'path_payment_strict_send':
+      addLine(T('op-dest', 'Destination'), renderAccount(c.destination));
+      addLine(T('op-sending', 'Sending'), `${c.sendAmount ?? '—'} ${renderAsset(c.sendAsset)}`);
+      addLine(T('op-expect-min', 'Expect min'), `${c.destMin ?? '—'} ${renderAsset(c.destAsset)}`);
+      break;
+    case 'create_account':
+      addLine(T('op-start-balance', 'Starting balance'), `${c.startingBalance ?? '—'} XLM`);
+      addLine(T('op-new-acc', 'New account'), renderAccount(c.newAccount));
+      break;
+    case 'manage_sell_offer':
+    case 'manage_buy_offer':
+    case 'create_passive_sell_offer':
+      addLine(T('op-selling', 'Selling'), `${c.amount ?? '—'} ${renderAsset(c.selling)}`);
+      addLine(T('op-buying', 'Buying'), renderAsset(c.buying));
+      addLine(T('op-price', 'Price'), c.price ?? '—');
+      if (c.offerId) {
+        addLine(T('op-offer-id', 'Offer ID'), `<a href="/offer/${c.offerId}">${c.offerId}</a>`);
       }
+      break;
+    case 'set_options': {
+      addLine(T('op-domain', 'Domain'), c.homeDomain || '—');
+      addLine(T('op-inflation-dest', 'Inflation dest'),
+        c.inflationDest ? renderAccount(c.inflationDest, { short: false }) : '—');
+      addLine(T('op-thresholds', 'Thresholds'),
+        `low: ${c.thresholds.low ?? '—'}, med: ${c.thresholds.med ?? '—'}, high: ${c.thresholds.high ?? '—'}`);
+      addLine(T('op-master-weight', 'Master weight'), c.thresholds.master ?? '—');
+      if (c.setFlags !== null && c.setFlags !== undefined) addLine(T('op-set-flags', 'Set flags'), c.setFlags);
+      if (c.clearFlags !== null && c.clearFlags !== undefined) addLine(T('op-clear-flags', 'Clear flags'), c.clearFlags);
+      if (c.signer) {
+        const key = c.signer.ed25519 || c.signer.preAuthTx || c.signer.hashX
+          || c.signer.key || c.signer.ed25519PublicKey || c.signer.sha256Hash;
+        addLine(T('op-signer', 'Signer'),
+          `${key || '—'} (weight ${c.signer.weight ?? c.signer.signer_weight ?? '—'})`);
+      }
+      break;
     }
-
-    const minPrice = xdrInner ? formatPriceObj(xdrInner.minPrice ?? xdrInner.min_price) : formatPriceObj(op.min_price);
-    const maxPrice = xdrInner ? formatPriceObj(xdrInner.maxPrice ?? xdrInner.max_price) : formatPriceObj(op.max_price);
-    addLine(T('op-pool', 'Pool'), pool || '—');
-    addLine(T('op-max-res-a', 'Max res A'), maxA || '—');
-    addLine(T('op-max-res-b', 'Max res B'), maxB || '—');
-    addLine(T('op-min-price', 'Min price'), minPrice);
-    addLine(T('op-max-price', 'Max price'), maxPrice);
-
-    let depA = op.reserves_deposited_a;
-    let depB = op.reserves_deposited_b;
-
-    if (Array.isArray(op.reserves_deposited) && op.reserves_deposited.length === 2) {
-      depA = formatAmount(op.reserves_deposited[0].amount);
-      depB = formatAmount(op.reserves_deposited[1].amount);
+    case 'change_trust':
+      if (c.isPool) {
+        const label = c.poolId ? `<a href="/pool/${c.poolId}">${shorten(c.poolId)}</a>` : '—';
+        addLine(T('op-trust-pool', 'Trust Liquidity Pool'), label);
+        addLine(T('op-limit', 'Limit'), c.limit || '—');
+      } else {
+        addLine(T('op-trust-asset', 'Trust asset'), renderAsset(c.line));
+        addLine(T('op-limit', 'Limit'), c.limit || '—');
+      }
+      break;
+    case 'allow_trust':
+      addLine(T('op-trustor', 'Trustor'), renderAccount(c.trustor));
+      addLine(T('op-asset', 'Asset'), renderAsset(c.asset));
+      addLine(T('op-auth', 'Authorized'), c.authorized ? T('op-auth-yes', 'Yes') : T('op-auth-no', 'No'));
+      break;
+    case 'account_merge':
+      addLine(T('op-merge-to', 'Merge into'), renderAccount(c.mergeInto, { short: false }));
+      break;
+    case 'inflation':
+      addLine(T('op-inflation', 'Run inflation'), '');
+      break;
+    case 'manage_data':
+      addLine(T('op-data-name', 'Name'), c.name || '—');
+      addLine(T('op-data-val-raw', 'Value (raw)'), c.valueRaw || '—');
+      if (c.valueText) addLine(T('op-data-val-str', 'Value (string)'), c.valueText);
+      if (c.valueHex) addLine(T('op-data-val-hex', 'Value (hex)'), c.valueHex);
+      break;
+    case 'bump_sequence':
+      addLine(T('op-bump-seq', 'Bump to'), c.bumpTo || '—');
+      break;
+    case 'create_claimable_balance':
+      addLine(T('op-amount', 'Amount'), `${c.amount ?? '—'} ${renderAsset(c.asset)}`);
+      addLine(T('op-claimants', 'Claimants'), renderClaimants(c.claimants));
+      break;
+    case 'claim_claimable_balance':
+    case 'clawback_claimable_balance':
+      addLine(T('op-balance-id', 'Balance ID'), c.balanceId || '—');
+      break;
+    case 'begin_sponsoring_future_reserves':
+      addLine(T('op-sponsored', 'Sponsored'), renderAccount(c.sponsored));
+      break;
+    case 'end_sponsoring_future_reserves':
+      addLine(T('op-sponsor-end', 'End sponsoring future reserves'), '');
+      if (c.sponsored) addLine(T('op-sponsored', 'Sponsored'), renderAccount(c.sponsored));
+      break;
+    case 'revoke_sponsorship': {
+      let desc = '';
+      if (c.target && c.dataName) desc = `Data: ${renderAccount(c.target)} / ${c.dataName}`;
+      else if (c.target && c.signerKey) desc = `Signer: ${renderAccount(c.target)} / ${c.signerKey}`;
+      else if (c.target && c.trustlineAsset) {
+        const assetStr = typeof c.trustlineAsset === 'object' ? renderAsset(c.trustlineAsset) : c.trustlineAsset;
+        desc = `Trustline: ${renderAccount(c.target)} / ${assetStr}`;
+      } else if (c.target) desc = renderAccount(c.target, { short: false });
+      if (c.offerId) desc = `Offer ${c.offerId}`;
+      if (c.claimableBalanceId) desc = `Claimable balance ${c.claimableBalanceId}`;
+      if (c.liquidityPoolId) desc = `Liquidity pool ${c.liquidityPoolId}`;
+      addLine(T('op-sponsor-revoke', 'Revoke sponsorship'), desc || '—');
+      break;
     }
-
-    if (depA) addLine(T('op-deposited-a', 'Deposited A'), depA);
-    if (depB) addLine(T('op-deposited-b', 'Deposited B'), depB);
-    if (op.shares_received) addLine(T('op-shares-received', 'Shares received'), op.shares_received);
-  } else if (type === 'liquidity_pool_withdraw') {
-    const pool = xdrInner ? (xdrInner.liquidityPoolId ?? xdrInner.liquidity_pool_id) : op.liquidity_pool_id;
-    const shares = xdrInner ? formatStroopAmount(xdrInner.amount) : formatAmount(op.shares);
-    const minA = xdrInner ? formatStroopAmount(xdrInner.minAmountA ?? xdrInner.min_amount_a) : formatAmount(op.reserves_min_a);
-    const minB = xdrInner ? formatStroopAmount(xdrInner.minAmountB ?? xdrInner.min_amount_b) : formatAmount(op.reserves_min_b);
-    addLine(T('op-pool', 'Pool'), pool || '—');
-    addLine(T('op-shares-burn', 'Burn shares'), shares);
-    addLine(T('op-min-res-a', 'Min res A'), minA);
-    addLine(T('op-min-res-b', 'Min res B'), minB);
-    if (op.reserves_received_a) addLine(T('op-received-a', 'Received A'), op.reserves_received_a);
-    if (op.reserves_received_b) addLine(T('op-received-b', 'Received B'), op.reserves_received_b);
-  } else if (type === 'invoke_host_function') {
-    renderInvokeHostFunction(container, op, T);
-  } else {
-    const raw = xdrInner || op;
-    const pre = document.createElement('pre');
-    pre.textContent = JSON.stringify(raw, null, 2);
-    container.appendChild(pre);
+    case 'clawback':
+      addLine(T('op-clawback-from', 'Clawback from'), renderAccount(c.from));
+      addLine(T('op-amount', 'Amount'), `${c.amount ?? '—'} ${renderAsset(c.asset)}`);
+      break;
+    case 'set_trust_line_flags':
+      addLine(T('op-trustor', 'Trustor'), renderAccount(c.trustor));
+      addLine(T('op-asset', 'Asset'), renderAsset(c.asset));
+      addLine(T('op-flags', 'Flags'),
+        `set: ${c.setFlags ?? '—'}, clear: ${c.clearFlags ?? '—'}, auth: ${c.authorize ?? '—'}, maintain: ${c.authorizeMaintain ?? '—'}, clawback: ${c.clawbackEnabled ?? '—'}`);
+      break;
+    case 'liquidity_pool_deposit':
+      addLine(T('op-pool', 'Pool'), c.poolId || '—');
+      addLine(T('op-max-res-a', 'Max res A'), c.maxA || '—');
+      addLine(T('op-max-res-b', 'Max res B'), c.maxB || '—');
+      addLine(T('op-min-price', 'Min price'), c.minPrice);
+      addLine(T('op-max-price', 'Max price'), c.maxPrice);
+      if (c.depositedA) addLine(T('op-deposited-a', 'Deposited A'), c.depositedA);
+      if (c.depositedB) addLine(T('op-deposited-b', 'Deposited B'), c.depositedB);
+      if (c.sharesReceived) addLine(T('op-shares-received', 'Shares received'), c.sharesReceived);
+      break;
+    case 'liquidity_pool_withdraw':
+      addLine(T('op-pool', 'Pool'), c.poolId || '—');
+      addLine(T('op-shares-burn', 'Burn shares'), c.shares);
+      addLine(T('op-min-res-a', 'Min res A'), c.minA);
+      addLine(T('op-min-res-b', 'Min res B'), c.minB);
+      if (c.receivedA) addLine(T('op-received-a', 'Received A'), c.receivedA);
+      if (c.receivedB) addLine(T('op-received-b', 'Received B'), c.receivedB);
+      break;
+    case 'invoke_host_function':
+      renderInvokeHostFunction(container, c, T);
+      break;
+    default: {
+      const pre = document.createElement('pre');
+      pre.textContent = JSON.stringify(cleanXdrJson(c._raw), null, 2);
+      container.appendChild(pre);
+    }
   }
 
   return container;
 }
 
-export function renderOperationComponent(op, t, opts = {}) {
-  // Options defaults
+export function renderOperationComponent(rawOp, t, opts = {}) {
+  const c = normalizeOperation(rawOp);
   const {
     showTransactionLink = true,
     showSource = true,
-    forceSuccessStatus = null, // boolean or null (auto)
-    index = null, // for #1, #2 numbering
-    allowLoadEffects = true, // show load effects button?
-    contextSource = null // implicit source to compare against
+    forceSuccessStatus = null,
+    index = null,
+    allowLoadEffects = true,
+    contextSource = null
   } = opts;
 
   const box = document.createElement('div');
   box.className = 'box is-size-7 op-card';
 
-  // Determine success status
-  // If forceSuccessStatus is provided, use it. Otherwise derive from op properties.
   let successful = true;
-  if (forceSuccessStatus !== null) {
-    successful = forceSuccessStatus;
-  } else {
-    // Horizon op records usually have transaction_successful boolean
-    // Parsed XDR might have successful boolean
-    if (op.transaction_successful === false || op.successful === false || op.success === false) {
-      successful = false;
-    }
-  }
+  if (forceSuccessStatus !== null) successful = forceSuccessStatus;
+  else if (c.successful === false) successful = false;
 
   const statusTag = renderStatusTag(successful, t);
   if (!successful) box.classList.add('is-failed');
 
-  const typeKey = getOpType(op);
-  const typeLabel = t ? t(typeKey) : typeKey;
+  const typeLabel = t ? t(c.type) : c.type;
 
-  // Header Construction
   const header = document.createElement('p');
   let headerHTML = '';
-  if (index !== null) {
-    headerHTML += `<strong>#${index + 1}</strong> · `;
-  }
+  if (index !== null) headerHTML += `<strong>#${index + 1}</strong> · `;
   headerHTML += `<strong>${typeLabel}</strong>`;
-  if (op.created_at) {
-    headerHTML += ` · ${op.created_at}`;
-  }
+  if (c.createdAt) headerHTML += ` · ${c.createdAt}`;
   headerHTML += statusTag;
   header.innerHTML = headerHTML;
   box.appendChild(header);
 
   const T = (k, f) => resolveT(t, k, f);
 
-  // Source Account
   if (showSource) {
-    const opSource = op.source_account || op.sourceAccount || contextSource;
+    const opSource = c.source || contextSource;
     if (opSource) {
       const srcP = document.createElement('p');
       srcP.className = 'is-size-7 mt-1';
-      const srcLink = accountLink(opSource);
-      // If we have a contextSource and it matches opSource, we might want to hide it or show "same"?
-      // But user requested "unified", so let's stick to showing it clearly.
-      // Although transaction view showed "Operation source: ..."
-      // And account view showed "Source: ..."
-
-      // Let's standardize on "Source: <link>"
       const label = T('source-label', 'Source:');
       srcP.innerHTML = `${label} ${renderAccount(opSource, { short: false })}`;
       box.appendChild(srcP);
     }
   }
 
-  // Transaction Link
-  if (showTransactionLink && op.transaction_hash) {
+  if (showTransactionLink && c.txHash) {
     const txP = document.createElement('p');
     txP.className = 'is-size-7';
-    txP.innerHTML = `Transaction: <a class="is-mono" href="/transaction/${op.transaction_hash}">${shorten(op.transaction_hash)}</a>`;
+    txP.innerHTML = `Transaction: <a class="is-mono" href="/transaction/${c.txHash}">${shorten(c.txHash)}</a>`;
     box.appendChild(txP);
   }
 
-  // Details
-  const details = renderOperationDetails(op, t);
+  const details = renderOperationDetails(c, t);
   details.classList.add('mt-2');
   box.appendChild(details);
 
-  // Load Effects Button
-  // Only if allowLoadEffects is true AND we have an ID to fetch with
-  const opId = op.id; // Horizon ID
+  const opId = c.opId;
   if (allowLoadEffects && opId) {
     const effectsContainer = document.createElement('div');
     effectsContainer.className = 'mt-2';

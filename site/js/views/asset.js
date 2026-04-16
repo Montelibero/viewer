@@ -285,6 +285,16 @@ export async function init(params, i18n) {
             nextUrl = `${horizonBase}/liquidity_pools?reserves=${assetId}&limit=200&order=asc&cursor=${encodeURIComponent(cursor)}`;
         }
 
+        // Sort by descending amount of the current asset so that pools with
+        // real liquidity appear at the top and scam pools have to actually
+        // invest to rise.
+        const matchId = code === 'XLM' ? 'native' : assetId;
+        pools.sort((a, b) => {
+            const aRes = (a.reserves || []).find(r => r.asset === matchId);
+            const bRes = (b.reserves || []).find(r => r.asset === matchId);
+            return parseFloat(bRes?.amount || 0) - parseFloat(aRes?.amount || 0);
+        });
+
         return pools;
     }
 

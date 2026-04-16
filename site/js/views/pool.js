@@ -109,6 +109,8 @@ export async function init(params, i18n) {
             const b = reserves[1];
             const amA = parseFloat(a.amount);
             const amB = parseFloat(b.amount);
+            const toUrlAsset = (asset) => asset === 'native' ? 'XLM' : asset.replace(':', '-');
+
             if (amA > 0 && amB > 0) {
                 const codeA = codeOf(a.asset);
                 const codeB = codeOf(b.asset);
@@ -123,6 +125,14 @@ export async function init(params, i18n) {
                 `;
                 listEl.appendChild(priceBox);
             }
+
+            const obLi = document.createElement('li');
+            obLi.className = 'mt-2';
+            obLi.style.listStyle = 'none';
+            const base = toUrlAsset(a.asset);
+            const counter = toUrlAsset(b.asset);
+            obLi.innerHTML = `${t('see-also')}: <a href="/asset/${encodeURIComponent(base)}/orderbook?counter=${encodeURIComponent(counter)}">${t('link-orderbook')}</a>`;
+            listEl.appendChild(obLi);
         }
     }
 

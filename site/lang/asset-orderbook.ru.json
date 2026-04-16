@@ -18,6 +18,8 @@
   "swap-quotes": "Свап стакан",
   "avg-swap-price": "Средняя цена свапа",
   "avg-book-price": "Средняя цена по стакану",
+  "pool-title": "Ликвидити-пул для пары",
+  "pool-label": "Пул",
   "swap-from-base": "Из",
   "swap-from-counter": "Из",
   "swap-send": "Отправить",

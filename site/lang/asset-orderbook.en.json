@@ -18,6 +18,8 @@
   "swap-quotes": "Swap quotes",
   "avg-swap-price": "Average swap price",
   "avg-book-price": "Average bid/ask price",
+  "pool-title": "Liquidity pool for this pair",
+  "pool-label": "Pool",
   "swap-from-base": "From",
   "swap-from-counter": "From",
   "swap-send": "Send",

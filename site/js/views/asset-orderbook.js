@@ -287,6 +287,71 @@ export async function init(params, i18n) {
         renderOrderbookTables(bids, asks);
         renderCharts(bids, asks);
         renderSwapQuotes(bids, asks);
+        renderPoolForPair();
+    }
+
+    async function renderPoolForPair() {
+        const box = document.getElementById('pool-box');
+        const content = document.getElementById('pool-content');
+        if (!box || !content || !currentCounter) return;
+        box.classList.add('is-hidden');
+
+        const baseAsset = getAssetDetails(baseCode, baseIssuer);
+        const counterAsset = getAssetDetails(currentCounter.code, currentCounter.issuer);
+        const toReserveId = (a) => a.type === 'native' ? 'native' : `${a.code}:${a.issuer}`;
+        const baseId = toReserveId(baseAsset);
+        const counterId = toReserveId(counterAsset);
+
+        try {
+            const url = `${horizonBase}/liquidity_pools?reserves=${encodeURIComponent(`${baseId},${counterId}`)}&limit=5`;
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const data = await res.json();
+            const pools = data?._embedded?.records || [];
+            if (!pools.length) return;
+
+            // Pick the pool with the largest reserve of the base asset.
+            pools.sort((a, b) => {
+                const aRes = (a.reserves || []).find(r => r.asset === baseId);
+                const bRes = (b.reserves || []).find(r => r.asset === baseId);
+                return parseFloat(bRes?.amount || 0) - parseFloat(aRes?.amount || 0);
+            });
+            const pool = pools[0];
+            const reserves = pool.reserves || [];
+            const baseRes = reserves.find(r => r.asset === baseId);
+            const counterRes = reserves.find(r => r.asset === counterId);
+            if (!baseRes || !counterRes) return;
+
+            const baseAmt = parseFloat(baseRes.amount);
+            const counterAmt = parseFloat(counterRes.amount);
+            const hasLiquidity = baseAmt > 0 && counterAmt > 0;
+
+            const link = `<a class="is-mono" href="/pool/${pool.id}">${shorten(pool.id)}</a>`;
+            const reservesHtml = `
+                <div class="is-size-7">
+                    ${formatNumber(baseAmt, { maximumFractionDigits: 7 })} ${baseAsset.code}
+                    &nbsp;·&nbsp;
+                    ${formatNumber(counterAmt, { maximumFractionDigits: 7 })} ${counterAsset.code}
+                </div>
+            `;
+            const priceHtml = hasLiquidity ? `
+                <div class="is-mono is-size-7 has-text-success mt-2">
+                    1 ${baseAsset.code} = ${formatNumber(counterAmt / baseAmt, { maximumFractionDigits: 7 })} ${counterAsset.code}
+                </div>
+                <div class="is-mono is-size-7 has-text-danger">
+                    1 ${counterAsset.code} = ${formatNumber(baseAmt / counterAmt, { maximumFractionDigits: 7 })} ${baseAsset.code}
+                </div>
+            ` : '';
+
+            content.innerHTML = `
+                <div><strong>${t('pool-label') || 'Pool'}:</strong> ${link}</div>
+                ${reservesHtml}
+                ${priceHtml}
+            `;
+            box.classList.remove('is-hidden');
+        } catch (e) {
+            console.warn('pool lookup failed', e);
+        }
     }
 
     function getPriceStep() {

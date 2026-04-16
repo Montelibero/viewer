@@ -16,6 +16,8 @@
   "amount": "Cantidad",
   "cumulative": "Suma",
   "swap-quotes": "Cotizaciones de swap",
+  "avg-swap-price": "Precio medio de swap",
+  "avg-book-price": "Precio medio del libro",
   "swap-from-base": "Desde",
   "swap-from-counter": "Desde",
   "swap-send": "Enviar",

@@ -16,6 +16,8 @@
   "amount": "Объем",
   "cumulative": "Сумма",
   "swap-quotes": "Свап стакан",
+  "avg-swap-price": "Средняя цена свапа",
+  "avg-book-price": "Средняя цена по стакану",
   "swap-from-base": "Из",
   "swap-from-counter": "Из",
   "swap-send": "Отправить",

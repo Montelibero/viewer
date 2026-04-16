@@ -761,6 +761,36 @@ export async function init(params, i18n) {
         return parseFloat(record.destination_amount);
     }
 
+    function renderAveragePrices(bids, asks, sellQuotes, buyQuotes) {
+        const avgSwapEl = document.getElementById('avg-swap-price');
+        const avgBookEl = document.getElementById('avg-book-price');
+        if (!avgSwapEl || !avgBookEl) return;
+
+        // Swap average: best (first) price from each swap direction.
+        const firstSell = sellQuotes.find(q => q.received !== null && q.amount > 0);
+        const firstBuy = buyQuotes.find(q => q.received !== null && q.received > 0);
+        const sellPrice = firstSell ? firstSell.received / firstSell.amount : null;
+        const buyPrice = firstBuy ? firstBuy.amount / firstBuy.received : null;
+        if (sellPrice && buyPrice) {
+            avgSwapEl.textContent = formatNumber((sellPrice + buyPrice) / 2, { maximumFractionDigits: 7 });
+        } else if (sellPrice || buyPrice) {
+            avgSwapEl.textContent = formatNumber(sellPrice || buyPrice, { maximumFractionDigits: 7 });
+        } else {
+            avgSwapEl.textContent = '—';
+        }
+
+        // Book average: midpoint of best bid and best ask.
+        const bestBid = bids.length ? parseFloat(bids[0].price) : null;
+        const bestAsk = asks.length ? parseFloat(asks[0].price) : null;
+        if (bestBid && bestAsk) {
+            avgBookEl.textContent = formatNumber((bestBid + bestAsk) / 2, { maximumFractionDigits: 7 });
+        } else if (bestBid || bestAsk) {
+            avgBookEl.textContent = formatNumber(bestBid || bestAsk, { maximumFractionDigits: 7 });
+        } else {
+            avgBookEl.textContent = '—';
+        }
+    }
+
     async function renderSwapQuotes(bids, asks) {
         if (!swapSellBody || !swapBuyBody || !swapBaseLabel || !swapCounterLabel) return;
         swapSellBody.innerHTML = '';
@@ -853,5 +883,7 @@ export async function init(params, i18n) {
         if (!hasData && swapNote) {
             swapNote.classList.remove('is-hidden');
         }
+
+        renderAveragePrices(bids, asks, sellQuotes, buyQuotes);
     }
 }

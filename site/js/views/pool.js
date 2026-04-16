@@ -69,6 +69,8 @@ export async function init(params, i18n) {
             return;
         }
 
+        const codeOf = (asset) => asset === 'native' ? 'XLM' : asset.split(':')[0];
+
         reserves.forEach(r => {
             const li = document.createElement('li');
             li.className = 'mb-2';
@@ -101,6 +103,27 @@ export async function init(params, i18n) {
 
             listEl.appendChild(li);
         });
+
+        if (reserves.length === 2) {
+            const a = reserves[0];
+            const b = reserves[1];
+            const amA = parseFloat(a.amount);
+            const amB = parseFloat(b.amount);
+            if (amA > 0 && amB > 0) {
+                const codeA = codeOf(a.asset);
+                const codeB = codeOf(b.asset);
+                const fmt = (v) => v.toLocaleString(undefined, { maximumFractionDigits: 7 });
+                const priceBox = document.createElement('li');
+                priceBox.className = 'mt-3';
+                priceBox.style.listStyle = 'none';
+                priceBox.innerHTML = `
+                    <div class="has-text-weight-semibold mb-1">${t('fair-price-label')}</div>
+                    <div class="is-mono is-size-7 has-text-success">1 ${codeA} = ${fmt(amB / amA)} ${codeB}</div>
+                    <div class="is-mono is-size-7 has-text-danger">1 ${codeB} = ${fmt(amA / amB)} ${codeA}</div>
+                `;
+                listEl.appendChild(priceBox);
+            }
+        }
     }
 
     function renderPool(pool) {

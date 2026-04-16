@@ -13,6 +13,7 @@
   "reserves-title": "Резервы",
   "reserves-empty": "Нет резервов.",
   "amount-label": "amount",
+  "fair-price-label": "Справедливая цена по пулу:",
   "links-title": "Horizon",
   "link-operations": "Операции",
   "link-charts": "Графики",

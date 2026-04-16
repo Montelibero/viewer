@@ -13,6 +13,7 @@
   "reserves-title": "Reserves",
   "reserves-empty": "No reserves.",
   "amount-label": "amount",
+  "fair-price-label": "Fair price from pool:",
   "links-title": "Horizon",
   "link-operations": "Operations",
   "link-charts": "Charts",

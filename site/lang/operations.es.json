@@ -35,6 +35,7 @@
   "op-data-val-raw": "Valor (raw)",
   "op-data-val-str": "Valor (string)",
   "op-data-val-hex": "Valor (hex)",
+  "op-data-deleted": "Eliminado",
   "op-bump-seq": "Nuevo sequence",
   "op-claimants": "Reclamantes",
   "op-balance-id": "Balance ID",

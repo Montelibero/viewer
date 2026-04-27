@@ -1,4 +1,4 @@
-import { shorten, getHorizonURL, decodeTextValue, encodeAddress, encodeContract, bytesToHex } from './common.js';
+import { shorten, getHorizonURL, decodeTextValue, encodeAddress, encodeContract, bytesToHex, hexToBytes } from './common.js';
 
 // ---- Minimal synchronous ScVal decoder (covers types used in Soroban
 // invoke_host_function parameters: bool, void, u32/i32, u64/i64, u128/i128,
@@ -206,6 +206,17 @@ export function assetLabelFull(code, issuer) {
 
 function parseDataValue(raw) {
     if (raw === undefined || raw === null) return { raw: '—' };
+
+    if (/^[0-9a-fA-F]+$/.test(String(raw)) && String(raw).length % 2 === 0) {
+      const bytes = hexToBytes(String(raw));
+      const hex = bytesToHex(bytes);
+      try {
+        const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        return { decodedText: text, hex, raw };
+      } catch (_) {
+        return { decodedText: null, hex, raw };
+      }
+    }
 
     // Use the common decoder
     const { text, hex } = decodeTextValue(raw);
@@ -424,6 +435,11 @@ function pickField(xdrInner, xdrKeys, op, horizonKeys) {
   return null;
 }
 
+function hasField(obj, keys) {
+  if (!obj) return false;
+  return keys.some(k => Object.prototype.hasOwnProperty.call(obj, k));
+}
+
 function pickAmount(xdrInner, xdrKeys, op, horizonKey) {
   if (xdrInner) {
     for (const k of xdrKeys) {
@@ -548,8 +564,12 @@ export function normalizeOperation(rawOp) {
     case 'inflation':
       break;
     case 'manage_data': {
-      c.name = pickField(xdrInner, ['dataName', 'data_name'], op, ['data_name']);
-      c.valueRaw = pickField(xdrInner, ['dataValue', 'data_value'], op, ['data_value']);
+      const xdrValueKeys = ['dataValue', 'data_value'];
+      const horizonValueKeys = ['data_value', 'value'];
+      c.name = pickField(xdrInner, ['dataName', 'data_name'], op, ['data_name', 'name']);
+      c.valueRaw = pickField(xdrInner, xdrValueKeys, op, horizonValueKeys);
+      c.valueDeleted = (hasField(xdrInner, xdrValueKeys) && c.valueRaw === null)
+        || (hasField(op, horizonValueKeys) && c.valueRaw === '');
       const decoded = parseDataValue(c.valueRaw);
       c.valueText = decoded.decodedText || null;
       c.valueHex = decoded.hex || null;
@@ -814,9 +834,13 @@ export function renderOperationDetails(rawOp, t) {
       break;
     case 'manage_data':
       addLine(T('op-data-name', 'Name'), c.name || '—');
-      addLine(T('op-data-val-raw', 'Value (raw)'), c.valueRaw || '—');
-      if (c.valueText) addLine(T('op-data-val-str', 'Value (string)'), c.valueText);
-      if (c.valueHex) addLine(T('op-data-val-hex', 'Value (hex)'), c.valueHex);
+      if (c.valueDeleted) {
+        addLine(T('op-data-val-raw', 'Value (raw)'), `<span class="tag is-warning is-light">${T('op-data-deleted', 'Deleted')}</span>`);
+      } else {
+        addLine(T('op-data-val-raw', 'Value (raw)'), c.valueRaw ? escapeHtml(c.valueRaw) : '—');
+        if (c.valueText) addLine(T('op-data-val-str', 'Value (string)'), escapeHtml(c.valueText));
+        if (c.valueHex) addLine(T('op-data-val-hex', 'Value (hex)'), c.valueHex);
+      }
       break;
     case 'bump_sequence':
       addLine(T('op-bump-seq', 'Bump to'), c.bumpTo || '—');
@@ -1144,4 +1168,3 @@ export function renderEffects(effects, t) {
 
   return container;
 }
-

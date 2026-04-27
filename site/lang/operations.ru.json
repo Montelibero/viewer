@@ -35,6 +35,7 @@
   "op-data-val-raw": "Значение (raw)",
   "op-data-val-str": "Значение (строка)",
   "op-data-val-hex": "Значение (hex)",
+  "op-data-deleted": "Удалено",
   "op-bump-seq": "Новый sequence",
   "op-claimants": "Клейманты",
   "op-balance-id": "Balance ID",

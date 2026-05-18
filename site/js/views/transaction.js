@@ -194,9 +194,14 @@ export async function init(params, i18n) {
     }
 
     function setExternalLinks(hash) {
+        const bsnBtn = document.getElementById('btn-bsn');
         const scopulyBtn = document.getElementById('btn-scopuly');
         const expertBtn = document.getElementById('btn-expert');
         if (hash) {
+            if (bsnBtn) {
+                bsnBtn.href = `https://bsn.expert/transactions/${hash}/`;
+                bsnBtn.classList.remove('is-static');
+            }
             if (scopulyBtn) {
                 scopulyBtn.href = `https://scopuly.com/transaction/${hash}`;
                 scopulyBtn.classList.remove('is-static');
@@ -206,6 +211,10 @@ export async function init(params, i18n) {
                 expertBtn.classList.remove('is-static');
             }
         } else {
+            if (bsnBtn) {
+                bsnBtn.href = '#';
+                bsnBtn.classList.add('is-static');
+            }
             if (scopulyBtn) {
                 scopulyBtn.href = '#';
                 scopulyBtn.classList.add('is-static');

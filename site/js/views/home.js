@@ -1,5 +1,5 @@
 
-import { shorten, getHorizonURL, setPageTitle } from '../common.js';
+import { shorten, getHorizonURL, setPageTitle, muxedAccountToAccountId } from '../common.js';
 
 export async function init(params, i18n) {
     setPageTitle();
@@ -156,10 +156,11 @@ export async function init(params, i18n) {
         const upperVal = val.toUpperCase();
 
         // Regex checks
-        if (/^G[A-Z2-7]{55}$/.test(upperVal)) {
-            saveHistory(upperVal);
+        const accountId = muxedAccountToAccountId(upperVal) || upperVal;
+        if (/^G[A-Z2-7]{55}$/.test(accountId)) {
+            saveHistory(accountId);
             // Router handles pushState, we just navigate
-            history.pushState(null, '', '/account/' + upperVal);
+            history.pushState(null, '', '/account/' + accountId);
             import('../router.js').then(m => m.router());
             return;
         }

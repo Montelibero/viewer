@@ -207,6 +207,21 @@ export function encodeAddress(hexOrBytes) {
     return encodeStrKey(hexOrBytes, 6 << 3); // G...
 }
 
+export function muxedAccountToAccountId(address) {
+    if (!address || !/^M[A-Z2-7]{68}$/.test(address)) return null;
+
+    try {
+        const bytes = decodeBase32(address);
+        // Version byte (1) + ed25519 key (32) + muxed ID (8) + checksum (2)
+        if (bytes.length !== 43 || bytes[0] !== (12 << 3)) return null;
+        const checksum = crc16(bytes.slice(0, 41));
+        if (bytes[41] !== (checksum & 0xFF) || bytes[42] !== (checksum >>> 8)) return null;
+        return encodeAddress(bytes.slice(1, 33));
+    } catch (e) {
+        return null;
+    }
+}
+
 export function encodeContract(hexOrBytes) {
     return encodeStrKey(hexOrBytes, 2 << 3); // C...
 }

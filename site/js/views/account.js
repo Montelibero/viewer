@@ -1,4 +1,4 @@
-import { shorten, isLocalLike, getHorizonURL, decodeTextValue, setPageTitle } from '../common.js';
+import { shorten, isLocalLike, getHorizonURL, decodeTextValue, setPageTitle, muxedAccountToAccountId } from '../common.js';
 
 const horizonBase = getHorizonURL();
 const poolMetaCache = new Map();
@@ -94,8 +94,13 @@ function createBalanceCard({ title, subtitle = '', amount = '—', meta = null, 
 export async function init(params, i18n) {
     const { t } = i18n;
     const [accountId] = params;
+    const canonicalAccountId = muxedAccountToAccountId(accountId) || accountId;
 
-    setPageTitle('Account ' + shorten(accountId));
+    if (canonicalAccountId !== accountId) {
+        history.replaceState(null, '', `/account/${encodeURIComponent(canonicalAccountId)}`);
+    }
+
+    setPageTitle('Account ' + shorten(canonicalAccountId));
 
     // Global click handler to close popovers
     function closePopovers() {
@@ -109,7 +114,7 @@ export async function init(params, i18n) {
     const errorText = document.getElementById('error-text');
     const loader = document.getElementById('loader');
     
-    if (accountIdDisplay) accountIdDisplay.textContent = accountId;
+    if (accountIdDisplay) accountIdDisplay.textContent = canonicalAccountId;
 
     let issuedRecords = null;
 
@@ -752,14 +757,14 @@ export async function init(params, i18n) {
     }
 
     async function loadBsnTags() {
-        if (!accountId || !bsnTagsBox) return;
+        if (!canonicalAccountId || !bsnTagsBox) return;
 
         bsnTagsBox.classList.remove('is-hidden');
         bsnTagsLoader.classList.remove('is-hidden');
         bsnTagsList.innerHTML = '';
 
         try {
-            const res = await fetch(`https://bsn.expert/accounts/${accountId}?format=json`);
+            const res = await fetch(`https://bsn.expert/accounts/${canonicalAccountId}?format=json`);
             if (!res.ok) throw new Error(`Status ${res.status}`);
             const data = await res.json();
             const income = data.links ? data.links.income : null;
@@ -801,5 +806,5 @@ export async function init(params, i18n) {
     }
 
     // Start
-    loadAccount(accountId);
+    loadAccount(canonicalAccountId);
 }

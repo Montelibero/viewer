@@ -122,6 +122,138 @@ function extractTxObject(decoded) {
   return decoded;
 }
 
+function humanizeCode(code) {
+  return String(code || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[-\s]+/g, '_')
+    .toUpperCase();
+}
+
+function resultKey(code) {
+  return `result-${String(code).toLowerCase().replace(/_/g, '-')}`;
+}
+
+function displayResultCode(code) {
+  return String(code || '').toLowerCase();
+}
+
+function resultDescription(code, t) {
+  const key = resultKey(code);
+  const translated = t(key);
+  return translated === key ? '' : translated;
+}
+
+function formatResultCode(code, t) {
+  const normalized = humanizeCode(code);
+  const description = resultDescription(normalized, t);
+  const displayCode = displayResultCode(normalized);
+  return description ? `${displayCode} — ${description}` : displayCode;
+}
+
+function opTypeKey(opType) {
+  return String(opType || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase();
+}
+
+function candidateOpKeys(opType) {
+  const key = opTypeKey(opType);
+  const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+  return [key, camel, `${camel}Result`, `${key}_result`];
+}
+
+function meaningfulKeys(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return [];
+  return Object.keys(obj).filter(k => !['ext', '_attributes'].includes(k));
+}
+
+function extractInnerResultCode(inner, opType) {
+  if (inner === null || inner === undefined) return null;
+  if (typeof inner === 'string' || typeof inner === 'number') {
+    const code = humanizeCode(inner);
+    return code === 'SUCCESS' ? 'SUCCESS' : `${humanizeCode(opType)}_${code}`;
+  }
+
+  if (typeof inner !== 'object') return null;
+
+  const keys = meaningfulKeys(inner);
+  const failureKey = keys.find(k => !['success', 'offer', 'offers_claimed'].includes(k));
+  const key = failureKey || keys[0];
+  if (!key) return null;
+
+  const code = humanizeCode(key);
+  return code === 'SUCCESS' ? 'SUCCESS' : `${humanizeCode(opType)}_${code}`;
+}
+
+function extractOperationResultCode(opResult, opType) {
+  if (!opResult) return null;
+  if (typeof opResult === 'string' || typeof opResult === 'number') return humanizeCode(opResult);
+
+  const outer = opResult.op_inner || opResult.tr || opResult;
+  if (!outer || typeof outer !== 'object') return null;
+
+  if (outer.code && outer.code !== 'op_inner') return humanizeCode(outer.code);
+  if (outer.op_inner || outer.tr) return extractOperationResultCode(outer.op_inner || outer.tr, opType);
+
+  for (const key of candidateOpKeys(opType)) {
+    if (Object.prototype.hasOwnProperty.call(outer, key)) {
+      return extractInnerResultCode(outer[key], opType);
+    }
+  }
+
+  const keys = meaningfulKeys(outer);
+  const failureKey = keys.find(k => k.startsWith('op_') && k !== 'op_inner');
+  if (failureKey) return humanizeCode(failureKey);
+
+  const opKey = keys.find(k => candidateOpKeys(opType).includes(k)) || keys[0];
+  if (!opKey) return null;
+  return extractInnerResultCode(outer[opKey], opKey);
+}
+
+function extractResultDetails(decodedResult, tx, txObj, horizonOps) {
+  const result = decodedResult?.result;
+  const detail = {
+    txCode: null,
+    opResults: []
+  };
+
+  if (!result || typeof result !== 'object') return detail;
+
+  if (Array.isArray(result.tx_failed)) {
+    detail.txCode = 'TX_FAILED';
+    detail.opResults = result.tx_failed;
+  } else if (Array.isArray(result.tx_success)) {
+    detail.txCode = 'TX_SUCCESS';
+    detail.opResults = result.tx_success;
+  } else if (Array.isArray(result.results)) {
+    detail.txCode = tx?.successful === false ? 'TX_FAILED' : null;
+    detail.opResults = result.results;
+  } else {
+    const keys = meaningfulKeys(result);
+    const txKey = keys.find(k => k.startsWith('tx_')) || keys[0];
+    if (txKey) {
+      detail.txCode = humanizeCode(txKey);
+      if (Array.isArray(result[txKey])) detail.opResults = result[txKey];
+    }
+  }
+
+  detail.opFailures = detail.opResults
+    .map((opResult, index) => {
+      const op = txObj?.operations?.[index] || {};
+      const opType = horizonOps?.[index]?.type || op.type || op.type_i || `operation_${index + 1}`;
+      const code = extractOperationResultCode(opResult, opType);
+      if (!code || code === 'SUCCESS') return null;
+      return {
+        index,
+        opType: opTypeKey(opType),
+        code
+      };
+    })
+    .filter(Boolean);
+
+  return detail;
+}
+
 export async function init(params, i18n) {
     const { t } = i18n;
     const [txHash] = params;
@@ -149,6 +281,9 @@ export async function init(params, i18n) {
     const jsonBodyEl = document.getElementById('json-body');
     const xdrRawEl = document.getElementById('xdr-raw');
     const headerBox = document.getElementById('tx-header-box');
+    const resultSummaryBox = document.getElementById('result-summary-box');
+    const resultSummaryText = document.getElementById('result-summary-text');
+    const resultSummaryList = document.getElementById('result-summary-list');
 
     let horizonOps = null;
 
@@ -191,6 +326,35 @@ export async function init(params, i18n) {
 
     function clearError() {
         if (errorBox) errorBox.classList.add('is-hidden');
+    }
+
+    function renderResultSummary(tx, decodedResult, txObj) {
+        if (!resultSummaryBox || !resultSummaryText || !resultSummaryList) return;
+
+        resultSummaryList.innerHTML = '';
+        if (tx.successful) {
+            resultSummaryBox.classList.add('is-hidden');
+            return;
+        }
+
+        const details = extractResultDetails(decodedResult, tx, txObj, horizonOps);
+        const txCode = details.txCode || 'TX_FAILED';
+        resultSummaryText.textContent = `${t('result-summary-prefix')}: ${formatResultCode(txCode, t)}`;
+
+        if (details.opFailures?.length) {
+            details.opFailures.forEach(({ index, opType, code }) => {
+                const li = document.createElement('li');
+                li.textContent = `${t('result-operation-label')} ${index + 1}: ${formatResultCode(code, t)}`;
+                li.title = opType;
+                resultSummaryList.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = t('result-no-op-details');
+            resultSummaryList.appendChild(li);
+        }
+
+        resultSummaryBox.classList.remove('is-hidden');
     }
 
     function setExternalLinks(hash) {
@@ -456,12 +620,14 @@ export async function init(params, i18n) {
             if(baseFeeEl) baseFeeEl.textContent = `${txObj.fee ?? '—'} ${t('base-fee-suffix')}`;
 
             // Decode Result XDR if available
+            let decodedResult = null;
             if (tx.result_xdr) {
                 try {
                     let decodedRes = decodeFn('TransactionResult', tx.result_xdr.trim());
                     if (typeof decodedRes === 'string') {
                         decodedRes = JSON.parse(decodedRes);
                     }
+                    decodedResult = decodedRes;
 
                     // Extract operation results
                     // Structure depends on stellar-xdr-json (tx_success/tx_failed)
@@ -483,6 +649,8 @@ export async function init(params, i18n) {
                     console.warn('Failed to decode result XDR', err);
                 }
             }
+
+            renderResultSummary(tx, decodedResult, txObj);
 
             // Inject successful status into txObj for rendering (createXdrOperationBox uses it)
             txObj.successful = successful;

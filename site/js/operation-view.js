@@ -698,7 +698,7 @@ function normalizeInvokeContract(op) {
   return null;
 }
 
-function renderInvokeHostFunction(container, c, T) {
+function renderInvokeHostFunction(container, c, T, contextSource = null) {
   const call = c.invokeContract;
 
   if (call) {
@@ -716,20 +716,94 @@ function renderInvokeHostFunction(container, c, T) {
     container.appendChild(p);
   }
 
-  (c.balanceChanges || []).forEach(ch => {
-    const p = document.createElement('p');
-    const amount = formatAmount(ch.amount);
-    const asset = renderAsset({
-      asset_code: ch.asset_code,
-      asset_issuer: ch.asset_issuer,
-      native: ch.asset_type === 'native'
+  const balanceChanges = c.balanceChanges || [];
+  const subject = c.source || contextSource;
+  const balanceSummary = summarizeContractBalanceChanges(balanceChanges, subject);
+  const swapSummary = summarizeAquariusSwap(call, balanceChanges, subject);
+
+  const renderSummaryItems = items => items
+    .map(item => `${formatAmount(item.amount)} ${renderAsset(item.asset)}`)
+    .join(', ');
+
+  if (balanceSummary.spent.length || balanceSummary.received.length) {
+    const summary = document.createElement('div');
+    summary.className = 'notification is-light mt-3 mb-2 py-3 px-4';
+
+    const title = document.createElement('p');
+    title.className = 'has-text-weight-semibold mb-1';
+    title.textContent = T('op-balance-summary', 'Balance changes');
+    summary.appendChild(title);
+
+    if (balanceSummary.spent.length) {
+      const spent = document.createElement('p');
+      spent.innerHTML = `<strong>${T('op-spent', 'Spent')}:</strong> ${renderSummaryItems(balanceSummary.spent)}`;
+      summary.appendChild(spent);
+    }
+    if (balanceSummary.received.length) {
+      const received = document.createElement('p');
+      received.innerHTML = `<strong>${T('op-received', 'Received')}:</strong> ${renderSummaryItems(balanceSummary.received)}`;
+      summary.appendChild(received);
+    }
+
+    container.appendChild(summary);
+  }
+
+  if (swapSummary) {
+    const swap = document.createElement('div');
+    swap.className = 'mt-3';
+
+    const title = document.createElement('p');
+    title.className = 'has-text-weight-semibold';
+    title.textContent = T('op-aquarius-route', 'Aquarius swap route');
+    swap.appendChild(title);
+
+    const route = document.createElement('p');
+    route.className = 'is-flex is-flex-wrap-wrap is-align-items-center';
+    route.innerHTML = swapSummary.route
+      .map(item => `<span class="tag is-light my-1">${formatAmount(item.amount)} ${renderAsset(item.asset)}</span>`)
+      .join('<span class="mx-1">→</span>');
+    swap.appendChild(route);
+
+    if (swapSummary.minOut) {
+      const minOut = document.createElement('p');
+      minOut.innerHTML = `<strong>${T('op-min-received', 'Minimum received')}:</strong> ${formatAmount(swapSummary.minOut)} ${renderAsset(swapSummary.route.at(-1).asset)}`;
+      swap.appendChild(minOut);
+    }
+    if (swapSummary.maxIn) {
+      const maxIn = document.createElement('p');
+      maxIn.innerHTML = `<strong>${T('op-max-spent', 'Maximum spent')}:</strong> ${formatAmount(swapSummary.maxIn)} ${renderAsset(swapSummary.route[0].asset)}`;
+      swap.appendChild(maxIn);
+    }
+    if (swapSummary.providerFee) {
+      const providerFee = document.createElement('p');
+      providerFee.innerHTML = `<strong>${T('op-provider-fee', 'Provider fee')}:</strong> ${formatAmount(swapSummary.providerFee)} ${renderAsset(swapSummary.route.at(-1).asset)}`;
+      swap.appendChild(providerFee);
+    }
+
+    container.appendChild(swap);
+  }
+
+  if (balanceChanges.length) {
+    const transfers = document.createElement('details');
+    transfers.className = 'mt-2';
+    const transfersSummary = document.createElement('summary');
+    transfersSummary.className = 'is-size-7 has-text-grey is-clickable';
+    transfersSummary.textContent = T('op-internal-transfers', 'Internal transfers');
+    transfers.appendChild(transfersSummary);
+
+    balanceChanges.forEach(ch => {
+      const p = document.createElement('p');
+      const amount = formatAmount(ch.amount);
+      const asset = renderAsset(balanceChangeAsset(ch));
+      const from = ch.from ? renderAccountOrContract(ch.from) : '—';
+      const to = ch.to ? renderAccountOrContract(ch.to) : '—';
+      const typeLabel = ch.type || 'transfer';
+      p.innerHTML = `<strong>${escapeHtml(typeLabel)}:</strong> ${amount} ${asset} · ${from} → ${to}`;
+      transfers.appendChild(p);
     });
-    const from = ch.from ? renderAccountOrContract(ch.from) : '—';
-    const to = ch.to ? renderAccountOrContract(ch.to) : '—';
-    const typeLabel = ch.type || 'transfer';
-    p.innerHTML = `<strong>${escapeHtml(typeLabel)}:</strong> ${amount} ${asset} · ${from} → ${to}`;
-    container.appendChild(p);
-  });
+
+    container.appendChild(transfers);
+  }
 
   const details = document.createElement('details');
   details.className = 'mt-2';
@@ -752,7 +826,164 @@ function renderAccountOrContract(addr) {
   return renderAccount(addr);
 }
 
-export function renderOperationDetails(rawOp, t) {
+function balanceChangeAsset(change) {
+  return {
+    asset_code: change.asset_type === 'native' ? 'XLM' : change.asset_code,
+    asset_issuer: change.asset_issuer || null,
+    native: change.asset_type === 'native'
+  };
+}
+
+function balanceChangeAssetKey(change) {
+  if (change.asset_type === 'native') return 'native';
+  return `${change.asset_code || ''}:${change.asset_issuer || ''}`;
+}
+
+function parseDecimalAmount(value) {
+  const match = String(value ?? '0').match(/^(-?)(\d+)(?:\.(\d+))?$/);
+  if (!match) return null;
+  const fraction = match[3] || '';
+  const units = BigInt(`${match[1]}${match[2]}${fraction}`);
+  return { units, scale: fraction.length };
+}
+
+function formatDecimalAmount({ units, scale }) {
+  const negative = units < 0n;
+  const digits = (negative ? -units : units).toString().padStart(scale + 1, '0');
+  if (!scale) return `${negative ? '-' : ''}${digits}`;
+  const whole = digits.slice(0, -scale);
+  const fraction = digits.slice(-scale);
+  return `${negative ? '-' : ''}${whole}.${fraction}`;
+}
+
+function addDecimalAmounts(left, right) {
+  const a = parseDecimalAmount(left);
+  const b = parseDecimalAmount(right);
+  if (!a || !b) return String(right ?? left ?? '0');
+  const scale = Math.max(a.scale, b.scale);
+  const units = a.units * (10n ** BigInt(scale - a.scale))
+    + b.units * (10n ** BigInt(scale - b.scale));
+  return formatDecimalAmount({ units, scale });
+}
+
+function subtractDecimalAmounts(left, right) {
+  const parsed = parseDecimalAmount(right);
+  if (!parsed) return null;
+  return addDecimalAmounts(left, formatDecimalAmount({ units: -parsed.units, scale: parsed.scale }));
+}
+
+function formatBaseUnits(value, decimals = 7) {
+  const units = BigInt(String(value || '0'));
+  return formatDecimalAmount({ units, scale: decimals });
+}
+
+export function summarizeContractBalanceChanges(changes, subject) {
+  const result = { spent: [], received: [] };
+  if (!subject || !Array.isArray(changes)) return result;
+
+  const byDirection = {
+    spent: new Map(),
+    received: new Map()
+  };
+
+  const add = (direction, change) => {
+    const key = balanceChangeAssetKey(change);
+    const current = byDirection[direction].get(key);
+    byDirection[direction].set(key, {
+      asset: balanceChangeAsset(change),
+      amount: current ? addDecimalAmounts(current.amount, change.amount) : String(change.amount)
+    });
+  };
+
+  changes.forEach(change => {
+    if (change.from === subject && change.to !== subject) add('spent', change);
+    if (change.to === subject && change.from !== subject) add('received', change);
+  });
+
+  result.spent = Array.from(byDirection.spent.values());
+  result.received = Array.from(byDirection.received.values());
+  return result;
+}
+
+export function summarizeAquariusSwap(call, changes, subject) {
+  if (!call || !/^swap_chained(?:_strict_receive)?$/.test(call.fnName || '')) return null;
+  const args = call.args;
+  const hasValidSignature = Array.isArray(args)
+    && (args.length === 5 || args.length === 6)
+    && args[0]?.type === 'address'
+    && args[2]?.type === 'address'
+    && args[3]?.type === 'u128'
+    && args[4]?.type === 'u128'
+    && (args.length === 5 || args[5]?.type === 'u32');
+  if (!hasValidSignature) return null;
+
+  const swapChain = call.args?.[1];
+  const isAquariusChain = swapChain?.type === 'vec'
+    && Array.isArray(swapChain.value)
+    && swapChain.value.length > 0
+    && swapChain.value.every(hop => hop?.type === 'vec'
+      && Array.isArray(hop.value)
+      && hop.value.length === 3
+      && hop.value[0]?.type === 'vec'
+      && Array.isArray(hop.value[0].value)
+      && hop.value[0].value.length >= 2
+      && hop.value[0].value.every(token => token?.type === 'address')
+      && hop.value[1]?.type === 'bytes'
+      && hop.value[1].value instanceof Uint8Array
+      && hop.value[1].value.length === 32
+      && hop.value[2]?.type === 'address');
+  if (!isAquariusChain) return null;
+  if (!Array.isArray(changes) || !changes.length) return null;
+
+  const accountSummary = summarizeContractBalanceChanges(changes, subject);
+  const spentByAsset = new Map(accountSummary.spent.map(item => [
+    item.asset.native ? 'native' : `${item.asset.asset_code || ''}:${item.asset.asset_issuer || ''}`,
+    item.amount
+  ]));
+  const receivedByAsset = new Map(accountSummary.received.map(item => [
+    item.asset.native ? 'native' : `${item.asset.asset_code || ''}:${item.asset.asset_issuer || ''}`,
+    item.amount
+  ]));
+
+  const route = [];
+  let previousKey = null;
+  changes.forEach(change => {
+    const key = balanceChangeAssetKey(change);
+    if (key === previousKey) return;
+    route.push({
+      asset: balanceChangeAsset(change),
+      amount: String(change.amount),
+      preFeeAmount: String(change.amount),
+      key
+    });
+    previousKey = key;
+  });
+
+  if (route.length !== swapChain.value.length + 1) return null;
+  const first = route[0];
+  const last = route[route.length - 1];
+  if (spentByAsset.has(first.key)) first.amount = spentByAsset.get(first.key);
+  if (receivedByAsset.has(last.key)) last.amount = receivedByAsset.get(last.key);
+
+  const limitArg = call.args?.[4];
+  const strictReceive = call.fnName === 'swap_chained_strict_receive';
+  const providerFee = strictReceive ? null : subtractDecimalAmounts(last.preFeeAmount, last.amount);
+
+  return {
+    route: route.map(({ key, preFeeAmount, ...item }) => item),
+    minOut: !strictReceive && limitArg && ['u128', 'i128'].includes(limitArg.type)
+      ? formatBaseUnits(limitArg.value)
+      : null,
+    maxIn: strictReceive && limitArg && ['u128', 'i128'].includes(limitArg.type)
+      ? formatBaseUnits(limitArg.value)
+      : null,
+    providerFee: providerFee && !providerFee.startsWith('-') && providerFee !== '0.0000000'
+      ? providerFee
+      : null
+  };
+}
+
+export function renderOperationDetails(rawOp, t, opts = {}) {
   const c = normalizeOperation(rawOp);
   const container = document.createElement('div');
   container.className = 'is-size-7';
@@ -903,7 +1134,7 @@ export function renderOperationDetails(rawOp, t) {
       if (c.receivedB) addLine(T('op-received-b', 'Received B'), c.receivedB);
       break;
     case 'invoke_host_function':
-      renderInvokeHostFunction(container, c, T);
+      renderInvokeHostFunction(container, c, T, opts.contextSource);
       break;
     default: {
       const pre = document.createElement('pre');
@@ -975,7 +1206,7 @@ export function renderOperationComponent(rawOp, t, opts = {}) {
     box.appendChild(memoP);
   }
 
-  const details = renderOperationDetails(c, t);
+  const details = renderOperationDetails(c, t, { contextSource });
   details.classList.add('mt-2');
   box.appendChild(details);
 

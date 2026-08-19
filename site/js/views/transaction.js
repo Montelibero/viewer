@@ -402,20 +402,25 @@ export async function init(params, i18n) {
 
         ops.forEach((op, index) => {
             let opId = null;
+            let displayOp = op;
             if (horizonOps && horizonOps[index]) {
-                opId = horizonOps[index].id;
+                const horizonOp = horizonOps[index];
+                opId = horizonOp.id;
+                if (horizonOp.type === 'invoke_host_function') {
+                    displayOp = { ...op, ...horizonOp };
+                }
             }
 
             // Horizon ops usually have IDs, but XDR decoded ops don't.
             // We pass opId via the op object itself if possible, or reliance on index match.
             // But renderOperationComponent expects op.id for effects loading.
-            if (opId) op.id = opId;
+            if (opId) displayOp.id = opId;
 
             if (tx.operationResults && tx.operationResults[index]) {
-                op.result = tx.operationResults[index];
+                displayOp.result = tx.operationResults[index];
             }
 
-            const box = renderOperationComponent(op, t, {
+            const box = renderOperationComponent(displayOp, t, {
                 index,
                 forceSuccessStatus: tx.successful,
                 contextSource: tx.source_account,

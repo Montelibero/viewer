@@ -50,6 +50,72 @@ function applyFilters(list, filters) {
     );
 }
 
+function accountLink(acc) {
+    if (!acc) return '—';
+    return `<a href="/account/${encodeURIComponent(acc)}" class="is-mono" title="${acc}">${shorten(acc)}</a>`;
+}
+
+function offerAsset(asset) {
+    if (!asset) return null;
+    return {
+        asset_code: asset.asset_code,
+        asset_issuer: asset.asset_issuer,
+        native: asset.asset_type === 'native'
+    };
+}
+
+function offerAssetCode(asset) {
+    if (!asset) return '—';
+    if (asset.asset_type === 'native') return 'XLM';
+    return asset.asset_code || '—';
+}
+
+function renderOfferSummary(offer, t) {
+    const sellerEl = document.getElementById('offer-seller');
+    const remainingEl = document.getElementById('offer-remaining');
+    const priceEl = document.getElementById('offer-price');
+    const updatedEl = document.getElementById('offer-updated');
+    const ledgerEl = document.getElementById('offer-ledger');
+
+    if (!offer) {
+        const unavailable = t('offer-summary-unavailable') || 'Offer details unavailable';
+        [sellerEl, remainingEl, priceEl, updatedEl, ledgerEl].forEach(el => {
+            if (el) el.textContent = unavailable;
+        });
+        return;
+    }
+
+    const sellingAsset = renderAsset(offerAsset(offer.selling));
+    const buyingAsset = renderAsset(offerAsset(offer.buying));
+    const sellingCode = offerAssetCode(offer.selling);
+    const buyingCode = offerAssetCode(offer.buying);
+    const amount = offer.amount || '—';
+    const price = offer.price || (offer.price_r ? `${offer.price_r.n}/${offer.price_r.d}` : '—');
+    const updatedAt = offer.last_modified_time
+        ? new Date(offer.last_modified_time).toLocaleString()
+        : '—';
+
+    if (sellerEl) sellerEl.innerHTML = accountLink(offer.seller);
+    if (remainingEl) {
+        remainingEl.innerHTML = t('remaining-sell-amount', '{amount} {selling} left to sell')
+            .replace('{amount}', `<span>${amount}</span>`)
+            .replace('{selling}', sellingAsset);
+    }
+    if (priceEl) {
+        priceEl.innerHTML = t('price-in-buying', '{price} {buying} per 1 {selling}')
+            .replace('{price}', `<span>${price}</span>`)
+            .replace('{buying}', buyingAsset)
+            .replace('{selling}', sellingCode);
+    }
+    if (updatedEl) updatedEl.textContent = updatedAt;
+    if (ledgerEl) ledgerEl.textContent = offer.last_modified_ledger || '—';
+
+    const offerIdEl = document.getElementById('offer-id');
+    if (offerIdEl) {
+        offerIdEl.textContent = `${offer.id || ''} · ${sellingCode} → ${buyingCode}`;
+    }
+}
+
 function createTradeCard(trade, t) {
     const box = document.createElement('div');
     box.className = 'box mb-2 p-3';
@@ -189,6 +255,14 @@ export async function init(params, i18n) {
         return data?._embedded?.records || [];
     }
 
+    async function fetchOffer(oid) {
+        const res = await fetch(`${horizonBase}/offers/${encodeURIComponent(oid)}`);
+        if (!res.ok) {
+            throw new Error(`Horizon error ${res.status}`);
+        }
+        return res.json();
+    }
+
     function renderTrades(list) {
         if (!container) return;
         container.innerHTML = '';
@@ -260,7 +334,23 @@ export async function init(params, i18n) {
         clearError();
         showLoading(true);
         try {
-            const batch = await fetchTrades(offerId, { limit: 50 });
+            const [offerResult, tradesResult] = await Promise.allSettled([
+                fetchOffer(offerId),
+                fetchTrades(offerId, { limit: 50 })
+            ]);
+
+            if (offerResult.status === 'fulfilled') {
+                renderOfferSummary(offerResult.value, t);
+            } else {
+                console.warn(offerResult.reason);
+                renderOfferSummary(null, t);
+            }
+
+            if (tradesResult.status === 'rejected') {
+                throw tradesResult.reason;
+            }
+
+            const batch = tradesResult.value;
             trades = batch;
             nextCursor = batch.length ? batch[batch.length - 1].paging_token : null;
             setStatus('ok');
